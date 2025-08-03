@@ -1,0 +1,154 @@
+import React, { useState, useEffect } from 'react';
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonButton,
+  IonIcon,
+  IonTable,
+  IonThead,
+  IonTbody,
+  IonTr,
+  IonTh,
+  IonTd,
+  IonModal,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+} from '@ionic/react';
+import { add, create, trash } from 'ionicons/icons';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000/api';
+
+const Branches: React.FC = () => {
+  const [branches, setBranches] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<any | null>(null);
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  const fetchBranches = async () => {
+    const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+    setBranches(data);
+  };
+
+  const handleSave = async () => {
+    const branchData = { name, address };
+    if (selectedBranch) {
+      await axios.put(`${API_URL}/branches/${selectedBranch._id}`, branchData, { withCredentials: true });
+    } else {
+      await axios.post(`${API_URL}/branches`, branchData, { withCredentials: true });
+    }
+    fetchBranches();
+    closeModal();
+  };
+
+  const handleDelete = async (id: string) => {
+    await axios.delete(`${API_URL}/branches/${id}`, { withCredentials: true });
+    fetchBranches();
+  };
+
+  const openModal = (branch: any | null = null) => {
+    setSelectedBranch(branch);
+    setName(branch ? branch.name : '');
+    setAddress(branch ? branch.address : '');
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedBranch(null);
+    setName('');
+    setAddress('');
+  };
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Branches</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+        <IonGrid>
+          <IonRow>
+            <IonCol>
+              <IonButton onClick={() => openModal()}>
+                <IonIcon slot="start" icon={add} />
+                Add Branch
+              </IonButton>
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol>
+              <IonTable>
+                <IonThead>
+                  <IonTr>
+                    <IonTh>Name</IonTh>
+                    <IonTh>Address</IonTh>
+                    <IonTh>Actions</IonTh>
+                  </IonTr>
+                </IonThead>
+                <IonTbody>
+                  {branches.map((branch) => (
+                    <IonTr key={branch._id}>
+                      <IonTd>{branch.name}</IonTd>
+                      <IonTd>{branch.address}</IonTd>
+                      <IonTd>
+                        <IonButton onClick={() => openModal(branch)}>
+                          <IonIcon slot="icon-only" icon={create} />
+                        </IonButton>
+                        <IonButton color="danger" onClick={() => handleDelete(branch._id)}>
+                          <IonIcon slot="icon-only" icon={trash} />
+                        </IonButton>
+                      </IonTd>
+                    </IonTr>
+                  ))}
+                </IonTbody>
+              </IonTable>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+        <IonModal isOpen={showModal} onDidDismiss={closeModal}>
+          <IonCard>
+            <IonCardHeader>
+              <IonCardTitle>{selectedBranch ? 'Edit' : 'Add'} Branch</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonItem>
+                <IonLabel position="floating">Name</IonLabel>
+                <IonInput value={name} onIonChange={(e) => setName(e.detail.value!)} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Address</IonLabel>
+                <IonInput value={address} onIonChange={(e) => setAddress(e.detail.value!)} />
+              </IonItem>
+              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
+                Save
+              </IonButton>
+              <IonButton expand="full" color="light" onClick={closeModal}>
+                Cancel
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        </IonModal>
+      </IonContent>
+    </IonPage>
+  );
+};
+
+export default Branches;
