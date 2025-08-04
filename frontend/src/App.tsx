@@ -5,6 +5,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import Branches from './pages/branches/Branches';
+import Users from './pages/users/Users';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -50,6 +51,7 @@ const App: React.FC = () => {
           <Switch>
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
+            <ProtectedRoute path="/dashboard/users" component={Users} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />
             <ProtectedRoute path="/dashboard" component={Dashboard} />
             <Route exact path="/">
