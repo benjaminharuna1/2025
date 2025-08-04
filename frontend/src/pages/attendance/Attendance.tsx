@@ -52,6 +52,7 @@ const Attendance: React.FC = () => {
     };
     fetchClasses();
   }, []);
+  
 
   useEffect(() => {
     const fetchStudents = async () => {
