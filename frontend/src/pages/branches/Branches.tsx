@@ -36,8 +36,18 @@ const Branches: React.FC = () => {
   }, []);
 
   const fetchBranches = async () => {
-    const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
-    setBranches(data);
+    try {
+      const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      if (Array.isArray(data)) {
+        setBranches(data);
+      } else {
+        console.error('API did not return an array:', data);
+        setBranches([]);
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      setBranches([]);
+    }
   };
 
   const handleSave = async () => {
