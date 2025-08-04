@@ -38,10 +38,13 @@ const Branches: React.FC = () => {
   const fetchBranches = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
-      if (Array.isArray(data)) {
+      if (data && Array.isArray(data.docs)) {
+        setBranches(data.docs);
+      } else if (Array.isArray(data)) {
         setBranches(data);
-      } else {
-        console.error('API did not return an array:', data);
+      }
+      else {
+        console.error('API did not return an array of branches:', data);
         setBranches([]);
       }
     } catch (error) {
@@ -99,7 +102,7 @@ const Branches: React.FC = () => {
           </IonRow>
           <IonRow>
             <IonCol>
-              <div className="ion-padding">
+              <div className="ion-padding" style={{ overflowX: 'auto' }}>
                 <table className="ion-table">
                   <thead>
                     <tr>
