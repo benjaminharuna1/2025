@@ -1,0 +1,54 @@
+/* Users.css */
+
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responsive-table th,
+.responsive-table td {
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.responsive-table thead th {
+  background-color: var(--ion-color-light);
+  font-weight: bold;
+}
+
+.responsive-table tbody tr:nth-child(even) {
+  background-color: var(--ion-color-light-tint);
+}
+
+@media screen and (max-width: 600px) {
+  .responsive-table {
+    border: 0;
+  }
+
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tr {
+    display: block;
+    margin-bottom: 0.625rem;
+    border: 1px solid var(--ion-color-medium);
+    border-radius: 4px;
+  }
+
+  .responsive-table td {
+    display: block;
+    text-align: right;
+    border-bottom: 1px solid var(--ion-color-light);
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+  }
+
+  .responsive-table td:last-child {
+    border-bottom: 0;
+  }
+}
