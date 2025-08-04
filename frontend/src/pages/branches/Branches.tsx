@@ -10,12 +10,6 @@ import {
   IonCol,
   IonButton,
   IonIcon,
-  IonTable,
-  IonThead,
-  IonTbody,
-  IonTr,
-  IonTh,
-  IonTd,
   IonModal,
   IonInput,
   IonItem,
@@ -95,31 +89,33 @@ const Branches: React.FC = () => {
           </IonRow>
           <IonRow>
             <IonCol>
-              <IonTable>
-                <IonThead>
-                  <IonTr>
-                    <IonTh>Name</IonTh>
-                    <IonTh>Address</IonTh>
-                    <IonTh>Actions</IonTh>
-                  </IonTr>
-                </IonThead>
-                <IonTbody>
-                  {branches.map((branch) => (
-                    <IonTr key={branch._id}>
-                      <IonTd>{branch.name}</IonTd>
-                      <IonTd>{branch.address}</IonTd>
-                      <IonTd>
-                        <IonButton onClick={() => openModal(branch)}>
-                          <IonIcon slot="icon-only" icon={create} />
-                        </IonButton>
-                        <IonButton color="danger" onClick={() => handleDelete(branch._id)}>
-                          <IonIcon slot="icon-only" icon={trash} />
-                        </IonButton>
-                      </IonTd>
-                    </IonTr>
-                  ))}
-                </IonTbody>
-              </IonTable>
+              <div className="ion-padding">
+                <table className="ion-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Address</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {branches.map((branch) => (
+                      <tr key={branch._id}>
+                        <td>{branch.name}</td>
+                        <td>{branch.address}</td>
+                        <td>
+                          <IonButton onClick={() => openModal(branch)}>
+                            <IonIcon slot="icon-only" icon={create} />
+                          </IonButton>
+                          <IonButton color="danger" onClick={() => handleDelete(branch._id)}>
+                            <IonIcon slot="icon-only" icon={trash} />
+                          </IonButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </IonCol>
           </IonRow>
         </IonGrid>

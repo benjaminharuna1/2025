@@ -8,7 +8,9 @@ const root = createRoot(container!);
 root.render(
   <React.StrictMode>
     <AuthProvider>
-      <App />
+      <div>
+        <App />
+      </div>
     </AuthProvider>
   </React.StrictMode>
 );

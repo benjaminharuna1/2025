@@ -82,7 +82,7 @@ const Login: React.FC = () => {
                     <IonButton
                       type="submit"
                       expand="block"
-                      class="ion-margin-top"
+                      className="ion-margin-top"
                       disabled={loading}
                     >
                       Login
