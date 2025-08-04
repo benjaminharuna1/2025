@@ -38,8 +38,8 @@ const Branches: React.FC = () => {
   const fetchBranches = async () => {
     try {
       const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
-      if (data && Array.isArray(data.docs)) {
-        setBranches(data.docs);
+      if (data && Array.isArray(data.branches)) {
+        setBranches(data.branches);
       } else if (Array.isArray(data)) {
         setBranches(data);
       }
