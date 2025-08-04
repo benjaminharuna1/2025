@@ -21,6 +21,7 @@ import {
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import axios from 'axios';
+import './Branches.css';
 
 const API_URL = 'http://localhost:3000/api';
 
@@ -102,8 +103,8 @@ const Branches: React.FC = () => {
           </IonRow>
           <IonRow>
             <IonCol>
-              <div className="ion-padding" style={{ overflowX: 'auto' }}>
-                <table className="ion-table">
+              <div className="ion-padding">
+                <table className="branches-table">
                   <thead>
                     <tr>
                       <th>Name</th>
@@ -114,15 +115,15 @@ const Branches: React.FC = () => {
                   <tbody>
                     {branches.map((branch) => (
                       <tr key={branch._id}>
-                        <td>{branch.name}</td>
-                        <td>{branch.address}</td>
-                        <td>
+                        <td data-label="Name">{branch.name}</td>
+                        <td data-label="Address">{branch.address}</td>
+                        <td data-label="Actions">
                           <IonButton onClick={() => openModal(branch)}>
                             <IonIcon slot="icon-only" icon={create} />
-                          </IonButton>
+                          </Button>
                           <IonButton color="danger" onClick={() => handleDelete(branch._id)}>
                             <IonIcon slot="icon-only" icon={trash} />
-                          </IonButton>
+                          </Button>
                         </td>
                       </tr>
                     ))}
