@@ -21,6 +21,7 @@ import './Attendance.css';
 interface Class {
   _id: string;
   name: string;
+  branchId: string;
 }
 
 interface Student {
@@ -52,9 +53,23 @@ const Attendance: React.FC = () => {
     };
     fetchClasses();
   }, []);
-  
+
+  const [selectedClassDetails, setSelectedClassDetails] = useState<Class | null>(null);
 
   useEffect(() => {
+    const fetchClassDetails = async () => {
+      if (selectedClass) {
+        try {
+          const { data } = await axios.get(`/api/classes/${selectedClass}`);
+          setSelectedClassDetails(data);
+        } catch (error) {
+          setToastMessage('Error fetching class details');
+          setToastColor('danger');
+          setShowToast(true);
+        }
+      }
+    };
+
     const fetchStudents = async () => {
       if (selectedClass) {
         try {
@@ -67,6 +82,7 @@ const Attendance: React.FC = () => {
         }
       }
     };
+    fetchClassDetails();
     fetchStudents();
   }, [selectedClass]);
 
@@ -76,13 +92,23 @@ const Attendance: React.FC = () => {
 
   const submitAttendance = async () => {
     try {
-      const attendanceData = Object.entries(attendance).map(([studentId, status]) => ({
-        studentId,
-        classId: selectedClass,
-        date,
-        status,
-      }));
-      await axios.post('/api/attendance', attendanceData);
+      if (!selectedClassDetails) {
+        setToastMessage('Please select a class');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      for (const student of students) {
+        const status = attendance[student._id] || 'Present';
+        await axios.post('/api/attendance', {
+          studentId: student._id,
+          classId: selectedClass,
+          branchId: selectedClassDetails.branchId,
+          date,
+          status,
+        });
+      }
       setToastMessage('Attendance submitted successfully');
       setToastColor('success');
       setShowToast(true);
