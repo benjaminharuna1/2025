@@ -270,7 +270,7 @@ const FeeStructures: React.FC = () => {
                   <IonCol>
                     <IonItem>
                       <IonLabel position="floating">Type</IonLabel>
-                      <IonInput name="type" value={fee.type} onIonChange={(e) => handleFeeChange(index, e)} />
+                      <IonInput name="feeType" value={fee.feeType} onIonChange={(e) => handleFeeChange(index, e)} />
                     </IonItem>
                   </IonCol>
                   <IonCol>
