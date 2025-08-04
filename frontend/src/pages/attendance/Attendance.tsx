@@ -18,12 +18,22 @@ import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import './Attendance.css';
 
+interface Class {
+  _id: string;
+  name: string;
+}
+
+interface Student {
+  _id: string;
+  name: string;
+}
+
 const Attendance: React.FC = () => {
   const { user } = useAuth();
-  const [classes, setClasses] = useState([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [students, setStudents] = useState([]);
-  const [date, setDate] = useState(new Date().toISOString());
+  const [students, setStudents] = useState<Student[]>([]);
+  const [date, setDate] = useState<string>(new Date().toISOString());
   const [attendance, setAttendance] = useState<{ [key: string]: string }>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -122,7 +132,7 @@ const Attendance: React.FC = () => {
         </IonItem>
         <IonItem>
           <IonLabel>Date</IonLabel>
-          <IonDatetime value={date} onIonChange={e => setDate(e.detail.value!)} />
+          <IonDatetime value={date} onIonChange={e => setDate(e.detail.value ? e.detail.value.toString() : '')} />
         </IonItem>
         <IonList>
           {students.map(student => (
