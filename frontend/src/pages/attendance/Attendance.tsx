@@ -43,7 +43,7 @@ const Attendance: React.FC = () => {
     const fetchClasses = async () => {
       try {
         const { data } = await axios.get('/api/classes');
-        setClasses(data.classes);
+        setClasses(data.classes || []);
       } catch (error) {
         setToastMessage('Error fetching classes');
         setToastColor('danger');
@@ -58,7 +58,7 @@ const Attendance: React.FC = () => {
       if (selectedClass) {
         try {
           const { data } = await axios.get(`/api/students?classId=${selectedClass}`);
-          setStudents(data.students);
+          setStudents(data.students || []);
         } catch (error) {
           setToastMessage('Error fetching students');
           setToastColor('danger');
