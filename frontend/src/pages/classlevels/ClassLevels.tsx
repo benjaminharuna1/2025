@@ -1,0 +1,160 @@
+import React, { useState, useEffect } from 'react';
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonButton,
+  IonIcon,
+  IonModal,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+} from '@ionic/react';
+import { add, create, trash } from 'ionicons/icons';
+import axios from 'axios';
+import './ClassLevels.css';
+
+const API_URL = 'http://localhost:3000/api';
+
+const ClassLevels: React.FC = () => {
+  const [classLevels, setClassLevels] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedClassLevel, setSelectedClassLevel] = useState<any | null>(null);
+  const [formData, setFormData] = useState<any>({});
+
+  useEffect(() => {
+    fetchClassLevels();
+  }, []);
+
+  const fetchClassLevels = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/classlevels`, { withCredentials: true });
+      if (Array.isArray(data)) {
+        setClassLevels(data);
+      } else {
+        setClassLevels([]);
+      }
+    } catch (error) {
+      console.error('Error fetching class levels:', error);
+      setClassLevels([]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (selectedClassLevel) {
+      await axios.put(`${API_URL}/classlevels/${selectedClassLevel._id}`, formData, { withCredentials: true });
+    } else {
+      await axios.post(`${API_URL}/classlevels`, formData, { withCredentials: true });
+    }
+    fetchClassLevels();
+    closeModal();
+  };
+
+  const handleDelete = async (id: string) => {
+    await axios.delete(`${API_URL}/classlevels/${id}`, { withCredentials: true });
+    fetchClassLevels();
+  };
+
+  const openModal = (classLevel: any | null = null) => {
+    setSelectedClassLevel(classLevel);
+    setFormData(classLevel ? { ...classLevel } : {});
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedClassLevel(null);
+    setFormData({});
+  };
+
+  const handleInputChange = (e: any) => {
+    setFormData({ ...formData, [e.target.name]: e.detail.value });
+  };
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Class Levels</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+        <IonGrid>
+          <IonRow>
+            <IonCol>
+              <IonButton onClick={() => openModal()}>
+                <IonIcon slot="start" icon={add} />
+                Add Class Level
+              </IonButton>
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol>
+              <div className="ion-padding">
+                <table className="responsive-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {classLevels.map((classLevel) => (
+                      <tr key={classLevel._id}>
+                        <td data-label="Name">{classLevel.name}</td>
+                        <td data-label="Description">{classLevel.description}</td>
+                        <td data-label="Actions">
+                          <IonButton onClick={() => openModal(classLevel)}>
+                            <IonIcon slot="icon-only" icon={create} />
+                          </IonButton>
+                          <IonButton color="danger" onClick={() => handleDelete(classLevel._id)}>
+                            <IonIcon slot="icon-only" icon={trash} />
+                          </IonButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+        <IonModal isOpen={showModal} onDidDismiss={closeModal}>
+          <IonCard>
+            <IonCardHeader>
+              <IonCardTitle>{selectedClassLevel ? 'Edit' : 'Add'} Class Level</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <IonItem>
+                <IonLabel position="floating">Name</IonLabel>
+                <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Description</IonLabel>
+                <IonInput name="description" value={formData.description} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
+                Save
+              </IonButton>
+              <IonButton expand="full" color="light" onClick={closeModal}>
+                Cancel
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        </IonModal>
+      </IonContent>
+    </IonPage>
+  );
+};
+
+export default ClassLevels;
