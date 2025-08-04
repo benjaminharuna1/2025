@@ -90,6 +90,7 @@ const FeeStructures: React.FC = () => {
   };
 
   const handleSave = async () => {
+    console.log('Saving fee structure:', formData);
     if (selectedFeeStructure) {
       await axios.put(`${API_URL}/feestructures/${selectedFeeStructure._id}`, formData, { withCredentials: true });
     } else {
@@ -122,7 +123,7 @@ const FeeStructures: React.FC = () => {
 
   const handleFeeChange = (index: number, e: any) => {
     const newFees = [...formData.fees];
-    newFees[index][e.target.name] = e.detail.value;
+    newFees[index][e.target.name] = e.target.name === 'amount' ? parseInt(e.detail.value, 10) : e.detail.value;
     setFormData({ ...formData, fees: newFees });
   };
 
