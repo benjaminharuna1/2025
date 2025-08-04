@@ -120,10 +120,10 @@ const Branches: React.FC = () => {
                         <td data-label="Actions">
                           <IonButton onClick={() => openModal(branch)}>
                             <IonIcon slot="icon-only" icon={create} />
-                          </Button>
+                          </IonButton>
                           <IonButton color="danger" onClick={() => handleDelete(branch._id)}>
                             <IonIcon slot="icon-only" icon={trash} />
-                          </Button>
+                          </IonButton>
                         </td>
                       </tr>
                     ))}
