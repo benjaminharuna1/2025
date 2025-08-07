@@ -97,7 +97,11 @@ const Users: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.detail.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectChange = (name: string, value: any) => {
+    setFormData({ ...formData, [name]: value });
   };
 
   return (
@@ -201,7 +205,7 @@ const Users: React.FC = () => {
               )}
               <IonItem>
                 <IonLabel>Role</IonLabel>
-                <IonSelect name="role" value={formData.role} onIonChange={handleInputChange}>
+                <IonSelect name="role" value={formData.role} onIonChange={(e) => handleSelectChange('role', e.detail.value)}>
                   <IonSelectOption value="Student">Student</IonSelectOption>
                   <IonSelectOption value="Teacher">Teacher</IonSelectOption>
                   <IonSelectOption value="Parent">Parent</IonSelectOption>
@@ -211,7 +215,7 @@ const Users: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel>Branch</IonLabel>
-                <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
+                <IonSelect name="branchId" value={formData.branchId} onIonChange={(e) => handleSelectChange('branchId', e.detail.value)}>
                   {branches.map((branch) => (
                     <IonSelectOption key={branch._id} value={branch._id}>
                       {branch.name}
@@ -223,15 +227,15 @@ const Users: React.FC = () => {
                 <>
                   <IonItem>
                     <IonLabel position="floating">Class ID</IonLabel>
-                    <IonInput name="classId" value={formData.classId} onIonChange={handleInputChange} />
+                    <IonInput name="classId" value={formData.classId} onIonChange={(e) => handleInputChange(e)} />
                   </IonItem>
                   <IonItem>
                     <IonLabel position="floating">Date of Birth</IonLabel>
-                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={(e) => handleInputChange(e)} />
                   </IonItem>
                   <IonItem>
                     <IonLabel position="floating">Admission Number</IonLabel>
-                    <IonInput name="admissionNumber" value={formData.admissionNumber} onIonChange={handleInputChange} />
+                    <IonInput name="admissionNumber" value={formData.admissionNumber} onIonChange={(e) => handleInputChange(e)} />
                   </IonItem>
                 </>
               )}

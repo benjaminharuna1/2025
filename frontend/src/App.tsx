@@ -11,6 +11,7 @@ import Classes from './pages/classes/Classes';
 import Subjects from './pages/subjects/Subjects';
 import FeeStructures from './pages/feestructures/FeeStructures';
 import FeePayments from './pages/feepayments/FeePayments';
+import Attendance from './pages/attendance/Attendance';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -56,6 +57,7 @@ const App: React.FC = () => {
           <Switch>
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
+            <ProtectedRoute path="/dashboard/attendance" component={Attendance} />
             <ProtectedRoute path="/dashboard/feepayments" component={FeePayments} />
             <ProtectedRoute path="/dashboard/feestructures" component={FeeStructures} />
             <ProtectedRoute path="/dashboard/subjects" component={Subjects} />
