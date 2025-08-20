@@ -25,6 +25,7 @@ import { add, create, trash } from 'ionicons/icons';
 import axios from 'axios';
 import './Users.css';
 
+
 const API_URL = 'http://localhost:3000/api';
 
 const Users: React.FC = () => {
@@ -35,11 +36,18 @@ const Users: React.FC = () => {
   const [formData, setFormData] = useState<any>({});
   const [filterRole, setFilterRole] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
 
   useEffect(() => {
     fetchUsers();
     fetchBranches();
+    fetchClasses();
+    fetchSubjects();
+    fetchStudents();
   }, [filterRole, filterBranch]);
+
 
   const fetchUsers = async () => {
     try {
@@ -69,14 +77,70 @@ const Users: React.FC = () => {
     }
   };
 
+  const fetchClasses = async () => {
+    const { data } = await axios.get(`${API_URL}/classes`, { withCredentials: true });
+    setClasses(data.classes || []);
+  };
+
+  const fetchSubjects = async () => {
+    const { data } = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
+    setSubjects(data.subjects || []);
+  };
+
+  const fetchStudents = async () => {
+    const { data } = await axios.get(`${API_URL}/students`, { withCredentials: true });
+    setStudents(data.students || []);
+  };
+
   const handleSave = async () => {
-    if (selectedUser) {
-      await axios.put(`${API_URL}/users/${selectedUser._id}`, formData, { withCredentials: true });
-    } else {
-      await axios.post(`${API_URL}/users`, formData, { withCredentials: true });
+    try {
+      const payload: any = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        branchId: formData.branchId,
+      };
+
+      // Role-specific payload
+      if (formData.role === 'Student') {
+        payload.student = {
+          classId: formData.classId,
+          dateOfBirth: formData.dateOfBirth,
+          admissionNumber: formData.admissionNumber,
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+        };
+      }
+
+      if (formData.role === 'Teacher') {
+        payload.teacher = {
+          classes: formData.classes || [],
+          subjects: formData.subjects || [],
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+        };
+      }
+
+      if (formData.role === 'Parent') {
+        payload.parent = {
+          students: formData.students || [],
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+        };
+      }
+
+      if (selectedUser) {
+        await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, { withCredentials: true });
+      } else {
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+      }
+
+      closeModal();
+      fetchUsers();
+    } catch (error) {
+      console.error('Error saving user:', error);
     }
-    fetchUsers();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
@@ -97,8 +161,9 @@ const Users: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const { name, value } = e.target;
+  setFormData((prev: any) => ({ ...prev, [name]: value }));
+};
 
   const handleSelectChange = (name: string, value: any) => {
     setFormData({ ...formData, [name]: value });
@@ -223,6 +288,26 @@ const Users: React.FC = () => {
                   ))}
                 </IonSelect>
               </IonItem>
+
+              <IonItem>
+                  <IonLabel position="floating">Gender</IonLabel>
+                  <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>
+                    <IonSelectOption value="Male">Male</IonSelectOption>
+                    <IonSelectOption value="Female">Female</IonSelectOption>
+                    <IonSelectOption value="Other">Other</IonSelectOption>
+                  </IonSelect>
+              </IonItem>
+
+              <IonItem>
+                  <IonLabel position="floating">Phone Number</IonLabel>
+                  <IonInput
+                    name="phoneNumber"
+                    type="tel"
+                    value={formData.phoneNumber}
+                    onIonChange={handleInputChange}
+                />
+              </IonItem>
+              
               {formData.role === 'Student' && (
                 <>
                   <IonItem>
@@ -239,6 +324,43 @@ const Users: React.FC = () => {
                   </IonItem>
                 </>
               )}
+
+              {formData.role === 'Teacher' && (
+                <>
+                  <IonItem>
+                    <IonLabel>Classes</IonLabel>
+                    <IonSelect
+                      multiple
+                      value={formData.classes || []}
+                      onIonChange={(e) => handleSelectChange('classes', e.detail.value)}
+                    >
+                      {classes.map((cls) => (
+                        <IonSelectOption key={cls._id} value={cls._id}>
+                          {cls.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+
+                  <IonItem>
+                    <IonLabel>Subjects</IonLabel>
+                    <IonSelect
+                      multiple
+                      value={formData.subjects || []}
+                      onIonChange={(e) => handleSelectChange('subjects', e.detail.value)}
+                    >
+                      {subjects.map((subj) => (
+                        <IonSelectOption key={subj._id} value={subj._id}>
+                          {subj.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+                </>
+              )}
+
+
+
               <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
                 Save
               </IonButton>
