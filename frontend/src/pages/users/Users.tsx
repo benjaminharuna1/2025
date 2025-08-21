@@ -76,26 +76,26 @@ const UsersPage: React.FC = () => {
     if (user) {
       try {
         setIsLoading(true);
-        // Fetch the full user object to ensure we have the populated profile
         const res = await axios.get(`${API_URL}/users/${user._id}`, { withCredentials: true });
-        const fullUser = res.data.user;
-        setSelectedUser(fullUser);
+        const { user: userData, profile: profileData } = res.data;
 
-        const profile = fullUser.student || fullUser.teacher || fullUser.parent || fullUser.adminProfile || {};
+        // Store the combined user and profile data for use in handleSave
+        setSelectedUser({ user: userData, profile: profileData });
+
         setFormData({
-          name: fullUser.name,
-          email: fullUser.email,
-          role: fullUser.role,
-          branchId: fullUser.branchId || null,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          branchId: userData.branchId || null,
           password: "",
-          gender: profile.gender || "",
-          phoneNumber: profile.phoneNumber || "",
-          classId: fullUser.student?.classId || "",
-          dateOfBirth: fullUser.student?.dateOfBirth || "",
-          admissionNumber: fullUser.student?.admissionNumber || "",
-          classes: fullUser.teacher?.classes?.map((c: any) => c._id) || [],
-          subjects: fullUser.teacher?.subjects?.map((s: any) => s._id) || [],
-          students: fullUser.parent?.students?.map((s: any) => s._id) || [],
+          gender: profileData?.gender || "",
+          phoneNumber: profileData?.phoneNumber || "",
+          classId: profileData?.classId || "",
+          dateOfBirth: profileData?.dateOfBirth || "",
+          admissionNumber: profileData?.admissionNumber || "",
+          classes: profileData?.classes?.map((c: any) => c._id) || [],
+          subjects: profileData?.subjects?.map((s: any) => s._id) || [],
+          students: profileData?.students?.map((s: any) => s._id) || [],
         });
         setShowModal(true);
       } catch (error) {
@@ -140,7 +140,7 @@ const UsersPage: React.FC = () => {
 
     try {
       setIsLoading(true);
-      if (selectedUser) {
+      if (selectedUser && selectedUser.user && selectedUser.profile) {
         // Two-step update process
         const userPayload = {
           name: formData.name,
@@ -149,50 +149,31 @@ const UsersPage: React.FC = () => {
           branchId: formData.branchId,
         };
         // 1. Update the core user
-        await axios.put(`${API_URL}/users/${selectedUser._id}`, userPayload, {
+        await axios.put(`${API_URL}/users/${selectedUser.user._id}`, userPayload, {
           withCredentials: true,
         });
 
         // 2. Update the profile
         let profilePayload: any = {};
         let profileEndpoint = '';
-        let profileId = '';
+        const profileId = selectedUser.profile._id;
 
-        if (formData.role === 'Student' && selectedUser.student) {
-            profileEndpoint = `/students/${selectedUser.student._id}`;
-            profilePayload = {
-                classId: formData.classId,
-                admissionNumber: formData.admissionNumber,
-                dateOfBirth: formData.dateOfBirth,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-        } else if (formData.role === 'Teacher' && selectedUser.teacher) {
-            profileEndpoint = `/teachers/${selectedUser.teacher._id}`;
-            profilePayload = {
-                classes: formData.classes,
-                subjects: formData.subjects,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-        } else if (formData.role === 'Parent' && selectedUser.parent) {
-            profileEndpoint = `/parents/${selectedUser.parent._id}`;
-            profilePayload = {
-                students: formData.students,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-        } else if ((formData.role === 'Branch Admin' || formData.role === 'Super Admin') && selectedUser.adminProfile) {
-            profileEndpoint = `/admins/${selectedUser.adminProfile._id}`;
-            profilePayload = {
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
+        if (formData.role === 'Student') {
+            profileEndpoint = `/students/${profileId}`;
+            profilePayload = { classId: formData.classId, admissionNumber: formData.admissionNumber, dateOfBirth: formData.dateOfBirth, gender: formData.gender, phoneNumber: formData.phoneNumber };
+        } else if (formData.role === 'Teacher') {
+            profileEndpoint = `/teachers/${profileId}`;
+            profilePayload = { classes: formData.classes, subjects: formData.subjects, gender: formData.gender, phoneNumber: formData.phoneNumber };
+        } else if (formData.role === 'Parent') {
+            profileEndpoint = `/parents/${profileId}`;
+            profilePayload = { students: formData.students, gender: formData.gender, phoneNumber: formData.phoneNumber };
+        } else if (formData.role === 'Branch Admin' || formData.role === 'Super Admin') {
+            profileEndpoint = `/admins/${profileId}`;
+            profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber };
         }
 
         if (profileEndpoint) {
            const profileRes = await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
-           // Use backend message if available
            const message = profileRes.data?.message || "User updated successfully!";
            setToast({ show: true, message, color: "success" });
         } else {
