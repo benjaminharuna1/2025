@@ -123,18 +123,41 @@ const TeachersPage: React.FC = () => {
         await axios.put(`${API_URL}/teachers/${selectedTeacher._id}`, profilePayload, { withCredentials: true });
 
         setToast({ show: true, message: 'Teacher updated successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       } else {
-        // Create logic
+        // Create logic (2-step)
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        const payload = { ...formData, role: 'Teacher' };
-        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        // 1. Create the core user
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: 'Teacher',
+        };
+        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
+
+        // 2. Update the newly created profile with the rest of the details
+        const newUser = res.data.user;
+        const profileId = newUser.teacher?._id;
+
+        if (profileId) {
+            const profilePayload = {
+              gender: formData.gender,
+              phoneNumber: formData.phoneNumber,
+              classes: formData.classes,
+              subjects: formData.subjects,
+            };
+            await axios.put(`${API_URL}/teachers/${profileId}`, profilePayload, { withCredentials: true });
+        }
+
         setToast({ show: true, message: 'Teacher created successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       }
-      closeModal();
-      fetchData();
     } catch (error: any) {
       setToast({ show: true, message: error.response?.data?.message || 'Failed to save teacher.', color: 'danger' });
     } finally {

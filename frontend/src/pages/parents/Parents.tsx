@@ -103,18 +103,39 @@ const ParentsPage: React.FC = () => {
         await axios.put(`${API_URL}/parents/${selectedParent._id}`, profilePayload, { withCredentials: true });
 
         setToast({ show: true, message: 'Parent updated successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       } else {
-        // Create
+        // Create (2-step)
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        const payload = { ...formData, role: 'Parent' };
-        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        // 1. Create the core user
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: 'Parent',
+        };
+        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
+
+        // 2. Update the newly created profile with the rest of the details
+        const newUser = res.data.user;
+        const profileId = newUser.parent?._id;
+
+        if (profileId) {
+            const profilePayload = {
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
+            await axios.put(`${API_URL}/parents/${profileId}`, profilePayload, { withCredentials: true });
+        }
+
         setToast({ show: true, message: 'Parent created successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       }
-      closeModal();
-      fetchData();
     } catch (error: any) {
       setToast({ show: true, message: error.response?.data?.message || 'Failed to save parent.', color: 'danger' });
     } finally {

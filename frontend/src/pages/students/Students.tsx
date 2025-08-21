@@ -124,18 +124,46 @@ const StudentsPage: React.FC = () => {
         await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
         setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       } else {
-        // Create logic
+        // Create logic (2-step)
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        const payload = { ...formData, role: 'Student' };
-        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        // 1. Create the core user
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            role: 'Student',
+            branchId: formData.branchId, // branchId is part of the core user for students
+        };
+        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
+
+        // 2. Update the newly created profile with the rest of the details
+        const newUser = res.data.user;
+        const profileId = newUser.student?._id; // Assumes profile stub is returned
+
+        if (profileId) {
+            const profilePayload = {
+                classId: formData.classId,
+                admissionNumber: formData.admissionNumber,
+                dateOfBirth: formData.dateOfBirth,
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber,
+                address: formData.address,
+                bloodGroup: formData.bloodGroup,
+                sponsor: formData.sponsor,
+            };
+            await axios.put(`${API_URL}/students/${profileId}`, profilePayload, { withCredentials: true });
+        }
+
         setToast({ show: true, message: 'Student created successfully!', color: 'success' });
+        closeModal();
+        fetchData();
       }
-      closeModal();
-      fetchData();
     } catch (error: any) {
       setToast({ show: true, message: error.response?.data?.message || 'Failed to save student.', color: 'danger' });
     } finally {
