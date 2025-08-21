@@ -6,6 +6,7 @@ import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import Branches from './pages/branches/Branches';
 import Users from './pages/users/Users';
+import Students from './pages/students/Students';
 import ClassLevels from './pages/classlevels/ClassLevels';
 import Classes from './pages/classes/Classes';
 import Subjects from './pages/subjects/Subjects';
@@ -64,6 +65,7 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/classes" component={Classes} />
             <ProtectedRoute path="/dashboard/classlevels" component={ClassLevels} />
             <ProtectedRoute path="/dashboard/users" component={Users} />
+            <ProtectedRoute path="/dashboard/students" component={Students} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />
             <ProtectedRoute path="/dashboard" component={Dashboard} />
             <Route exact path="/">
