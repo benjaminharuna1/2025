@@ -179,15 +179,20 @@ const UsersPage: React.FC = () => {
         }
 
         if (profileEndpoint) {
-            await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
+           const profileRes = await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
+           // Use backend message if available
+           const message = profileRes.data?.message || "User updated successfully!";
+           setToast({ show: true, message, color: "success" });
+        } else {
+            setToast({ show: true, message: "User core data updated. No profile to update.", color: "success" });
         }
 
-        setToast({ show: true, message: "User updated successfully!", color: "success" });
       } else {
         // One-step creation process
         const payload: any = { ...formData };
-        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
-        setToast({ show: true, message: "User created successfully!", color: "success" });
+        const createRes = await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        const message = createRes.data?.message || "User created successfully!";
+        setToast({ show: true, message, color: "success" });
       }
 
       closeModal();
@@ -203,8 +208,9 @@ const UsersPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
-      setToast({ show: true, message: "User deleted.", color: "medium" });
+      const deleteRes = await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
+      const message = deleteRes.data?.message || "User deleted.";
+      setToast({ show: true, message, color: "medium" });
       fetchData();
     } catch (error: any) {
       console.error("Error deleting user:", error);
