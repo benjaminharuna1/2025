@@ -41,7 +41,7 @@ const ParentsPage: React.FC = () => {
         axios.get(`${API_URL}/parents`, { withCredentials: true }),
         axios.get(`${API_URL}/students`, { withCredentials: true }),
       ]);
-      setParents(parentsRes.data.parents || []);
+      setParents(parentsRes.data || []); // The /api/parents endpoint returns a direct array
       setAllStudents(studentsRes.data.students || []);
     } catch (error) {
       console.error('Error fetching data:', error);
