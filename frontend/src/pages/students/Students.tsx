@@ -57,31 +57,32 @@ const StudentsPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const openModal = async (studentProfile: any) => {
-    try {
-      setIsLoading(true);
-      const res = await axios.get(`${API_URL}/students/${studentProfile._id}`, { withCredentials: true });
-      const fullProfile = res.data;
-      setSelectedStudent(fullProfile);
-
+  const openModal = (studentProfile: any = null) => {
+    if (studentProfile) {
+      // Editing an existing student
+      setSelectedStudent(studentProfile);
       setFormData({
-        name: fullProfile.userId.name,
-        email: fullProfile.userId.email,
-        classId: fullProfile.classId?._id,
-        branchId: fullProfile.branchId?._id,
-        admissionNumber: fullProfile.admissionNumber || '',
-        dateOfBirth: fullProfile.dateOfBirth?.split('T')[0] || '',
-        gender: fullProfile.gender || '',
-        phoneNumber: fullProfile.phoneNumber || '',
-        address: fullProfile.address || '',
-        bloodGroup: fullProfile.bloodGroup || '',
-        sponsor: fullProfile.sponsor || '',
+        name: studentProfile.userId.name,
+        email: studentProfile.userId.email,
+        classId: studentProfile.classId?._id,
+        branchId: studentProfile.branchId?._id,
+        admissionNumber: studentProfile.admissionNumber || '',
+        dateOfBirth: studentProfile.dateOfBirth?.split('T')[0] || '',
+        gender: studentProfile.gender || '',
+        phoneNumber: studentProfile.phoneNumber || '',
+        address: studentProfile.address || '',
+        bloodGroup: studentProfile.bloodGroup || '',
+        sponsor: studentProfile.sponsor || '',
+      });
+    } else {
+      // Adding a new student
+      setSelectedStudent(null);
+      setFormData({
+        name: '', email: '', password: '', role: 'Student',
+        classId: '', branchId: '', admissionNumber: '', dateOfBirth: '',
+        gender: '', phoneNumber: '', address: '', bloodGroup: '', sponsor: ''
       });
       setShowModal(true);
-    } catch (error) {
-      setToast({ show: true, message: 'Failed to fetch student details.', color: 'danger' });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,34 +102,53 @@ const StudentsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedStudent) return;
-
     try {
       setIsLoading(true);
-      // 1. Update core user info (name, email)
-      const userPayload = { name: formData.name, email: formData.email };
-      await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
+      if (selectedStudent) {
+        // Update logic
+        const userPayload = { name: formData.name, email: formData.email };
+        await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
-      // 2. Update student profile info
-      const profilePayload = {
-        classId: formData.classId,
-        admissionNumber: formData.admissionNumber,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        phoneNumber: formData.phoneNumber,
-        address: formData.address,
-        bloodGroup: formData.bloodGroup,
-        sponsor: formData.sponsor,
-        branchId: formData.branchId,
-      };
-      await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
+        const profilePayload = {
+            classId: formData.classId,
+            admissionNumber: formData.admissionNumber,
+            dateOfBirth: formData.dateOfBirth,
+            gender: formData.gender,
+            phoneNumber: formData.phoneNumber,
+            address: formData.address,
+            bloodGroup: formData.bloodGroup,
+            sponsor: formData.sponsor,
+            branchId: formData.branchId,
+        };
+        await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
-      setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
-      closeModal();
-      fetchData(); // Refresh list
+        setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
+        closeModal();
+        fetchData();
+      } else {
+        // Create-then-Update logic
+        if (!formData.password) {
+            setIsLoading(false);
+            return setToast({ show: true, message: "Password is required for new users.", color: "warning" });
+        }
+        const userPayload = { ...formData, role: 'Student' };
+        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
+
+        setToast({ show: true, message: "Student user created. Now please fill out the profile details.", color: "success" });
+
+        // The response from POST /users should contain the new user object with a populated profile
+        const newUser = res.data.user;
+        if (newUser && newUser.student) {
+            // Re-open modal in edit mode for the new user's profile
+            openModal(newUser.student);
+            fetchData(); // Refresh the list in the background
+        } else {
+            closeModal();
+            fetchData();
+        }
+      }
     } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || 'Failed to update student.', color: 'danger' });
-    } finally {
+      setToast({ show: true, message: error.response?.data?.message || 'Failed to save student.', color: 'danger' });
       setIsLoading(false);
     }
   };
@@ -150,6 +170,10 @@ const StudentsPage: React.FC = () => {
 
   return (
     <>
+      <IonButton expand="block" onClick={() => openModal()}>
+        Add Student
+      </IonButton>
+
       {isLoading ? (
         <div className="ion-text-center ion-padding">
             <IonSpinner />
@@ -172,7 +196,7 @@ const StudentsPage: React.FC = () => {
         <IonModal isOpen={showModal} onDidDismiss={closeModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Edit Student</IonTitle>
+              <IonTitle>{selectedStudent ? 'Edit' : 'Add'} Student</IonTitle>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
@@ -183,8 +207,14 @@ const StudentsPage: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel position="stacked">Email</IonLabel>
-                <IonInput name="email" value={formData.email} onIonChange={handleInputChange} />
+                <IonInput name="email" type="email" value={formData.email} onIonChange={handleInputChange} />
               </IonItem>
+              {!selectedStudent && (
+                  <IonItem>
+                      <IonLabel position="stacked">Password</IonLabel>
+                      <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
+                  </IonItem>
+              )}
               <IonItem>
                 <IonLabel>Class</IonLabel>
                 <IonSelect name="classId" value={formData.classId} onIonChange={(e) => handleSelectChange('classId', e.detail.value)}>
