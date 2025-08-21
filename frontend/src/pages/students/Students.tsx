@@ -57,14 +57,19 @@ const StudentsPage: React.FC = () => {
   const openModal = async (studentProfile: any) => {
     try {
       setIsLoading(true);
-      // The student profile from the list should be complete enough for editing
-      setSelectedStudent(studentProfile);
+      // Fetch full profile to get all details
+      const res = await axios.get(`${API_URL}/students/${studentProfile._id}`, { withCredentials: true });
+      const fullProfile = res.data;
+      setSelectedStudent(fullProfile);
+
       setFormData({
-        name: studentProfile.userId.name,
-        email: studentProfile.userId.email,
-        classId: studentProfile.classId._id, // The classId object is populated
-        admissionNumber: studentProfile.admissionNumber,
-        dateOfBirth: studentProfile.dateOfBirth?.split('T')[0],
+        name: fullProfile.userId.name,
+        email: fullProfile.userId.email,
+        classId: fullProfile.classId._id,
+        admissionNumber: fullProfile.admissionNumber,
+        dateOfBirth: fullProfile.dateOfBirth?.split('T')[0],
+        gender: fullProfile.gender,
+        phoneNumber: fullProfile.phoneNumber,
       });
       setShowModal(true);
     } catch (error) {
@@ -93,11 +98,11 @@ const StudentsPage: React.FC = () => {
 
     try {
       setIsLoading(true);
-      // 1. Update core user info
+      // 1. Update core user info (name, email)
       const userPayload = { name: formData.name, email: formData.email };
       await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
-      // 2. Update student profile info
+      // 2. Update student profile info with only the fields the backend accepts
       const profilePayload = {
         classId: formData.classId,
         admissionNumber: formData.admissionNumber,
@@ -188,6 +193,14 @@ const StudentsPage: React.FC = () => {
               <IonItem>
                 <IonLabel position="stacked">Date of Birth</IonLabel>
                 <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Gender</IonLabel>
+                <IonInput name="gender" value={formData.gender} readonly />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Phone Number</IonLabel>
+                <IonInput name="phoneNumber" value={formData.phoneNumber} readonly />
               </IonItem>
             </IonList>
             <IonButton expand="block" onClick={handleSave}>Save Changes</IonButton>
