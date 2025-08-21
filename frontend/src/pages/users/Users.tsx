@@ -198,136 +198,115 @@ const UsersPage: React.FC = () => {
     setToastOpen(true);
   };
 
-  /** Build payload based on role so backend updates/creates the correct profile table */
-  const buildPayload = () => {
-    const payload: any = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
-    if (!selectedUser) payload.password = formData.password;
-
-    switch (formData.role) {
+  const getProfileEndpoint = (role: string) => {
+    switch (role) {
       case "Student":
-        payload.branchId = formData.branchId;
-        payload.classId = formData.classId;
-        payload.dateOfBirth = formData.dateOfBirth;
-        payload.admissionNumber = formData.admissionNumber;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
+        return "students";
       case "Teacher":
-        payload.branchId = formData.branchId;
-        payload.classes = formData.classes;
-        payload.subjects = formData.subjects;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
+        return "teachers";
       case "Parent":
-        payload.students = formData.students;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
+        return "parents";
+      // Admins might have a different profile endpoint or none at all
+      // Assuming 'admins' based on common practice, adjust if needed
       case "Branch Admin":
-        payload.branchId = formData.branchId;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
       case "Super Admin":
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
+        return "admins";
+      default:
+        return null;
     }
+  };
 
-    return payload;
+  const buildProfilePayload = (role: string, data: any) => {
+    switch (role) {
+      case "Student":
+        return {
+          classId: data.classId,
+          dateOfBirth: data.dateOfBirth,
+          admissionNumber: data.admissionNumber,
+          gender: data.gender,
+          phoneNumber: data.phoneNumber,
+        };
+      case "Teacher":
+        return {
+          classes: data.classes,
+          subjects: data.subjects,
+          gender: data.gender,
+          phoneNumber: data.phoneNumber,
+        };
+      case "Parent":
+        return {
+          students: data.students,
+          gender: data.gender,
+          phoneNumber: data.phoneNumber,
+        };
+      case "Branch Admin":
+      case "Super Admin":
+        return {
+          gender: data.gender,
+          phoneNumber: data.phoneNumber,
+        };
+      default:
+        return {};
+    }
   };
 
   const handleSave = async () => {
-  try {
-    if (!formData.name || !formData.email || (!selectedUser && !formData.password) || !formData.role) {
-      setToastMessage("Please fill all required fields");
-      setToastOpen(true);
-      return;
-    }
+    try {
+      if (!formData.name || !formData.email || (!selectedUser && !formData.password) || !formData.role) {
+        showToast("Please fill all required fields");
+        return;
+      }
 
-    // Build the payload according to role
-    const payload: any = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
+      setLoading(true);
 
-    if (!selectedUser) payload.password = formData.password; // Only when creating
+      if (selectedUser) {
+        // Update user and profile
+        const userPayload = { name: formData.name, email: formData.email };
+        await axios.put(`${API_URL}/users/${selectedUser._id}`, userPayload, { withCredentials: true });
 
-    switch (formData.role) {
-      case "Student":
-        payload.branchId = formData.branchId;
-        payload.student = {
+        const profileEndpoint = getProfileEndpoint(selectedUser.role);
+        const profilePayload = buildProfilePayload(selectedUser.role, formData);
+
+        // This assumes the profile ID is stored in a field like `student._id`, `teacher._id` etc.
+        // You might need to adjust this based on the actual structure of your user object.
+        const profileId = selectedUser[selectedUser.role.toLowerCase()]?._id;
+
+        if (profileEndpoint && profileId && Object.keys(profilePayload).length > 0) {
+          await axios.put(`${API_URL}/${profileEndpoint}/${profileId}`, profilePayload, { withCredentials: true });
+        }
+
+        showToast("User updated successfully");
+
+      } else {
+        // Create user
+        const creationPayload = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          branchId: formData.branchId,
           classId: formData.classId,
           dateOfBirth: formData.dateOfBirth,
           admissionNumber: formData.admissionNumber,
           gender: formData.gender,
           phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Teacher":
-        payload.branchId = formData.branchId;
-        payload.teacher = {
           classes: formData.classes,
           subjects: formData.subjects,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Parent":
-        payload.parent = {
           students: formData.students,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
         };
-        break;
+        await axios.post(`${API_URL}/users`, creationPayload, { withCredentials: true });
+        showToast("User created successfully");
+      }
 
-      case "Branch Admin":
-        payload.branchId = formData.branchId;
-        payload.adminProfile = {
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Super Admin":
-        payload.adminProfile = {
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
+      fetchUsers();
+    } catch (error) {
+      console.error("Error saving user:", error);
+      showToast(`Failed to save user: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setLoading(false);
+      closeModal();
     }
-
-    if (selectedUser) {
-      // Update
-      await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, { withCredentials: true });
-    } else {
-      // Create
-      await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
-    }
-
-    fetchUsers();
-    closeModal();
-    setToastMessage("User saved successfully");
-    setToastOpen(true);
-
-  } catch (error) {
-    console.error("Error saving user:", error);
-    setToastMessage("Failed to save user");
-    setToastOpen(true);
-  }
-};
+  };
 
 
   const handleDelete = async (id: string, name: string) => {
