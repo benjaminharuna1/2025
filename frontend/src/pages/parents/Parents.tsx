@@ -23,6 +23,7 @@ const API_URL = 'http://localhost:3000/api';
 const ParentsPage: React.FC = () => {
   const [parents, setParents] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedParent, setSelectedParent] = useState<any>(null);
@@ -37,12 +38,14 @@ const ParentsPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [parentsRes, studentsRes] = await Promise.all([
+      const [parentsRes, studentsRes, branchesRes] = await Promise.all([
         axios.get(`${API_URL}/parents`, { withCredentials: true }),
         axios.get(`${API_URL}/students`, { withCredentials: true }),
+        axios.get(`${API_URL}/branches`, { withCredentials: true }),
       ]);
       setParents(parentsRes.data || []); // The /api/parents endpoint returns a direct array
       setAllStudents(studentsRes.data.students || []);
+      setBranches(branchesRes.data.branches || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setToast({ show: true, message: 'Failed to fetch data.', color: 'danger' });
@@ -62,6 +65,7 @@ const ParentsPage: React.FC = () => {
       setFormData({
         name: parentProfile.userId.name,
         email: parentProfile.userId.email,
+        branchId: parentProfile.userId.branchId || '',
         gender: parentProfile.gender || '',
         phoneNumber: parentProfile.phoneNumber || '',
       });
@@ -70,7 +74,7 @@ const ParentsPage: React.FC = () => {
       setSelectedParent(null);
       setFormData({
         name: '', email: '', password: '', role: 'Parent',
-        gender: '', phoneNumber: '',
+        branchId: '', gender: '', phoneNumber: '',
       });
     }
     setShowModal(true);
@@ -96,7 +100,11 @@ const ParentsPage: React.FC = () => {
       setIsLoading(true);
       if (selectedParent) {
         // Update
-        const userPayload = { name: formData.name, email: formData.email };
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            branchId: formData.branchId,
+        };
         await axios.put(`${API_URL}/users/${selectedParent.userId._id}`, userPayload, { withCredentials: true });
 
         const profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber };
@@ -106,31 +114,21 @@ const ParentsPage: React.FC = () => {
         closeModal();
         fetchData();
       } else {
-        // Create (2-step)
+        // Create
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        // 1. Create the core user
-        const userPayload = {
+        const payload = {
             name: formData.name,
             email: formData.email,
             password: formData.password,
             role: 'Parent',
+            branchId: formData.branchId,
+            gender: formData.gender,
+            phoneNumber: formData.phoneNumber
         };
-        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
-
-        // 2. Update the newly created profile with the rest of the details
-        const newUser = res.data.user;
-        const profileId = newUser.parent?._id;
-
-        if (profileId) {
-            const profilePayload = {
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-            await axios.put(`${API_URL}/parents/${profileId}`, profilePayload, { withCredentials: true });
-        }
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
 
         setToast({ show: true, message: 'Parent created successfully!', color: 'success' });
         closeModal();
@@ -245,6 +243,14 @@ const ParentsPage: React.FC = () => {
                   <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
               </IonItem>
             )}
+             <IonItem>
+                <IonLabel>Branch</IonLabel>
+                <IonSelect name="branchId" value={formData.branchId} onIonChange={(e) => handleSelectChange('branchId', e.detail.value)}>
+                    {branches.map(b => (
+                        <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>
+                    ))}
+                </IonSelect>
+            </IonItem>
             <IonItem>
               <IonLabel>Gender</IonLabel>
               <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>

@@ -107,7 +107,11 @@ const StudentsPage: React.FC = () => {
       setIsLoading(true);
       if (selectedStudent) {
         // Update logic
-        const userPayload = { name: formData.name, email: formData.email };
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            branchId: formData.branchId,
+        };
         await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
         const profilePayload = {
@@ -119,7 +123,6 @@ const StudentsPage: React.FC = () => {
             address: formData.address,
             bloodGroup: formData.bloodGroup,
             sponsor: formData.sponsor,
-            branchId: formData.branchId,
         };
         await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
@@ -127,38 +130,27 @@ const StudentsPage: React.FC = () => {
         closeModal();
         fetchData();
       } else {
-        // Create logic (2-step)
+        // Create logic
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        // 1. Create the core user
-        const userPayload = {
+        const payload = {
             name: formData.name,
             email: formData.email,
             password: formData.password,
             role: 'Student',
-            branchId: formData.branchId, // branchId is part of the core user for students
+            branchId: formData.branchId,
+            classId: formData.classId,
+            admissionNumber: formData.admissionNumber,
+            dateOfBirth: formData.dateOfBirth,
+            gender: formData.gender,
+            phoneNumber: formData.phoneNumber,
+            address: formData.address,
+            bloodGroup: formData.bloodGroup,
+            sponsor: formData.sponsor,
         };
-        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
-
-        // 2. Update the newly created profile with the rest of the details
-        const newUser = res.data.user;
-        const profileId = newUser.student?._id; // Assumes profile stub is returned
-
-        if (profileId) {
-            const profilePayload = {
-                classId: formData.classId,
-                admissionNumber: formData.admissionNumber,
-                dateOfBirth: formData.dateOfBirth,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber,
-                address: formData.address,
-                bloodGroup: formData.bloodGroup,
-                sponsor: formData.sponsor,
-            };
-            await axios.put(`${API_URL}/students/${profileId}`, profilePayload, { withCredentials: true });
-        }
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
 
         setToast({ show: true, message: 'Student created successfully!', color: 'success' });
         closeModal();

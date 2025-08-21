@@ -24,6 +24,7 @@ const TeachersPage: React.FC = () => {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
@@ -37,14 +38,16 @@ const TeachersPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [teachersRes, classesRes, subjectsRes] = await Promise.all([
+      const [teachersRes, classesRes, subjectsRes, branchesRes] = await Promise.all([
         axios.get(`${API_URL}/teachers`, { withCredentials: true }),
         axios.get(`${API_URL}/classes`, { withCredentials: true }),
         axios.get(`${API_URL}/subjects`, { withCredentials: true }),
+        axios.get(`${API_URL}/branches`, { withCredentials: true }),
       ]);
       setTeachers(teachersRes.data.teachers || []);
       setClasses(classesRes.data.classes || []);
       setSubjects(subjectsRes.data.subjects || []);
+      setBranches(branchesRes.data.branches || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setToast({ show: true, message: 'Failed to fetch data.', color: 'danger' });
@@ -69,6 +72,7 @@ const TeachersPage: React.FC = () => {
         setFormData({
           name: fullProfile.userId.name,
           email: fullProfile.userId.email,
+          branchId: fullProfile.userId.branchId || '',
           gender: fullProfile.gender || '',
           phoneNumber: fullProfile.phoneNumber || '',
           classes: fullProfile.classes?.map((c: any) => c._id) || [],
@@ -85,7 +89,7 @@ const TeachersPage: React.FC = () => {
       setSelectedTeacher(null);
       setFormData({
         name: '', email: '', password: '', role: 'Teacher',
-        gender: '', phoneNumber: '', classes: [], subjects: []
+        branchId: '', gender: '', phoneNumber: '', classes: [], subjects: []
       });
       setShowModal(true);
     }
@@ -111,7 +115,11 @@ const TeachersPage: React.FC = () => {
       setIsLoading(true);
       if (selectedTeacher) {
         // Update logic
-        const userPayload = { name: formData.name, email: formData.email };
+        const userPayload = {
+            name: formData.name,
+            email: formData.email,
+            branchId: formData.branchId
+        };
         await axios.put(`${API_URL}/users/${selectedTeacher.userId._id}`, userPayload, { withCredentials: true });
 
         const profilePayload = {
@@ -126,33 +134,24 @@ const TeachersPage: React.FC = () => {
         closeModal();
         fetchData();
       } else {
-        // Create logic (2-step)
+        // Create logic
         if (!formData.password) {
             setIsLoading(false);
             return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        // 1. Create the core user
-        const userPayload = {
+        // Create the user and profile in one go
+        const payload = {
             name: formData.name,
             email: formData.email,
             password: formData.password,
             role: 'Teacher',
+            branchId: formData.branchId,
+            gender: formData.gender,
+            phoneNumber: formData.phoneNumber,
+            classes: formData.classes,
+            subjects: formData.subjects,
         };
-        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
-
-        // 2. Update the newly created profile with the rest of the details
-        const newUser = res.data.user;
-        const profileId = newUser.teacher?._id;
-
-        if (profileId) {
-            const profilePayload = {
-              gender: formData.gender,
-              phoneNumber: formData.phoneNumber,
-              classes: formData.classes,
-              subjects: formData.subjects,
-            };
-            await axios.put(`${API_URL}/teachers/${profileId}`, profilePayload, { withCredentials: true });
-        }
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
 
         setToast({ show: true, message: 'Teacher created successfully!', color: 'success' });
         closeModal();
@@ -239,6 +238,14 @@ const TeachersPage: React.FC = () => {
                     <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
                 </IonItem>
               )}
+              <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect name="branchId" value={formData.branchId} onIonChange={(e) => handleSelectChange('branchId', e.detail.value)}>
+                      {branches.map(b => (
+                          <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>
+                      ))}
+                  </IonSelect>
+              </IonItem>
               <IonItem>
                 <IonLabel>Gender</IonLabel>
                 <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>
