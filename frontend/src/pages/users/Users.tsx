@@ -193,7 +193,17 @@ const UsersPage: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error("Error saving user:", error);
-      const message = error.response?.data?.message || "An error occurred.";
+      let message = "An error occurred.";
+      if (error.response?.data?.errors) {
+        // Mongoose validation error
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          message = error.response.data.errors[errorFields[0]].message;
+        }
+      } else if (error.response?.data?.message) {
+        // Other backend error
+        message = error.response.data.message;
+      }
       setToast({ show: true, message, color: "danger" });
     } finally {
         setIsLoading(false);
@@ -208,7 +218,9 @@ const UsersPage: React.FC = () => {
         setToast({ show: true, message: 'Student linked successfully!', color: 'success' });
         fetchData(); // Refresh all data to get updated parent info
     } catch (error: any) {
-        setToast({ show: true, message: error.response?.data?.message || 'Failed to link student.', color: 'danger' });
+        console.error('Error linking student:', error);
+        const message = error.response?.data?.message || 'Failed to link student.';
+        setToast({ show: true, message, color: 'danger' });
     }
   };
 
@@ -220,19 +232,20 @@ const UsersPage: React.FC = () => {
         setToast({ show: true, message: 'Student unlinked successfully!', color: 'success' });
         fetchData(); // Refresh all data
     } catch (error: any) {
-        setToast({ show: true, message: error.response?.data?.message || 'Failed to unlink student.', color: 'danger' });
+        console.error('Error unlinking student:', error);
+        const message = error.response?.data?.message || 'Failed to unlink student.';
+        setToast({ show: true, message, color: 'danger' });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const deleteRes = await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
-      const message = deleteRes.data?.message || "User deleted.";
-      setToast({ show: true, message, color: "medium" });
+      await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
+      setToast({ show: true, message: "User deleted.", color: "medium" });
       fetchData();
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      const message = error.response?.data?.message || "An error occurred.";
+      const message = error.response?.data?.message || "An error occurred while deleting the user.";
       setToast({ show: true, message, color: "danger" });
     }
   };
@@ -338,7 +351,7 @@ const UsersPage: React.FC = () => {
               )}
 
               {/* Branch selection */}
-              {(formData.role === "Branch Admin" || formData.role === "Teacher" || formData.role === "Student") && (
+              {formData.role && formData.role !== "Super Admin" && (
                 <IonItem>
                   <IonLabel>Branch</IonLabel>
                   <IonSelect

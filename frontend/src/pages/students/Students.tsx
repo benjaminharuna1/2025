@@ -165,7 +165,17 @@ const StudentsPage: React.FC = () => {
         fetchData();
       }
     } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || 'Failed to save student.', color: 'danger' });
+      console.error('Error saving student:', error);
+      let message = 'Failed to save student.';
+      if (error.response?.data?.errors) {
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          message = error.response.data.errors[errorFields[0]].message;
+        }
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      }
+      setToast({ show: true, message, color: 'danger' });
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +189,9 @@ const StudentsPage: React.FC = () => {
             setToast({ show: true, message: 'Student deleted successfully.', color: 'medium' });
             fetchData();
         } catch (error: any) {
-            setToast({ show: true, message: error.response?.data?.message || 'Failed to delete student.', color: 'danger' });
+            console.error('Error deleting student:', error);
+            const message = error.response?.data?.message || 'Failed to delete student.';
+            setToast({ show: true, message, color: 'danger' });
         } finally {
             setIsLoading(false);
         }

@@ -137,7 +137,17 @@ const ParentsPage: React.FC = () => {
         fetchData();
       }
     } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || 'Failed to save parent.', color: 'danger' });
+      console.error('Error saving parent:', error);
+      let message = 'Failed to save parent.';
+      if (error.response?.data?.errors) {
+        const errorFields = Object.keys(error.response.data.errors);
+        if (errorFields.length > 0) {
+          message = error.response.data.errors[errorFields[0]].message;
+        }
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      }
+      setToast({ show: true, message, color: 'danger' });
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +161,9 @@ const ParentsPage: React.FC = () => {
         setToast({ show: true, message: 'Parent deleted successfully.', color: 'medium' });
         fetchData();
       } catch (error: any) {
-        setToast({ show: true, message: error.response?.data?.message || 'Failed to delete parent.', color: 'danger' });
+        console.error('Error deleting parent:', error);
+        const message = error.response?.data?.message || 'Failed to delete parent.';
+        setToast({ show: true, message, color: 'danger' });
       } finally {
         setIsLoading(false);
       }
@@ -166,7 +178,9 @@ const ParentsPage: React.FC = () => {
         fetchData();
         closeModal(); // Re-open or just close? For now, close.
     } catch (error: any) {
-        setToast({ show: true, message: error.response?.data?.message || 'Failed to link student.', color: 'danger' });
+        console.error('Error linking student:', error);
+        const message = error.response?.data?.message || 'Failed to link student.';
+        setToast({ show: true, message, color: 'danger' });
     }
   };
 
@@ -178,7 +192,9 @@ const ParentsPage: React.FC = () => {
         fetchData();
         closeModal(); // Re-open or just close? For now, close.
     } catch (error: any) {
-        setToast({ show: true, message: error.response?.data?.message || 'Failed to unlink student.', color: 'danger' });
+        console.error('Error unlinking student:', error);
+        const message = error.response?.data?.message || 'Failed to unlink student.';
+        setToast({ show: true, message, color: 'danger' });
     }
   };
 
