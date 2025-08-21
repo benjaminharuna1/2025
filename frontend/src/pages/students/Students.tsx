@@ -23,6 +23,7 @@ const API_URL = 'http://localhost:3000/api';
 const StudentsPage: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -36,15 +37,17 @@ const StudentsPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [studentsRes, classesRes] = await Promise.all([
+      const [studentsRes, classesRes, branchesRes] = await Promise.all([
         axios.get(`${API_URL}/students`, { withCredentials: true }),
         axios.get(`${API_URL}/classes`, { withCredentials: true }),
+        axios.get(`${API_URL}/branches`, { withCredentials: true }),
       ]);
       setStudents(studentsRes.data.students || []);
       setClasses(classesRes.data.classes || []);
+      setBranches(branchesRes.data.branches || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setToast({ show: true, message: 'Failed to fetch students or classes.', color: 'danger' });
+      setToast({ show: true, message: 'Failed to fetch students, classes, or branches.', color: 'danger' });
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +60,6 @@ const StudentsPage: React.FC = () => {
   const openModal = async (studentProfile: any) => {
     try {
       setIsLoading(true);
-      // Fetch full profile to get all details
       const res = await axios.get(`${API_URL}/students/${studentProfile._id}`, { withCredentials: true });
       const fullProfile = res.data;
       setSelectedStudent(fullProfile);
@@ -65,11 +67,15 @@ const StudentsPage: React.FC = () => {
       setFormData({
         name: fullProfile.userId.name,
         email: fullProfile.userId.email,
-        classId: fullProfile.classId._id,
-        admissionNumber: fullProfile.admissionNumber,
-        dateOfBirth: fullProfile.dateOfBirth?.split('T')[0],
-        gender: fullProfile.gender,
-        phoneNumber: fullProfile.phoneNumber,
+        classId: fullProfile.classId?._id,
+        branchId: fullProfile.branchId?._id,
+        admissionNumber: fullProfile.admissionNumber || '',
+        dateOfBirth: fullProfile.dateOfBirth?.split('T')[0] || '',
+        gender: fullProfile.gender || '',
+        phoneNumber: fullProfile.phoneNumber || '',
+        address: fullProfile.address || '',
+        bloodGroup: fullProfile.bloodGroup || '',
+        sponsor: fullProfile.sponsor || '',
       });
       setShowModal(true);
     } catch (error) {
@@ -102,11 +108,17 @@ const StudentsPage: React.FC = () => {
       const userPayload = { name: formData.name, email: formData.email };
       await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
-      // 2. Update student profile info with only the fields the backend accepts
+      // 2. Update student profile info
       const profilePayload = {
         classId: formData.classId,
         admissionNumber: formData.admissionNumber,
         dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        phoneNumber: formData.phoneNumber,
+        address: formData.address,
+        bloodGroup: formData.bloodGroup,
+        sponsor: formData.sponsor,
+        branchId: formData.branchId,
       };
       await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
@@ -195,12 +207,35 @@ const StudentsPage: React.FC = () => {
                 <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
               </IonItem>
               <IonItem>
-                <IonLabel position="stacked">Gender</IonLabel>
-                <IonInput name="gender" value={formData.gender} readonly />
+                <IonLabel>Gender</IonLabel>
+                <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>
+                  <IonSelectOption value="Male">Male</IonSelectOption>
+                  <IonSelectOption value="Female">Female</IonSelectOption>
+                </IonSelect>
               </IonItem>
               <IonItem>
                 <IonLabel position="stacked">Phone Number</IonLabel>
-                <IonInput name="phoneNumber" value={formData.phoneNumber} readonly />
+                <IonInput name="phoneNumber" type="tel" value={formData.phoneNumber} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel>Branch</IonLabel>
+                <IonSelect name="branchId" value={formData.branchId} onIonChange={(e) => handleSelectChange('branchId', e.detail.value)}>
+                  {branches.map(b => (
+                    <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Address</IonLabel>
+                <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Blood Group</IonLabel>
+                <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="stacked">Sponsor</IonLabel>
+                <IonInput name="sponsor" value={formData.sponsor} onIonChange={handleInputChange} />
               </IonItem>
             </IonList>
             <IonButton expand="block" onClick={handleSave}>Save Changes</IonButton>
