@@ -107,7 +107,6 @@ const StudentsPage: React.FC = () => {
       setIsLoading(true);
       // 1. Update core user info (name, email)
       const userPayload = { name: formData.name, email: formData.email };
-      console.log(`Updating user: PUT ${API_URL}/users/${selectedStudent.userId._id}`, userPayload);
       await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
       // 2. Update student profile info
@@ -122,7 +121,6 @@ const StudentsPage: React.FC = () => {
         sponsor: formData.sponsor,
         branchId: formData.branchId,
       };
-      console.log(`Updating student profile: PUT ${API_URL}/students/${selectedStudent._id}`, profilePayload);
       await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
       setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
@@ -139,7 +137,6 @@ const StudentsPage: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this student? This action is irreversible.')) {
         try {
             setIsLoading(true);
-            console.log(`Deleting user: DELETE ${API_URL}/users/${userId}`);
             await axios.delete(`${API_URL}/users/${userId}`, { withCredentials: true });
             setToast({ show: true, message: 'Student deleted successfully.', color: 'medium' });
             fetchData();
