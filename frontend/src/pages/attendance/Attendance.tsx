@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   IonContent,
   IonHeader,
   IonPage,
   IonTitle,
   IonToolbar,
-  IonList,
   IonItem,
   IonLabel,
   IonSelect,
@@ -13,10 +12,24 @@ import {
   IonButton,
   IonDatetime,
   IonToast,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonLoading,
 } from '@ionic/react';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import './Attendance.css';
+
+interface Branch {
+  _id: string;
+  name: string;
+}
+
+interface ClassLevel {
+  _id: string;
+  name: string;
+}
 
 interface Class {
   _id: string;
@@ -32,9 +45,9 @@ interface Student {
 
 const Attendance: React.FC = () => {
   const { user } = useAuth();
-  const [branches, setBranches] = useState([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState('');
-  const [classLevels, setClassLevels] = useState([]);
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [selectedClassLevel, setSelectedClassLevel] = useState('');
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
@@ -44,7 +57,9 @@ const Attendance: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  // fetch branches and class levels
   useEffect(() => {
     const fetchBranches = async () => {
       try {
@@ -76,9 +91,11 @@ const Attendance: React.FC = () => {
     fetchClassLevels();
   }, [user]);
 
+  // fetch classes when branch & classLevel selected
   useEffect(() => {
     const fetchClasses = async () => {
       if (selectedBranch && selectedClassLevel) {
+        setLoading(true);
         try {
           const { data } = await axios.get(
             `/api/classes?branchId=${selectedBranch}&classLevel=${selectedClassLevel}`
@@ -88,35 +105,53 @@ const Attendance: React.FC = () => {
           setToastMessage('Error fetching classes');
           setToastColor('danger');
           setShowToast(true);
+        } finally {
+          setLoading(false);
         }
       }
     };
     fetchClasses();
   }, [selectedBranch, selectedClassLevel]);
 
+  // fetch students when class selected
   useEffect(() => {
     const fetchStudents = async () => {
       if (selectedClass) {
+        setLoading(true);
         try {
-          const { data } = await axios.get(
-            `/api/students?classId=${selectedClass}`
-          );
+          const { data } = await axios.get(`/api/students?classId=${selectedClass}`);
           setStudents(data.students || []);
+
+          // initialize attendance with "Present"
+          const initialAttendance: { [key: string]: string } = {};
+          data.students.forEach((s: Student) => {
+            initialAttendance[s._id] = 'Present';
+          });
+          setAttendance(initialAttendance);
         } catch (error) {
           setToastMessage('Error fetching students');
           setToastColor('danger');
           setShowToast(true);
+        } finally {
+          setLoading(false);
         }
       }
     };
     fetchStudents();
   }, [selectedClass]);
 
-  const handleAttendanceChange = (studentId: string, status: string) => {
+  const handleAttendanceChange = useCallback((studentId: string, status: string) => {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
-  };
+  }, []);
 
   const submitAttendance = async () => {
+    if (!selectedBranch || !selectedClass) {
+      setToastMessage('Please select branch and class before submitting');
+      setToastColor('warning');
+      setShowToast(true);
+      return;
+    }
+
     try {
       const attendanceData = students.map(student => ({
         studentId: student._id,
@@ -164,6 +199,7 @@ const Attendance: React.FC = () => {
             <IonTitle size="large">Attendance</IonTitle>
           </IonToolbar>
         </IonHeader>
+
         <IonItem>
           <IonLabel>Branch</IonLabel>
           <IonSelect
@@ -178,6 +214,7 @@ const Attendance: React.FC = () => {
             ))}
           </IonSelect>
         </IonItem>
+
         <IonItem>
           <IonLabel>Class Level</IonLabel>
           <IonSelect
@@ -192,6 +229,7 @@ const Attendance: React.FC = () => {
             ))}
           </IonSelect>
         </IonItem>
+
         <IonItem>
           <IonLabel>Class</IonLabel>
           <IonSelect
@@ -206,40 +244,52 @@ const Attendance: React.FC = () => {
             ))}
           </IonSelect>
         </IonItem>
+
         <IonItem>
           <IonLabel>Date</IonLabel>
-          <IonDatetime value={date} onIonChange={e => setDate(e.detail.value ? e.detail.value.toString() : '')} />
+          <IonDatetime
+            value={date}
+            onIonChange={e => {
+              const value = e.detail.value;
+              if (typeof value === 'string') {
+                setDate(value);
+              } else {
+                setDate(new Date().toISOString()); // fallback
+              }
+            }}
+          />
         </IonItem>
-        <table>
-          <thead>
-            <tr>
-              <th>Admission Number</th>
-              <th>Student Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.map(student => (
-              <tr key={student._id}>
-                <td>{student.admissionNumber}</td>
-                <td>{student.name}</td>
-                <td>
-                  <IonSelect
-                    value={attendance[student._id] || 'Present'}
-                    onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
-                  >
-                    <IonSelectOption value="Present">Present</IonSelectOption>
-                    <IonSelectOption value="Absent">Absent</IonSelectOption>
-                    <IonSelectOption value="Late">Late</IonSelectOption>
-                  </IonSelect>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+        <IonGrid>
+          <IonRow>
+            <IonCol><strong>Admission Number</strong></IonCol>
+            <IonCol><strong>Student Name</strong></IonCol>
+            <IonCol><strong>Status</strong></IonCol>
+          </IonRow>
+          {students.map(student => (
+            <IonRow key={student._id}>
+              <IonCol>{student.admissionNumber}</IonCol>
+              <IonCol>{student.name}</IonCol>
+              <IonCol>
+                <IonSelect
+                  value={attendance[student._id] || 'Present'}
+                  onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
+                >
+                  <IonSelectOption value="Present">Present</IonSelectOption>
+                  <IonSelectOption value="Absent">Absent</IonSelectOption>
+                  <IonSelectOption value="Late">Late</IonSelectOption>
+                </IonSelect>
+              </IonCol>
+            </IonRow>
+          ))}
+        </IonGrid>
+
         <IonButton expand="full" onClick={submitAttendance} disabled={!selectedClass || students.length === 0}>
           Submit Attendance
         </IonButton>
+
+        <IonLoading isOpen={loading} message="Loading..." />
+
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}

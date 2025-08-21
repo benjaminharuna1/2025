@@ -1,44 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
-  IonGrid,
-  IonRow,
-  IonCol,
   IonButton,
-  IonIcon,
-  IonModal,
-  IonInput,
+  IonList,
   IonItem,
   IonLabel,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonSelect,
   IonSelectOption,
-} from '@ionic/react';
-import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
-import './Users.css';
+  IonInput,
+  IonModal,
+} from "@ionic/react";
+import axios from "axios";
 
+const API_URL = "http://localhost:3000/api";
 
-const API_URL = 'http://localhost:3000/api';
-
-const Users: React.FC = () => {
+const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({});
-  const [filterRole, setFilterRole] = useState('');
-  const [filterBranch, setFilterBranch] = useState('');
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  const [formData, setFormData] = useState<any>({
+    name: "",
+    email: "",
+    password: "",
+    role: "",
+    gender: "",
+    phoneNumber: "",
+    branchId: "",
+    classId: "",
+    dateOfBirth: "",
+    admissionNumber: "",
+    classes: [],
+    subjects: [],
+    students: [],
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -46,50 +49,110 @@ const Users: React.FC = () => {
     fetchClasses();
     fetchSubjects();
     fetchStudents();
-  }, [filterRole, filterBranch]);
-
+  }, []);
 
   const fetchUsers = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/users`, {
-        withCredentials: true,
-        params: { role: filterRole, branchId: filterBranch },
-      });
-      if (data && Array.isArray(data.users)) {
-        setUsers(data.users);
-      } else {
-        setUsers([]);
-      }
+      const res = await axios.get(`${API_URL}/users`, { withCredentials: true });
+      setUsers(res.data);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      setUsers([]);
+      console.error("Error fetching users:", error);
     }
   };
 
   const fetchBranches = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
-      if (data && Array.isArray(data.branches)) {
-        setBranches(data.branches);
-      }
+      const res = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      setBranches(res.data);
     } catch (error) {
-      console.error('Error fetching branches:', error);
+      console.error("Error fetching branches:", error);
     }
   };
 
   const fetchClasses = async () => {
-    const { data } = await axios.get(`${API_URL}/classes`, { withCredentials: true });
-    setClasses(data.classes || []);
+    try {
+      const res = await axios.get(`${API_URL}/classes`, { withCredentials: true });
+      setClasses(res.data);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
   };
 
   const fetchSubjects = async () => {
-    const { data } = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
-    setSubjects(data.subjects || []);
+    try {
+      const res = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
+      setSubjects(res.data);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
   };
 
   const fetchStudents = async () => {
-    const { data } = await axios.get(`${API_URL}/students`, { withCredentials: true });
-    setStudents(data.students || []);
+    try {
+      const res = await axios.get(`${API_URL}/students`, { withCredentials: true });
+      setStudents(res.data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+  };
+
+  const openModal = (user: any = null) => {
+    if (user) {
+      setSelectedUser(user);
+      setFormData({
+        ...user,
+        branchId: user.branchId || "",
+        classId: user.student?.classId || "",
+        dateOfBirth: user.student?.dateOfBirth || "",
+        admissionNumber: user.student?.admissionNumber || "",
+        gender:
+          user.student?.gender ||
+          user.teacher?.gender ||
+          user.parent?.gender ||
+          user.adminProfile?.gender ||
+          "",
+        phoneNumber:
+          user.student?.phoneNumber ||
+          user.teacher?.phoneNumber ||
+          user.parent?.phoneNumber ||
+          user.adminProfile?.phoneNumber ||
+          "",
+        classes: user.teacher?.classes || [],
+        subjects: user.teacher?.subjects || [],
+        students: user.parent?.students || [],
+      });
+    } else {
+      setSelectedUser(null);
+      setFormData({
+        name: "",
+        email: "",
+        password: "",
+        role: "",
+        gender: "",
+        phoneNumber: "",
+        branchId: "",
+        classId: "",
+        dateOfBirth: "",
+        admissionNumber: "",
+        classes: [],
+        subjects: [],
+        students: [],
+      });
+    }
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleInputChange = (e: any) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSelectChange = (name: string, value: any) => {
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSave = async () => {
@@ -99,11 +162,10 @@ const Users: React.FC = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
-        branchId: formData.branchId,
       };
 
-      // Role-specific payload
-      if (formData.role === 'Student') {
+      // Student
+      if (formData.role === "Student") {
         payload.student = {
           classId: formData.classId,
           dateOfBirth: formData.dateOfBirth,
@@ -113,7 +175,8 @@ const Users: React.FC = () => {
         };
       }
 
-      if (formData.role === 'Teacher') {
+      // Teacher
+      if (formData.role === "Teacher") {
         payload.teacher = {
           classes: formData.classes || [],
           subjects: formData.subjects || [],
@@ -122,7 +185,8 @@ const Users: React.FC = () => {
         };
       }
 
-      if (formData.role === 'Parent') {
+      // Parent
+      if (formData.role === "Parent") {
         payload.parent = {
           students: formData.students || [],
           gender: formData.gender,
@@ -130,8 +194,19 @@ const Users: React.FC = () => {
         };
       }
 
+      // Super Admin / Branch Admin
+      if (formData.role === "Super Admin" || formData.role === "Branch Admin") {
+        payload.adminProfile = {
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+          branchId: formData.role === "Branch Admin" ? formData.branchId : null,
+        };
+      }
+
       if (selectedUser) {
-        await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, { withCredentials: true });
+        await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, {
+          withCredentials: true,
+        });
       } else {
         await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
       }
@@ -139,200 +214,190 @@ const Users: React.FC = () => {
       closeModal();
       fetchUsers();
     } catch (error) {
-      console.error('Error saving user:', error);
+      console.error("Error saving user:", error);
     }
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
-    fetchUsers();
-  };
-
-  const openModal = (user: any | null = null) => {
-    setSelectedUser(user);
-    setFormData(user ? { ...user } : {});
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedUser(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (e: any) => {
-  const { name, value } = e.target;
-  setFormData((prev: any) => ({ ...prev, [name]: value }));
-};
-
-  const handleSelectChange = (name: string, value: any) => {
-    setFormData({ ...formData, [name]: value });
+    try {
+      await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+    }
   };
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Users</IonTitle>
+          <IonTitle>User Management</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <IonGrid>
-          <IonRow>
-            <IonCol>
-              <IonButton onClick={() => openModal()}>
-                <IonIcon slot="start" icon={add} />
-                Add User
+        <IonButton expand="block" onClick={() => openModal()}>
+          Add User
+        </IonButton>
+
+        <IonList>
+          {users.map((user) => (
+            <IonItem key={user._id}>
+              <IonLabel>
+                <h2>{user.name}</h2>
+                <p>
+                  {user.email} - {user.role}
+                </p>
+              </IonLabel>
+              <IonButton onClick={() => openModal(user)}>Edit</IonButton>
+              <IonButton color="danger" onClick={() => handleDelete(user._id)}>
+                Delete
               </IonButton>
-            </IonCol>
-          </IonRow>
-          <IonRow>
-            <IonCol>
-              <IonItem>
-                <IonLabel>Filter by Role</IonLabel>
-                <IonSelect value={filterRole} onIonChange={(e) => setFilterRole(e.detail.value)}>
-                  <IonSelectOption value="">All</IonSelectOption>
-                  <IonSelectOption value="Student">Student</IonSelectOption>
-                  <IonSelectOption value="Teacher">Teacher</IonSelectOption>
-                  <IonSelectOption value="Parent">Parent</IonSelectOption>
-                  <IonSelectOption value="Branch Admin">Branch Admin</IonSelectOption>
-                  <IonSelectOption value="Accountant">Accountant</IonSelectOption>
-                </IonSelect>
-              </IonItem>
-            </IonCol>
-            <IonCol>
-              <IonItem>
-                <IonLabel>Filter by Branch</IonLabel>
-                <IonSelect value={filterBranch} onIonChange={(e) => setFilterBranch(e.detail.value)}>
-                  <IonSelectOption value="">All</IonSelectOption>
-                  {branches.map((branch) => (
-                    <IonSelectOption key={branch._id} value={branch._id}>
-                      {branch.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-            </IonCol>
-          </IonRow>
-          <IonRow>
-            <IonCol>
-              <div className="ion-padding">
-                <table className="responsive-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user._id}>
-                        <td data-label="Name">{user.name}</td>
-                        <td data-label="Email">{user.email}</td>
-                        <td data-label="Role">{user.role}</td>
-                        <td data-label="Actions">
-                          <IonButton onClick={() => openModal(user)}>
-                            <IonIcon slot="icon-only" icon={create} />
-                          </IonButton>
-                          <IonButton color="danger" onClick={() => handleDelete(user._id)}>
-                            <IonIcon slot="icon-only" icon={trash} />
-                          </IonButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
+            </IonItem>
+          ))}
+        </IonList>
+
         <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>{selectedUser ? 'Edit' : 'Add'} User</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>{selectedUser ? "Edit User" : "Add User"}</IonTitle>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent>
+            <IonList>
               <IonItem>
-                <IonLabel position="floating">Name</IonLabel>
-                <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Email</IonLabel>
-                <IonInput name="email" type="email" value={formData.email} onIonChange={handleInputChange} />
-              </IonItem>
-              {!selectedUser && (
-                <IonItem>
-                  <IonLabel position="floating">Password</IonLabel>
-                  <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
-                </IonItem>
-              )}
-              <IonItem>
-                <IonLabel>Role</IonLabel>
-                <IonSelect name="role" value={formData.role} onIonChange={(e) => handleSelectChange('role', e.detail.value)}>
-                  <IonSelectOption value="Student">Student</IonSelectOption>
-                  <IonSelectOption value="Teacher">Teacher</IonSelectOption>
-                  <IonSelectOption value="Parent">Parent</IonSelectOption>
-                  <IonSelectOption value="Branch Admin">Branch Admin</IonSelectOption>
-                  <IonSelectOption value="Accountant">Accountant</IonSelectOption>
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel>Branch</IonLabel>
-                <IonSelect name="branchId" value={formData.branchId} onIonChange={(e) => handleSelectChange('branchId', e.detail.value)}>
-                  {branches.map((branch) => (
-                    <IonSelectOption key={branch._id} value={branch._id}>
-                      {branch.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-
-              <IonItem>
-                  <IonLabel position="floating">Gender</IonLabel>
-                  <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>
-                    <IonSelectOption value="Male">Male</IonSelectOption>
-                    <IonSelectOption value="Female">Female</IonSelectOption>
-                    <IonSelectOption value="Other">Other</IonSelectOption>
-                  </IonSelect>
-              </IonItem>
-
-              <IonItem>
-                  <IonLabel position="floating">Phone Number</IonLabel>
-                  <IonInput
-                    name="phoneNumber"
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onIonChange={handleInputChange}
+                <IonLabel position="stacked">Name</IonLabel>
+                <IonInput
+                  name="name"
+                  value={formData.name}
+                  onIonChange={handleInputChange}
                 />
               </IonItem>
-              
-              {formData.role === 'Student' && (
+
+              <IonItem>
+                <IonLabel position="stacked">Email</IonLabel>
+                <IonInput
+                  name="email"
+                  value={formData.email}
+                  onIonChange={handleInputChange}
+                />
+              </IonItem>
+
+              {!selectedUser && (
+                <IonItem>
+                  <IonLabel position="stacked">Password</IonLabel>
+                  <IonInput
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onIonChange={handleInputChange}
+                  />
+                </IonItem>
+              )}
+
+              <IonItem>
+                <IonLabel position="stacked">Role</IonLabel>
+                <IonSelect
+                  name="role"
+                  value={formData.role}
+                  onIonChange={(e) => handleSelectChange("role", e.detail.value)}
+                >
+                  <IonSelectOption value="Super Admin">Super Admin</IonSelectOption>
+                  <IonSelectOption value="Branch Admin">Branch Admin</IonSelectOption>
+                  <IonSelectOption value="Student">Student</IonSelectOption>
+                  <IonSelectOption value="Teacher">Teacher</IonSelectOption>
+                  <IonSelectOption value="Parent">Parent</IonSelectOption>
+                </IonSelect>
+              </IonItem>
+
+              {(formData.role === "Student" ||
+                formData.role === "Teacher" ||
+                formData.role === "Parent" ||
+                formData.role === "Super Admin" ||
+                formData.role === "Branch Admin") && (
                 <>
                   <IonItem>
-                    <IonLabel position="floating">Class ID</IonLabel>
-                    <IonInput name="classId" value={formData.classId} onIonChange={(e) => handleInputChange(e)} />
+                    <IonLabel position="stacked">Gender</IonLabel>
+                    <IonInput
+                      name="gender"
+                      value={formData.gender}
+                      onIonChange={handleInputChange}
+                    />
                   </IonItem>
+
                   <IonItem>
-                    <IonLabel position="floating">Date of Birth</IonLabel>
-                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={(e) => handleInputChange(e)} />
-                  </IonItem>
-                  <IonItem>
-                    <IonLabel position="floating">Admission Number</IonLabel>
-                    <IonInput name="admissionNumber" value={formData.admissionNumber} onIonChange={(e) => handleInputChange(e)} />
+                    <IonLabel position="stacked">Phone Number</IonLabel>
+                    <IonInput
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onIonChange={handleInputChange}
+                    />
                   </IonItem>
                 </>
               )}
 
-              {formData.role === 'Teacher' && (
+              {formData.role === "Branch Admin" && (
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect
+                    name="branchId"
+                    value={formData.branchId}
+                    onIonChange={(e) => handleSelectChange("branchId", e.detail.value)}
+                  >
+                    {branches.map((branch) => (
+                      <IonSelectOption key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              )}
+
+              {formData.role === "Student" && (
+                <>
+                  <IonItem>
+                    <IonLabel>Class</IonLabel>
+                    <IonSelect
+                      name="classId"
+                      value={formData.classId}
+                      onIonChange={(e) => handleSelectChange("classId", e.detail.value)}
+                    >
+                      {classes.map((cls) => (
+                        <IonSelectOption key={cls._id} value={cls._id}>
+                          {cls.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+
+                  <IonItem>
+                    <IonLabel position="stacked">Date of Birth</IonLabel>
+                    <IonInput
+                      name="dateOfBirth"
+                      value={formData.dateOfBirth}
+                      onIonChange={handleInputChange}
+                    />
+                  </IonItem>
+
+                  <IonItem>
+                    <IonLabel position="stacked">Admission Number</IonLabel>
+                    <IonInput
+                      name="admissionNumber"
+                      value={formData.admissionNumber}
+                      onIonChange={handleInputChange}
+                    />
+                  </IonItem>
+                </>
+              )}
+
+              {formData.role === "Teacher" && (
                 <>
                   <IonItem>
                     <IonLabel>Classes</IonLabel>
                     <IonSelect
                       multiple
-                      value={formData.classes || []}
-                      onIonChange={(e) => handleSelectChange('classes', e.detail.value)}
+                      name="classes"
+                      value={formData.classes}
+                      onIonChange={(e) => handleSelectChange("classes", e.detail.value)}
                     >
                       {classes.map((cls) => (
                         <IonSelectOption key={cls._id} value={cls._id}>
@@ -346,8 +411,9 @@ const Users: React.FC = () => {
                     <IonLabel>Subjects</IonLabel>
                     <IonSelect
                       multiple
-                      value={formData.subjects || []}
-                      onIonChange={(e) => handleSelectChange('subjects', e.detail.value)}
+                      name="subjects"
+                      value={formData.subjects}
+                      onIonChange={(e) => handleSelectChange("subjects", e.detail.value)}
                     >
                       {subjects.map((subj) => (
                         <IonSelectOption key={subj._id} value={subj._id}>
@@ -359,20 +425,36 @@ const Users: React.FC = () => {
                 </>
               )}
 
+              {formData.role === "Parent" && (
+                <IonItem>
+                  <IonLabel>Students</IonLabel>
+                  <IonSelect
+                    multiple
+                    name="students"
+                    value={formData.students}
+                    onIonChange={(e) => handleSelectChange("students", e.detail.value)}
+                  >
+                    {students.map((stu) => (
+                      <IonSelectOption key={stu._id} value={stu._id}>
+                        {stu.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              )}
+            </IonList>
 
-
-              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                Save
-              </IonButton>
-              <IonButton expand="full" color="light" onClick={closeModal}>
-                Cancel
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
+            <IonButton expand="block" onClick={handleSave}>
+              Save
+            </IonButton>
+            <IonButton expand="block" color="medium" onClick={closeModal}>
+              Cancel
+            </IonButton>
+          </IonContent>
         </IonModal>
       </IonContent>
     </IonPage>
   );
 };
 
-export default Users;
+export default UsersPage;
