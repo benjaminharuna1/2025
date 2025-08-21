@@ -206,20 +206,24 @@ const UsersPage: React.FC = () => {
         return "teachers";
       case "Parent":
         return "parents";
-      // Admins might have a different profile endpoint or none at all
-      // Assuming 'admins' based on common practice, adjust if needed
       case "Branch Admin":
       case "Super Admin":
-        return "admins";
+        return "admins"; // Assuming 'admins' is the endpoint for admin profiles
       default:
         return null;
     }
   };
 
-  const buildProfilePayload = (role: string, data: any) => {
+  const buildProfilePayload = (role: string, data: any, userId?: string) => {
+    const payload: any = {};
+    if (userId) {
+      payload.userId = userId;
+    }
+
     switch (role) {
       case "Student":
         return {
+          ...payload,
           classId: data.classId,
           dateOfBirth: data.dateOfBirth,
           admissionNumber: data.admissionNumber,
@@ -228,6 +232,7 @@ const UsersPage: React.FC = () => {
         };
       case "Teacher":
         return {
+          ...payload,
           classes: data.classes,
           subjects: data.subjects,
           gender: data.gender,
@@ -235,6 +240,7 @@ const UsersPage: React.FC = () => {
         };
       case "Parent":
         return {
+          ...payload,
           students: data.students,
           gender: data.gender,
           phoneNumber: data.phoneNumber,
@@ -242,6 +248,7 @@ const UsersPage: React.FC = () => {
       case "Branch Admin":
       case "Super Admin":
         return {
+          ...payload,
           gender: data.gender,
           phoneNumber: data.phoneNumber,
         };
@@ -260,41 +267,45 @@ const UsersPage: React.FC = () => {
       setLoading(true);
 
       if (selectedUser) {
-        // Update user and profile
+        // Update logic
         const userPayload = { name: formData.name, email: formData.email };
         await axios.put(`${API_URL}/users/${selectedUser._id}`, userPayload, { withCredentials: true });
 
         const profileEndpoint = getProfileEndpoint(selectedUser.role);
-        const profilePayload = buildProfilePayload(selectedUser.role, formData);
+        if (profileEndpoint) {
+          const profilePayload = buildProfilePayload(selectedUser.role, formData);
+          const profileKey = selectedUser.role.toLowerCase().replace(' ', ''); // e.g., 'branchadmin'
+          const profile = selectedUser[profileKey];
 
-        // This assumes the profile ID is stored in a field like `student._id`, `teacher._id` etc.
-        // You might need to adjust this based on the actual structure of your user object.
-        const profileId = selectedUser[selectedUser.role.toLowerCase()]?._id;
-
-        if (profileEndpoint && profileId && Object.keys(profilePayload).length > 0) {
-          await axios.put(`${API_URL}/${profileEndpoint}/${profileId}`, profilePayload, { withCredentials: true });
+          if (profile && profile._id) {
+            // Profile exists, update it
+            await axios.put(`${API_URL}/${profileEndpoint}/${profile._id}`, profilePayload, { withCredentials: true });
+          } else {
+            // Profile doesn't exist, create it
+            const creationProfilePayload = buildProfilePayload(selectedUser.role, formData, selectedUser._id);
+            await axios.post(`${API_URL}/${profileEndpoint}`, creationProfilePayload, { withCredentials: true });
+          }
         }
-
         showToast("User updated successfully");
 
       } else {
-        // Create user
-        const creationPayload = {
+        // Create logic
+        const userPayload = {
           name: formData.name,
           email: formData.email,
           password: formData.password,
           role: formData.role,
           branchId: formData.branchId,
-          classId: formData.classId,
-          dateOfBirth: formData.dateOfBirth,
-          admissionNumber: formData.admissionNumber,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-          classes: formData.classes,
-          subjects: formData.subjects,
-          students: formData.students,
         };
-        await axios.post(`${API_URL}/users`, creationPayload, { withCredentials: true });
+
+        const userRes = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
+        const newUserId = userRes.data.user._id;
+
+        const profileEndpoint = getProfileEndpoint(formData.role);
+        if (profileEndpoint) {
+          const profilePayload = buildProfilePayload(formData.role, formData, newUserId);
+          await axios.post(`${API_URL}/${profileEndpoint}`, profilePayload, { withCredentials: true });
+        }
         showToast("User created successfully");
       }
 
