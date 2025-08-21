@@ -258,7 +258,7 @@ const UsersPage: React.FC = () => {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                </Item>
+                </IonItem>
               )}
             </IonList>
 
