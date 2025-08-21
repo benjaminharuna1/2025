@@ -64,14 +64,26 @@ const UsersPage: React.FC = () => {
   const openModal = (user: any = null) => {
     if (user) {
       setSelectedUser(user);
+      // Pre-fill form with existing data for editing
+      const profile = user.student || user.teacher || user.parent || user.adminProfile || {};
       setFormData({
         name: user.name,
         email: user.email,
         role: user.role,
         branchId: user.branchId || null,
         password: "",
+        // Profile fields
+        gender: profile.gender || "",
+        phoneNumber: profile.phoneNumber || "",
+        classId: user.student?.classId || "",
+        dateOfBirth: user.student?.dateOfBirth || "",
+        admissionNumber: user.student?.admissionNumber || "",
+        classes: user.teacher?.classes || [],
+        subjects: user.teacher?.subjects || [],
+        students: user.parent?.students || [],
       });
     } else {
+      // Reset form for creating a new user
       setSelectedUser(null);
       setFormData({
         name: "",
@@ -79,6 +91,14 @@ const UsersPage: React.FC = () => {
         password: "",
         role: "",
         branchId: null,
+        gender: "",
+        phoneNumber: "",
+        classId: "",
+        dateOfBirth: "",
+        admissionNumber: "",
+        classes: [],
+        subjects: [],
+        students: [],
       });
     }
     setShowModal(true);
@@ -122,20 +142,41 @@ const UsersPage: React.FC = () => {
         });
 
         // 2. Update the profile
-        // Note: This part is speculative and depends on how profiles are structured and updated.
-        // This assumes a separate endpoint for profile updates.
-        let profilePayload = {};
+        let profilePayload: any = {};
         let profileEndpoint = '';
         let profileId = '';
 
-        if(formData.role === 'Student' && selectedUser.student) {
+        if (formData.role === 'Student' && selectedUser.student) {
             profileEndpoint = `/students/${selectedUser.student._id}`;
-            profilePayload = { classId: formData.classId, admissionNumber: formData.admissionNumber, dateOfBirth: formData.dateOfBirth };
+            profilePayload = {
+                classId: formData.classId,
+                admissionNumber: formData.admissionNumber,
+                dateOfBirth: formData.dateOfBirth,
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
         } else if (formData.role === 'Teacher' && selectedUser.teacher) {
             profileEndpoint = `/teachers/${selectedUser.teacher._id}`;
-            profilePayload = { classes: formData.classes, subjects: formData.subjects };
+            profilePayload = {
+                classes: formData.classes,
+                subjects: formData.subjects,
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
+        } else if (formData.role === 'Parent' && selectedUser.parent) {
+            profileEndpoint = `/parents/${selectedUser.parent._id}`;
+            profilePayload = {
+                students: formData.students,
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
+        } else if ((formData.role === 'Branch Admin' || formData.role === 'Super Admin') && selectedUser.adminProfile) {
+            profileEndpoint = `/admins/${selectedUser.adminProfile._id}`;
+            profilePayload = {
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
         }
-        // Add other roles as needed
 
         if (profileEndpoint) {
             await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
@@ -261,6 +302,24 @@ const UsersPage: React.FC = () => {
                 </IonSelect>
               </IonItem>
 
+              {/* Fields for gender and phone number */}
+              {["Student", "Teacher", "Parent", "Branch Admin", "Super Admin"].includes(formData.role) && (
+                <>
+                  <IonItem>
+                    <IonLabel position="stacked">Gender</IonLabel>
+                    <IonSelect name="gender" value={formData.gender} onIonChange={e => handleSelectChange('gender', e.detail.value)}>
+                      <IonSelectOption value="Male">Male</IonSelectOption>
+                      <IonSelectOption value="Female">Female</IonSelectOption>
+                    </IonSelect>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel position="stacked">Phone Number</IonLabel>
+                    <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                  </IonItem>
+                </>
+              )}
+
+              {/* Branch selection */}
               {(formData.role === "Branch Admin" || formData.role === "Teacher" || formData.role === "Student") && (
                 <IonItem>
                   <IonLabel>Branch</IonLabel>
@@ -275,7 +334,45 @@ const UsersPage: React.FC = () => {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                </IonItem>
+                </Item>
+              )}
+
+              {/* Student-specific fields */}
+              {formData.role === "Student" && (
+                <>
+                  <IonItem>
+                    <IonLabel>Class</IonLabel>
+                    <IonSelect name="classId" value={formData.classId} onIonChange={e => handleSelectChange('classId', e.detail.value)}>
+                      {/* Populate with classes */}
+                    </IonSelect>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel position="stacked">Admission Number</IonLabel>
+                    <IonInput name="admissionNumber" value={formData.admissionNumber} onIonChange={handleInputChange} />
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel position="stacked">Date of Birth</IonLabel>
+                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                  </IonItem>
+                </>
+              )}
+
+              {/* Teacher-specific fields */}
+              {formData.role === "Teacher" && (
+                <>
+                  <IonItem>
+                    <IonLabel>Classes</IonLabel>
+                    <IonSelect name="classes" multiple value={formData.classes} onIonChange={e => handleSelectChange('classes', e.detail.value)}>
+                      {/* Populate with classes */}
+                    </IonSelect>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Subjects</IonLabel>
+                    <IonSelect name="subjects" multiple value={formData.subjects} onIonChange={e => handleSelectChange('subjects', e.detail.value)}>
+                      {/* Populate with subjects */}
+                    </IonSelect>
+                  </IonItem>
+                </>
               )}
             </IonList>
 
