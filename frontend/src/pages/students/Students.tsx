@@ -37,10 +37,10 @@ const StudentsPage: React.FC = () => {
     setIsLoading(true);
     try {
       const [studentsRes, classesRes] = await Promise.all([
-        axios.get(`${API_URL}/users?role=Student`, { withCredentials: true }),
+        axios.get(`${API_URL}/students`, { withCredentials: true }),
         axios.get(`${API_URL}/classes`, { withCredentials: true }),
       ]);
-      setStudents(studentsRes.data.users || []);
+      setStudents(studentsRes.data.students || []);
       setClasses(classesRes.data.classes || []);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -54,18 +54,17 @@ const StudentsPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const openModal = async (studentUser: any) => {
+  const openModal = async (studentProfile: any) => {
     try {
       setIsLoading(true);
-      const res = await axios.get(`${API_URL}/users/${studentUser._id}`, { withCredentials: true });
-      const { user, profile } = res.data;
-      setSelectedStudent({ user, profile });
+      // The student profile from the list should be complete enough for editing
+      setSelectedStudent(studentProfile);
       setFormData({
-        name: user.name,
-        email: user.email,
-        classId: profile?.classId,
-        admissionNumber: profile?.admissionNumber,
-        dateOfBirth: profile?.dateOfBirth?.split('T')[0], // Format for date input
+        name: studentProfile.userId.name,
+        email: studentProfile.userId.email,
+        classId: studentProfile.classId._id, // The classId object is populated
+        admissionNumber: studentProfile.admissionNumber,
+        dateOfBirth: studentProfile.dateOfBirth?.split('T')[0],
       });
       setShowModal(true);
     } catch (error) {
@@ -96,7 +95,7 @@ const StudentsPage: React.FC = () => {
       setIsLoading(true);
       // 1. Update core user info
       const userPayload = { name: formData.name, email: formData.email };
-      await axios.put(`${API_URL}/users/${selectedStudent.user._id}`, userPayload, { withCredentials: true });
+      await axios.put(`${API_URL}/users/${selectedStudent.userId._id}`, userPayload, { withCredentials: true });
 
       // 2. Update student profile info
       const profilePayload = {
@@ -104,7 +103,7 @@ const StudentsPage: React.FC = () => {
         admissionNumber: formData.admissionNumber,
         dateOfBirth: formData.dateOfBirth,
       };
-      await axios.put(`${API_URL}/students/${selectedStudent.profile._id}`, profilePayload, { withCredentials: true });
+      await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
       setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
       closeModal();
@@ -145,14 +144,14 @@ const StudentsPage: React.FC = () => {
           </div>
         ) : (
           <IonList>
-            {students.map(studentUser => (
-              <IonItem key={studentUser._id}>
+            {students.map(student => (
+              <IonItem key={student._id}>
                 <IonLabel>
-                  <h2>{studentUser.name}</h2>
-                  <p>{studentUser.email}</p>
+                  <h2>{student.userId.name}</h2>
+                  <p>{student.userId.email}</p>
                 </IonLabel>
-                <IonButton slot="end" onClick={() => openModal(studentUser)}>Edit</IonButton>
-                <IonButton slot="end" color="danger" onClick={() => handleDelete(studentUser._id)}>Delete</IonButton>
+                <IonButton slot="end" onClick={() => openModal(student)}>Edit</IonButton>
+                <IonButton slot="end" color="danger" onClick={() => handleDelete(student.userId._id)}>Delete</IonButton>
               </IonItem>
             ))}
           </IonList>
