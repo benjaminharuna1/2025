@@ -8,6 +8,7 @@ import Branches from './pages/branches/Branches';
 import Users from './pages/users/Users';
 import Students from './pages/students/Students';
 import Teachers from './pages/teachers/Teachers';
+import Parents from './pages/parents/Parents';
 import ClassLevels from './pages/classlevels/ClassLevels';
 import Classes from './pages/classes/Classes';
 import Subjects from './pages/subjects/Subjects';
@@ -68,6 +69,7 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/users" component={Users} title="User Management" />
             <ProtectedRoute path="/dashboard/students" component={Students} title="Manage Students" />
             <ProtectedRoute path="/dashboard/teachers" component={Teachers} title="Manage Teachers" />
+            <ProtectedRoute path="/dashboard/parents" component={Parents} title="Manage Parents" />
             <ProtectedRoute path="/dashboard/branches" component={Branches} title="Branches" />
             <ProtectedRoute path="/dashboard" component={Dashboard} title="Dashboard" />
             <Route exact path="/">

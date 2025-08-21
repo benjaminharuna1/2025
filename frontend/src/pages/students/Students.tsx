@@ -74,6 +74,7 @@ const StudentsPage: React.FC = () => {
         bloodGroup: studentProfile.bloodGroup || '',
         sponsor: studentProfile.sponsor || '',
       });
+      setShowModal(true);
     } else {
       // Adding a new student
       setSelectedStudent(null);
@@ -123,32 +124,21 @@ const StudentsPage: React.FC = () => {
         await axios.put(`${API_URL}/students/${selectedStudent._id}`, profilePayload, { withCredentials: true });
 
         setToast({ show: true, message: 'Student updated successfully!', color: 'success' });
-        closeModal();
-        fetchData();
       } else {
-        // Create-then-Update logic
+        // Create logic
         if (!formData.password) {
             setIsLoading(false);
-            return setToast({ show: true, message: "Password is required for new users.", color: "warning" });
+            return setToast({ show: true, message: "Password is required.", color: "warning" });
         }
-        const userPayload = { ...formData, role: 'Student' };
-        const res = await axios.post(`${API_URL}/users`, userPayload, { withCredentials: true });
-
-        setToast({ show: true, message: "Student user created. Now please fill out the profile details.", color: "success" });
-
-        // The response from POST /users should contain the new user object with a populated profile
-        const newUser = res.data.user;
-        if (newUser && newUser.student) {
-            // Re-open modal in edit mode for the new user's profile
-            openModal(newUser.student);
-            fetchData(); // Refresh the list in the background
-        } else {
-            closeModal();
-            fetchData();
-        }
+        const payload = { ...formData, role: 'Student' };
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        setToast({ show: true, message: 'Student created successfully!', color: 'success' });
       }
+      closeModal();
+      fetchData();
     } catch (error: any) {
       setToast({ show: true, message: error.response?.data?.message || 'Failed to save student.', color: 'danger' });
+    } finally {
       setIsLoading(false);
     }
   };

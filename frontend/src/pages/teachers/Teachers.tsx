@@ -57,26 +57,37 @@ const TeachersPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const openModal = async (teacherProfile: any) => {
-    try {
-      setIsLoading(true);
-      const res = await axios.get(`${API_URL}/teachers/${teacherProfile._id}`, { withCredentials: true });
-      const fullProfile = res.data;
-      setSelectedTeacher(fullProfile);
+  const openModal = async (teacherProfile: any = null) => {
+    if (teacherProfile) {
+      // Editing
+      try {
+        setIsLoading(true);
+        const res = await axios.get(`${API_URL}/teachers/${teacherProfile._id}`, { withCredentials: true });
+        const fullProfile = res.data;
+        setSelectedTeacher(fullProfile);
 
+        setFormData({
+          name: fullProfile.userId.name,
+          email: fullProfile.userId.email,
+          gender: fullProfile.gender || '',
+          phoneNumber: fullProfile.phoneNumber || '',
+          classes: fullProfile.classes?.map((c: any) => c._id) || [],
+          subjects: fullProfile.subjects?.map((s: any) => s._id) || [],
+        });
+        setShowModal(true);
+      } catch (error) {
+        setToast({ show: true, message: 'Failed to fetch teacher details.', color: 'danger' });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Adding
+      setSelectedTeacher(null);
       setFormData({
-        name: fullProfile.userId.name,
-        email: fullProfile.userId.email,
-        gender: fullProfile.gender || '',
-        phoneNumber: fullProfile.phoneNumber || '',
-        classes: fullProfile.classes?.map((c: any) => c._id) || [],
-        subjects: fullProfile.subjects?.map((s: any) => s._id) || [],
+        name: '', email: '', password: '', role: 'Teacher',
+        gender: '', phoneNumber: '', classes: [], subjects: []
       });
       setShowModal(true);
-    } catch (error) {
-      setToast({ show: true, message: 'Failed to fetch teacher details.', color: 'danger' });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -96,28 +107,36 @@ const TeachersPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedTeacher) return;
-
     try {
       setIsLoading(true);
-      // 1. Update core user info
-      const userPayload = { name: formData.name, email: formData.email };
-      await axios.put(`${API_URL}/users/${selectedTeacher.userId._id}`, userPayload, { withCredentials: true });
+      if (selectedTeacher) {
+        // Update logic
+        const userPayload = { name: formData.name, email: formData.email };
+        await axios.put(`${API_URL}/users/${selectedTeacher.userId._id}`, userPayload, { withCredentials: true });
 
-      // 2. Update teacher profile info
-      const profilePayload = {
-        gender: formData.gender,
-        phoneNumber: formData.phoneNumber,
-        classes: formData.classes,
-        subjects: formData.subjects,
-      };
-      await axios.put(`${API_URL}/teachers/${selectedTeacher._id}`, profilePayload, { withCredentials: true });
+        const profilePayload = {
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+          classes: formData.classes,
+          subjects: formData.subjects,
+        };
+        await axios.put(`${API_URL}/teachers/${selectedTeacher._id}`, profilePayload, { withCredentials: true });
 
-      setToast({ show: true, message: 'Teacher updated successfully!', color: 'success' });
+        setToast({ show: true, message: 'Teacher updated successfully!', color: 'success' });
+      } else {
+        // Create logic
+        if (!formData.password) {
+            setIsLoading(false);
+            return setToast({ show: true, message: "Password is required.", color: "warning" });
+        }
+        const payload = { ...formData, role: 'Teacher' };
+        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+        setToast({ show: true, message: 'Teacher created successfully!', color: 'success' });
+      }
       closeModal();
       fetchData();
     } catch (error: any) {
-      setToast({ show: true, message: error.response?.data?.message || 'Failed to update teacher.', color: 'danger' });
+      setToast({ show: true, message: error.response?.data?.message || 'Failed to save teacher.', color: 'danger' });
     } finally {
       setIsLoading(false);
     }
@@ -140,6 +159,10 @@ const TeachersPage: React.FC = () => {
 
   return (
     <>
+      <IonButton expand="block" onClick={() => openModal()}>
+        Add Teacher
+      </IonButton>
+
       {isLoading ? (
         <div className="ion-text-center ion-padding">
             <IonSpinner />
@@ -162,7 +185,7 @@ const TeachersPage: React.FC = () => {
         <IonModal isOpen={showModal} onDidDismiss={closeModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Edit Teacher</IonTitle>
+              <IonTitle>{selectedTeacher ? 'Edit' : 'Add'} Teacher</IonTitle>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
@@ -173,8 +196,14 @@ const TeachersPage: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel position="stacked">Email</IonLabel>
-                <IonInput name="email" value={formData.email} onIonChange={handleInputChange} />
+                <IonInput name="email" type="email" value={formData.email} onIonChange={handleInputChange} />
               </IonItem>
+              {!selectedTeacher && (
+                <IonItem>
+                    <IonLabel position="stacked">Password</IonLabel>
+                    <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
+                </IonItem>
+              )}
               <IonItem>
                 <IonLabel>Gender</IonLabel>
                 <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange('gender', e.detail.value)}>
