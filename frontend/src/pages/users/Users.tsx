@@ -149,6 +149,7 @@ const UsersPage: React.FC = () => {
           branchId: formData.branchId,
         };
         // 1. Update the core user
+        console.log(`Updating user: PUT ${API_URL}/users/${selectedUser.user._id}`, userPayload);
         await axios.put(`${API_URL}/users/${selectedUser.user._id}`, userPayload, {
           withCredentials: true,
         });
@@ -173,6 +174,7 @@ const UsersPage: React.FC = () => {
         }
 
         if (profileEndpoint) {
+           console.log(`Updating profile: PUT ${API_URL}${profileEndpoint}`, profilePayload);
            const profileRes = await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
            const message = profileRes.data?.message || "User updated successfully!";
            setToast({ show: true, message, color: "success" });
@@ -183,6 +185,7 @@ const UsersPage: React.FC = () => {
       } else {
         // One-step creation process
         const payload: any = { ...formData };
+        console.log(`Creating user: POST ${API_URL}/users`, payload);
         const createRes = await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
         const message = createRes.data?.message || "User created successfully!";
         setToast({ show: true, message, color: "success" });
@@ -202,7 +205,9 @@ const UsersPage: React.FC = () => {
   const handleLinkStudent = async () => {
     if (!linkStudentId || !selectedUser?.parent?._id) return;
     try {
-        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/link`, { studentId: linkStudentId }, { withCredentials: true });
+        const payload = { studentId: linkStudentId };
+        console.log(`Linking student: PUT ${API_URL}/parents/${selectedUser.parent._id}/link`, payload);
+        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/link`, payload, { withCredentials: true });
         setToast({ show: true, message: 'Student linked successfully!', color: 'success' });
         fetchData(); // Refresh all data to get updated parent info
     } catch (error: any) {
@@ -213,7 +218,9 @@ const UsersPage: React.FC = () => {
   const handleUnlinkStudent = async (studentId: string) => {
     if (!selectedUser?.parent?._id) return;
     try {
-        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/unlink`, { studentId }, { withCredentials: true });
+        const payload = { studentId };
+        console.log(`Unlinking student: PUT ${API_URL}/parents/${selectedUser.parent._id}/unlink`, payload);
+        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/unlink`, payload, { withCredentials: true });
         setToast({ show: true, message: 'Student unlinked successfully!', color: 'success' });
         fetchData(); // Refresh all data
     } catch (error: any) {
@@ -223,6 +230,7 @@ const UsersPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      console.log(`Deleting user: DELETE ${API_URL}/users/${id}`);
       const deleteRes = await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
       const message = deleteRes.data?.message || "User deleted.";
       setToast({ show: true, message, color: "medium" });
