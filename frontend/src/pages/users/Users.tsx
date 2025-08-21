@@ -238,16 +238,10 @@ const UsersPage: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>User Management</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        <IonButton expand="block" onClick={() => openModal()}>
-          Add User
-        </IonButton>
+    <>
+      <IonButton expand="block" onClick={() => openModal()}>
+        Add User
+      </IonButton>
 
         {isLoading ? (
           <div className="ion-text-center ion-padding">
@@ -456,8 +450,7 @@ const UsersPage: React.FC = () => {
           duration={3000}
           onDidDismiss={() => setToast({ show: false, message: "", color: "" })}
         />
-      </IonContent>
-    </IonPage>
+    </>
   );
 };
 

@@ -59,17 +59,17 @@ const App: React.FC = () => {
           <Switch>
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
-            <ProtectedRoute path="/dashboard/attendance" component={Attendance} />
-            <ProtectedRoute path="/dashboard/feepayments" component={FeePayments} />
-            <ProtectedRoute path="/dashboard/feestructures" component={FeeStructures} />
-            <ProtectedRoute path="/dashboard/subjects" component={Subjects} />
-            <ProtectedRoute path="/dashboard/classes" component={Classes} />
-            <ProtectedRoute path="/dashboard/classlevels" component={ClassLevels} />
-            <ProtectedRoute path="/dashboard/users" component={Users} />
-            <ProtectedRoute path="/dashboard/students" component={Students} />
-            <ProtectedRoute path="/dashboard/teachers" component={Teachers} />
-            <ProtectedRoute path="/dashboard/branches" component={Branches} />
-            <ProtectedRoute path="/dashboard" component={Dashboard} />
+            <ProtectedRoute path="/dashboard/attendance" component={Attendance} title="Attendance" />
+            <ProtectedRoute path="/dashboard/feepayments" component={FeePayments} title="Fee Payments" />
+            <ProtectedRoute path="/dashboard/feestructures" component={FeeStructures} title="Fee Structures" />
+            <ProtectedRoute path="/dashboard/subjects" component={Subjects} title="Subjects" />
+            <ProtectedRoute path="/dashboard/classes" component={Classes} title="Classes" />
+            <ProtectedRoute path="/dashboard/classlevels" component={ClassLevels} title="Class Levels" />
+            <ProtectedRoute path="/dashboard/users" component={Users} title="User Management" />
+            <ProtectedRoute path="/dashboard/students" component={Students} title="Manage Students" />
+            <ProtectedRoute path="/dashboard/teachers" component={Teachers} title="Manage Teachers" />
+            <ProtectedRoute path="/dashboard/branches" component={Branches} title="Branches" />
+            <ProtectedRoute path="/dashboard" component={Dashboard} title="Dashboard" />
             <Route exact path="/">
               {loading ? (
                 <div>Loading...</div>

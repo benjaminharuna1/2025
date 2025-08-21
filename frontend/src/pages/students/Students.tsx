@@ -149,15 +149,9 @@ const StudentsPage: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Manage Students</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent className="ion-padding">
-        {isLoading ? (
-          <div className="ion-text-center ion-padding">
+    <>
+      {isLoading ? (
+        <div className="ion-text-center ion-padding">
             <IonSpinner />
           </div>
         ) : (
@@ -251,8 +245,7 @@ const StudentsPage: React.FC = () => {
           duration={3000}
           onDidDismiss={() => setToast({ show: false, message: '', color: '' })}
         />
-      </IonContent>
-    </IonPage>
+    </>
   );
 };
 
