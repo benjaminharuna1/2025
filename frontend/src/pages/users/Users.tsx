@@ -255,7 +255,7 @@ const UsersPage: React.FC = () => {
                     {branches.map((branch) => (
                       <IonSelectOption key={branch._id} value={branch._id}>
                         {branch.name}
-                      </                      </IonSelectOption>
+                      </IonSelectOption>
                     ))}
                   </IonSelect>
                 </Item>
