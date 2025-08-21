@@ -23,8 +23,10 @@ const API_URL = "http://localhost:3000/api";
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [linkStudentId, setLinkStudentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; color: string }>({
     show: false,
@@ -38,17 +40,20 @@ const UsersPage: React.FC = () => {
     password: "",
     role: "",
     branchId: null,
+    // ... other fields
   });
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [usersRes, branchesRes] = await Promise.all([
+      const [usersRes, branchesRes, studentsRes] = await Promise.all([
         axios.get(`${API_URL}/users`, { withCredentials: true }),
         axios.get(`${API_URL}/branches`, { withCredentials: true }),
+        axios.get(`${API_URL}/students`, { withCredentials: true }),
       ]);
       setUsers(usersRes.data.users || []);
       setBranches(branchesRes.data.branches || []);
+      setAllStudents(studentsRes.data.students || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       setToast({ show: true, message: "Failed to fetch data.", color: "danger" });
@@ -203,6 +208,28 @@ const UsersPage: React.FC = () => {
       setToast({ show: true, message, color: "danger" });
     } finally {
         setIsLoading(false);
+    }
+  };
+
+  const handleLinkStudent = async () => {
+    if (!linkStudentId || !selectedUser?.parent?._id) return;
+    try {
+        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/link`, { studentId: linkStudentId }, { withCredentials: true });
+        setToast({ show: true, message: 'Student linked successfully!', color: 'success' });
+        fetchData(); // Refresh all data to get updated parent info
+    } catch (error: any) {
+        setToast({ show: true, message: error.response?.data?.message || 'Failed to link student.', color: 'danger' });
+    }
+  };
+
+  const handleUnlinkStudent = async (studentId: string) => {
+    if (!selectedUser?.parent?._id) return;
+    try {
+        await axios.put(`${API_URL}/parents/${selectedUser.parent._id}/unlink`, { studentId }, { withCredentials: true });
+        setToast({ show: true, message: 'Student unlinked successfully!', color: 'success' });
+        fetchData(); // Refresh all data
+    } catch (error: any) {
+        setToast({ show: true, message: error.response?.data?.message || 'Failed to unlink student.', color: 'danger' });
     }
   };
 
@@ -366,17 +393,34 @@ const UsersPage: React.FC = () => {
               {/* Teacher-specific fields */}
               {formData.role === "Teacher" && (
                 <>
+                  {/* ... existing teacher fields ... */}
+                </>
+              )}
+
+              {/* Parent-specific fields */}
+              {formData.role === "Parent" && selectedUser?.parent && (
+                <>
                   <IonItem>
-                    <IonLabel>Classes</IonLabel>
-                    <IonSelect name="classes" multiple value={formData.classes} onIonChange={e => handleSelectChange('classes', e.detail.value)}>
-                      {/* Populate with classes */}
-                    </IonSelect>
+                    <IonLabel>
+                      <h3>Linked Students</h3>
+                    </IonLabel>
                   </IonItem>
+                  <IonList>
+                    {selectedUser.parent.students.map((student: any) => (
+                        <IonItem key={student._id}>
+                            <IonLabel>{student.name}</IonLabel>
+                            <IonButton color="danger" onClick={() => handleUnlinkStudent(student._id)}>Unlink</IonButton>
+                        </IonItem>
+                    ))}
+                  </IonList>
                   <IonItem>
-                    <IonLabel>Subjects</IonLabel>
-                    <IonSelect name="subjects" multiple value={formData.subjects} onIonChange={e => handleSelectChange('subjects', e.detail.value)}>
-                      {/* Populate with subjects */}
-                    </IonSelect>
+                      <IonLabel>Link New Student</IonLabel>
+                      <IonSelect value={linkStudentId} onIonChange={e => setLinkStudentId(e.detail.value)}>
+                          {allStudents.map(student => (
+                              <IonSelectOption key={student._id} value={student._id}>{student.name}</IonSelectOption>
+                          ))}
+                      </IonSelect>
+                      <IonButton onClick={handleLinkStudent} disabled={!linkStudentId}>Link</IonButton>
                   </IonItem>
                 </>
               )}
