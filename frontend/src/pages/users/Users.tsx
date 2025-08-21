@@ -122,7 +122,8 @@ const UsersPage: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
+    const name = e.target.name;
+    const value = e.detail?.value ?? e.target.value;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
