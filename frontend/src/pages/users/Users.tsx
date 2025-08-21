@@ -13,6 +13,10 @@ import {
   IonSelectOption,
   IonInput,
   IonModal,
+  IonDatetime,
+  IonLoading,
+  IonToast,
+  IonSearchbar,
 } from "@ionic/react";
 import axios from "axios";
 
@@ -20,12 +24,18 @@ const API_URL = "http://localhost:3000/api";
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastOpen, setToastOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [filterRole, setFilterRole] = useState("");
 
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -51,49 +61,75 @@ const UsersPage: React.FC = () => {
     fetchStudents();
   }, []);
 
+  useEffect(() => {
+    applyFilters();
+  }, [users, searchText, filterRole]);
+
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/users`, { withCredentials: true });
-      setUsers(res.data);
+      setUsers(res.data.users || res.data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
+      setUsers([]);
+      showToast("Error fetching users");
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchBranches = async () => {
     try {
       const res = await axios.get(`${API_URL}/branches`, { withCredentials: true });
-      setBranches(res.data);
+      setBranches(res.data.branches || res.data || []);
     } catch (error) {
       console.error("Error fetching branches:", error);
+      setBranches([]);
     }
   };
 
   const fetchClasses = async () => {
     try {
       const res = await axios.get(`${API_URL}/classes`, { withCredentials: true });
-      setClasses(res.data);
+      setClasses(res.data.classes || []);
     } catch (error) {
       console.error("Error fetching classes:", error);
+      setClasses([]);
     }
   };
 
   const fetchSubjects = async () => {
     try {
       const res = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
-      setSubjects(res.data);
+      setSubjects(res.data.subjects || res.data || []);
     } catch (error) {
       console.error("Error fetching subjects:", error);
+      setSubjects([]);
     }
   };
 
   const fetchStudents = async () => {
     try {
       const res = await axios.get(`${API_URL}/students`, { withCredentials: true });
-      setStudents(res.data);
+      setStudents(res.data.students || res.data || []);
     } catch (error) {
       console.error("Error fetching students:", error);
+      setStudents([]);
     }
+  };
+
+  const applyFilters = () => {
+    let temp = [...users];
+    if (searchText.trim() !== "") {
+      temp = temp.filter((user) =>
+        user.name.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+    if (filterRole) {
+      temp = temp.filter((user) => user.role === filterRole);
+    }
+    setFilteredUsers(temp);
   };
 
   const openModal = (user: any = null) => {
@@ -148,24 +184,88 @@ const UsersPage: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const name = e.target.name;
+    const value = e.detail?.value ?? e.target.value;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSelectChange = (name: string, value: any) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSave = async () => {
-    try {
-      const payload: any = {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        role: formData.role,
-      };
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setToastOpen(true);
+  };
 
-      // Student
-      if (formData.role === "Student") {
+  /** Build payload based on role so backend updates/creates the correct profile table */
+  const buildPayload = () => {
+    const payload: any = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+    };
+    if (!selectedUser) payload.password = formData.password;
+
+    switch (formData.role) {
+      case "Student":
+        payload.branchId = formData.branchId;
+        payload.classId = formData.classId;
+        payload.dateOfBirth = formData.dateOfBirth;
+        payload.admissionNumber = formData.admissionNumber;
+        payload.gender = formData.gender;
+        payload.phoneNumber = formData.phoneNumber;
+        break;
+
+      case "Teacher":
+        payload.branchId = formData.branchId;
+        payload.classes = formData.classes;
+        payload.subjects = formData.subjects;
+        payload.gender = formData.gender;
+        payload.phoneNumber = formData.phoneNumber;
+        break;
+
+      case "Parent":
+        payload.students = formData.students;
+        payload.gender = formData.gender;
+        payload.phoneNumber = formData.phoneNumber;
+        break;
+
+      case "Branch Admin":
+        payload.branchId = formData.branchId;
+        payload.gender = formData.gender;
+        payload.phoneNumber = formData.phoneNumber;
+        break;
+
+      case "Super Admin":
+        payload.gender = formData.gender;
+        payload.phoneNumber = formData.phoneNumber;
+        break;
+    }
+
+    return payload;
+  };
+
+  const handleSave = async () => {
+  try {
+    if (!formData.name || !formData.email || (!selectedUser && !formData.password) || !formData.role) {
+      setToastMessage("Please fill all required fields");
+      setToastOpen(true);
+      return;
+    }
+
+    // Build the payload according to role
+    const payload: any = {
+      name: formData.name,
+      email: formData.email,
+      role: formData.role,
+    };
+
+    if (!selectedUser) payload.password = formData.password; // Only when creating
+
+    switch (formData.role) {
+      case "Student":
+        payload.branchId = formData.branchId;
         payload.student = {
           classId: formData.classId,
           dateOfBirth: formData.dateOfBirth,
@@ -173,57 +273,76 @@ const UsersPage: React.FC = () => {
           gender: formData.gender,
           phoneNumber: formData.phoneNumber,
         };
-      }
+        break;
 
-      // Teacher
-      if (formData.role === "Teacher") {
+      case "Teacher":
+        payload.branchId = formData.branchId;
         payload.teacher = {
-          classes: formData.classes || [],
-          subjects: formData.subjects || [],
+          classes: formData.classes,
+          subjects: formData.subjects,
           gender: formData.gender,
           phoneNumber: formData.phoneNumber,
         };
-      }
+        break;
 
-      // Parent
-      if (formData.role === "Parent") {
+      case "Parent":
         payload.parent = {
-          students: formData.students || [],
+          students: formData.students,
           gender: formData.gender,
           phoneNumber: formData.phoneNumber,
         };
-      }
+        break;
 
-      // Super Admin / Branch Admin
-      if (formData.role === "Super Admin" || formData.role === "Branch Admin") {
+      case "Branch Admin":
+        payload.branchId = formData.branchId;
         payload.adminProfile = {
           gender: formData.gender,
           phoneNumber: formData.phoneNumber,
-          branchId: formData.role === "Branch Admin" ? formData.branchId : null,
         };
-      }
+        break;
 
-      if (selectedUser) {
-        await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, {
-          withCredentials: true,
-        });
-      } else {
-        await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
-      }
-
-      closeModal();
-      fetchUsers();
-    } catch (error) {
-      console.error("Error saving user:", error);
+      case "Super Admin":
+        payload.adminProfile = {
+          gender: formData.gender,
+          phoneNumber: formData.phoneNumber,
+        };
+        break;
     }
-  };
 
-  const handleDelete = async (id: string) => {
+    if (selectedUser) {
+      // Update
+      await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, { withCredentials: true });
+    } else {
+      // Create
+      await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+    }
+
+    fetchUsers();
+    closeModal();
+    setToastMessage("User saved successfully");
+    setToastOpen(true);
+
+  } catch (error) {
+    console.error("Error saving user:", error);
+    setToastMessage("Failed to save user");
+    setToastOpen(true);
+  }
+};
+
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
+
+    setLoading(true);
     try {
       await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
+      showToast("User deleted successfully");
       fetchUsers();
     } catch (error) {
       console.error("Error deleting user:", error);
+      showToast("Error deleting user");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -235,23 +354,34 @@ const UsersPage: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        <IonButton expand="block" onClick={() => openModal()}>
-          Add User
-        </IonButton>
+        <IonSearchbar
+          value={searchText}
+          onIonInput={(e) => setSearchText(e.detail.value!)}
+          placeholder="Search by name"
+        />
+        <IonItem>
+          <IonLabel>Filter by Role</IonLabel>
+          <IonSelect value={filterRole} onIonChange={(e) => setFilterRole(e.detail.value)}>
+            <IonSelectOption value="">All</IonSelectOption>
+            <IonSelectOption value="Super Admin">Super Admin</IonSelectOption>
+            <IonSelectOption value="Branch Admin">Branch Admin</IonSelectOption>
+            <IonSelectOption value="Teacher">Teacher</IonSelectOption>
+            <IonSelectOption value="Student">Student</IonSelectOption>
+            <IonSelectOption value="Parent">Parent</IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        <IonButton expand="block" onClick={() => openModal()}>Add User</IonButton>
 
         <IonList>
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <IonItem key={user._id}>
               <IonLabel>
                 <h2>{user.name}</h2>
-                <p>
-                  {user.email} - {user.role}
-                </p>
+                <p>{user.email} - {user.role}</p>
               </IonLabel>
               <IonButton onClick={() => openModal(user)}>Edit</IonButton>
-              <IonButton color="danger" onClick={() => handleDelete(user._id)}>
-                Delete
-              </IonButton>
+              <IonButton color="danger" onClick={() => handleDelete(user._id, user.name)}>Delete</IonButton>
             </IonItem>
           ))}
         </IonList>
@@ -264,64 +394,47 @@ const UsersPage: React.FC = () => {
           </IonHeader>
           <IonContent>
             <IonList>
+              {/* Name */}
               <IonItem>
                 <IonLabel position="stacked">Name</IonLabel>
-                <IonInput
-                  name="name"
-                  value={formData.name}
-                  onIonChange={handleInputChange}
-                />
+                <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
               </IonItem>
 
+              {/* Email */}
               <IonItem>
                 <IonLabel position="stacked">Email</IonLabel>
-                <IonInput
-                  name="email"
-                  value={formData.email}
-                  onIonChange={handleInputChange}
-                />
+                <IonInput name="email" value={formData.email} onIonChange={handleInputChange} />
               </IonItem>
 
+              {/* Password */}
               {!selectedUser && (
                 <IonItem>
                   <IonLabel position="stacked">Password</IonLabel>
-                  <IonInput
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onIonChange={handleInputChange}
-                  />
+                  <IonInput name="password" type="password" value={formData.password} onIonChange={handleInputChange} />
                 </IonItem>
               )}
 
+              {/* Role */}
               <IonItem>
                 <IonLabel position="stacked">Role</IonLabel>
-                <IonSelect
-                  name="role"
-                  value={formData.role}
-                  onIonChange={(e) => handleSelectChange("role", e.detail.value)}
-                >
+                <IonSelect name="role" value={formData.role} onIonChange={(e) => handleSelectChange("role", e.detail.value)}>
                   <IonSelectOption value="Super Admin">Super Admin</IonSelectOption>
                   <IonSelectOption value="Branch Admin">Branch Admin</IonSelectOption>
-                  <IonSelectOption value="Student">Student</IonSelectOption>
                   <IonSelectOption value="Teacher">Teacher</IonSelectOption>
+                  <IonSelectOption value="Student">Student</IonSelectOption>
                   <IonSelectOption value="Parent">Parent</IonSelectOption>
                 </IonSelect>
               </IonItem>
 
-              {(formData.role === "Student" ||
-                formData.role === "Teacher" ||
-                formData.role === "Parent" ||
-                formData.role === "Super Admin" ||
-                formData.role === "Branch Admin") && (
+              {/* Gender & Phone */}
+              {["Student","Teacher","Parent","Super Admin","Branch Admin"].includes(formData.role) && (
                 <>
                   <IonItem>
                     <IonLabel position="stacked">Gender</IonLabel>
-                    <IonInput
-                      name="gender"
-                      value={formData.gender}
-                      onIonChange={handleInputChange}
-                    />
+                    <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange("gender", e.detail.value)}>
+                      <IonSelectOption value="Male">Male</IonSelectOption>
+                      <IonSelectOption value="Female">Female</IonSelectOption>
+                    </IonSelect>
                   </IonItem>
 
                   <IonItem>
@@ -335,7 +448,8 @@ const UsersPage: React.FC = () => {
                 </>
               )}
 
-              {formData.role === "Branch Admin" && (
+              {/* Branch selection for roles that need it */}
+              {["Branch Admin", "Teacher", "Student"].includes(formData.role) && (
                 <IonItem>
                   <IonLabel>Branch</IonLabel>
                   <IonSelect
@@ -352,6 +466,7 @@ const UsersPage: React.FC = () => {
                 </IonItem>
               )}
 
+              {/* Student-specific fields */}
               {formData.role === "Student" && (
                 <>
                   <IonItem>
@@ -371,10 +486,11 @@ const UsersPage: React.FC = () => {
 
                   <IonItem>
                     <IonLabel position="stacked">Date of Birth</IonLabel>
-                    <IonInput
+                    <IonDatetime
                       name="dateOfBirth"
                       value={formData.dateOfBirth}
-                      onIonChange={handleInputChange}
+                      presentation="date"
+                      onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}
                     />
                   </IonItem>
 
@@ -389,6 +505,7 @@ const UsersPage: React.FC = () => {
                 </>
               )}
 
+              {/* Teacher-specific fields */}
               {formData.role === "Teacher" && (
                 <>
                   <IonItem>
@@ -425,6 +542,7 @@ const UsersPage: React.FC = () => {
                 </>
               )}
 
+              {/* Parent-specific fields */}
               {formData.role === "Parent" && (
                 <IonItem>
                   <IonLabel>Students</IonLabel>
@@ -444,14 +562,18 @@ const UsersPage: React.FC = () => {
               )}
             </IonList>
 
-            <IonButton expand="block" onClick={handleSave}>
-              Save
-            </IonButton>
-            <IonButton expand="block" color="medium" onClick={closeModal}>
-              Cancel
-            </IonButton>
+            <IonButton expand="block" onClick={handleSave}>Save</IonButton>
+            <IonButton expand="block" color="medium" onClick={closeModal}>Cancel</IonButton>
           </IonContent>
         </IonModal>
+
+        <IonLoading isOpen={loading} message="Please wait..." />
+        <IonToast
+          isOpen={toastOpen}
+          onDidDismiss={() => setToastOpen(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
   );
