@@ -107,29 +107,44 @@ const UsersPage: React.FC = () => {
     }
 
     try {
-      const payload: any = {
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-      };
-
-      if (!selectedUser && formData.password) {
-        payload.password = formData.password;
-      }
-
-      if (formData.role === 'Branch Admin' || formData.role === 'Teacher' || formData.role === 'Student') {
-          if (!formData.branchId) {
-            return setToast({ show: true, message: "Branch is required for this role.", color: "warning" });
-          }
-          payload.branchId = formData.branchId;
-      }
-
+      setIsLoading(true);
       if (selectedUser) {
-        await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, {
+        // Two-step update process
+        const userPayload = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          branchId: formData.branchId,
+        };
+        // 1. Update the core user
+        await axios.put(`${API_URL}/users/${selectedUser._id}`, userPayload, {
           withCredentials: true,
         });
+
+        // 2. Update the profile
+        // Note: This part is speculative and depends on how profiles are structured and updated.
+        // This assumes a separate endpoint for profile updates.
+        let profilePayload = {};
+        let profileEndpoint = '';
+        let profileId = '';
+
+        if(formData.role === 'Student' && selectedUser.student) {
+            profileEndpoint = `/students/${selectedUser.student._id}`;
+            profilePayload = { classId: formData.classId, admissionNumber: formData.admissionNumber, dateOfBirth: formData.dateOfBirth };
+        } else if (formData.role === 'Teacher' && selectedUser.teacher) {
+            profileEndpoint = `/teachers/${selectedUser.teacher._id}`;
+            profilePayload = { classes: formData.classes, subjects: formData.subjects };
+        }
+        // Add other roles as needed
+
+        if (profileEndpoint) {
+            await axios.put(`${API_URL}${profileEndpoint}`, profilePayload, { withCredentials: true });
+        }
+
         setToast({ show: true, message: "User updated successfully!", color: "success" });
       } else {
+        // One-step creation process
+        const payload: any = { ...formData };
         await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
         setToast({ show: true, message: "User created successfully!", color: "success" });
       }
@@ -140,6 +155,8 @@ const UsersPage: React.FC = () => {
       console.error("Error saving user:", error);
       const message = error.response?.data?.message || "An error occurred.";
       setToast({ show: true, message, color: "danger" });
+    } finally {
+        setIsLoading(false);
     }
   };
 
