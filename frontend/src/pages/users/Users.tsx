@@ -334,7 +334,7 @@ const UsersPage: React.FC = () => {
                       </IonSelectOption>
                     ))}
                   </IonSelect>
-                </Item>
+                </IonItem>
               )}
 
               {/* Student-specific fields */}
