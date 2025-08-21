@@ -72,47 +72,48 @@ const UsersPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const openModal = (user: any = null) => {
+  const openModal = async (user: any = null) => {
     if (user) {
-      setSelectedUser(user);
-      // Pre-fill form with existing data for editing
-      const profile = user.student || user.teacher || user.parent || user.adminProfile || {};
-      setFormData({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        branchId: user.branchId || null,
-        password: "",
-        // Profile fields
-        gender: profile.gender || "",
-        phoneNumber: profile.phoneNumber || "",
-        classId: user.student?.classId || "",
-        dateOfBirth: user.student?.dateOfBirth || "",
-        admissionNumber: user.student?.admissionNumber || "",
-        classes: user.teacher?.classes || [],
-        subjects: user.teacher?.subjects || [],
-        students: user.parent?.students || [],
-      });
+      try {
+        setIsLoading(true);
+        // Fetch the full user object to ensure we have the populated profile
+        const res = await axios.get(`${API_URL}/users/${user._id}`, { withCredentials: true });
+        const fullUser = res.data.user;
+        setSelectedUser(fullUser);
+
+        const profile = fullUser.student || fullUser.teacher || fullUser.parent || fullUser.adminProfile || {};
+        setFormData({
+          name: fullUser.name,
+          email: fullUser.email,
+          role: fullUser.role,
+          branchId: fullUser.branchId || null,
+          password: "",
+          gender: profile.gender || "",
+          phoneNumber: profile.phoneNumber || "",
+          classId: fullUser.student?.classId || "",
+          dateOfBirth: fullUser.student?.dateOfBirth || "",
+          admissionNumber: fullUser.student?.admissionNumber || "",
+          classes: fullUser.teacher?.classes?.map((c: any) => c._id) || [],
+          subjects: fullUser.teacher?.subjects?.map((s: any) => s._id) || [],
+          students: fullUser.parent?.students?.map((s: any) => s._id) || [],
+        });
+        setShowModal(true);
+      } catch (error) {
+        console.error("Failed to fetch user details", error);
+        setToast({ show: true, message: "Failed to load user data.", color: "danger" });
+      } finally {
+        setIsLoading(false);
+      }
     } else {
       // Reset form for creating a new user
       setSelectedUser(null);
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "",
-        branchId: null,
-        gender: "",
-        phoneNumber: "",
-        classId: "",
-        dateOfBirth: "",
-        admissionNumber: "",
-        classes: [],
-        subjects: [],
-        students: [],
+        name: "", email: "", password: "", role: "", branchId: null,
+        gender: "", phoneNumber: "", classId: "", dateOfBirth: "",
+        admissionNumber: "", classes: [], subjects: [], students: [],
       });
+      setShowModal(true);
     }
-    setShowModal(true);
   };
 
   const closeModal = () => {
