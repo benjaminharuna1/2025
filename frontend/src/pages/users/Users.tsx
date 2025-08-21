@@ -24,6 +24,8 @@ const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [linkStudentId, setLinkStudentId] = useState<string | null>(null);
@@ -46,14 +48,18 @@ const UsersPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [usersRes, branchesRes, studentsRes] = await Promise.all([
+      const [usersRes, branchesRes, studentsRes, classesRes, subjectsRes] = await Promise.all([
         axios.get(`${API_URL}/users`, { withCredentials: true }),
         axios.get(`${API_URL}/branches`, { withCredentials: true }),
         axios.get(`${API_URL}/students`, { withCredentials: true }),
+        axios.get(`${API_URL}/classes`, { withCredentials: true }),
+        axios.get(`${API_URL}/subjects`, { withCredentials: true }),
       ]);
       setUsers(usersRes.data.users || []);
       setBranches(branchesRes.data.branches || []);
       setAllStudents(studentsRes.data.students || []);
+      setClasses(classesRes.data.classes || []);
+      setSubjects(subjectsRes.data.subjects || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       setToast({ show: true, message: "Failed to fetch data.", color: "danger" });
@@ -376,7 +382,11 @@ const UsersPage: React.FC = () => {
                   <IonItem>
                     <IonLabel>Class</IonLabel>
                     <IonSelect name="classId" value={formData.classId} onIonChange={e => handleSelectChange('classId', e.detail.value)}>
-                      {/* Populate with classes */}
+                      {classes.map((cls) => (
+                        <IonSelectOption key={cls._id} value={cls._id}>
+                          {cls.name}
+                        </IonSelectOption>
+                      ))}
                     </IonSelect>
                   </IonItem>
                   <IonItem>
@@ -393,7 +403,26 @@ const UsersPage: React.FC = () => {
               {/* Teacher-specific fields */}
               {formData.role === "Teacher" && (
                 <>
-                  {/* ... existing teacher fields ... */}
+                  <IonItem>
+                    <IonLabel>Classes</IonLabel>
+                    <IonSelect name="classes" multiple value={formData.classes} onIonChange={e => handleSelectChange('classes', e.detail.value)}>
+                      {classes.map((cls) => (
+                        <IonSelectOption key={cls._id} value={cls._id}>
+                          {cls.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Subjects</IonLabel>
+                    <IonSelect name="subjects" multiple value={formData.subjects} onIonChange={e => handleSelectChange('subjects', e.detail.value)}>
+                      {subjects.map((subj) => (
+                        <IonSelectOption key={subj._id} value={subj._id}>
+                          {subj.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
                 </>
               )}
 
