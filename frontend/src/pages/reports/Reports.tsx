@@ -23,16 +23,18 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Student, Class } from '../../types';
+import { Student, Class, Branch } from '../../types';
 
 const Reports: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [feeReportFormat, setFeeReportFormat] = useState('pdf');
-  const [feeReportStudent, setFeeReportStudent] = useState('');
+  const [feeReportBranch, setFeeReportBranch] = useState('');
   const [resultReportFormat, setResultReportFormat] = useState('pdf');
   const [resultReportStudent, setResultReportStudent] = useState('');
   const [resultReportClass, setResultReportClass] = useState('');
+  const [resultReportBranch, setResultReportBranch] = useState('');
   const [resultReportSession, setResultReportSession] = useState('');
   const [resultReportTerm, setResultReportTerm] = useState('');
 
@@ -55,8 +57,18 @@ const Reports: React.FC = () => {
       }
     };
 
+    const fetchBranches = async () => {
+      try {
+        const { data } = await api.get('/branches');
+        setBranches(data.branches || []);
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+      }
+    };
+
     fetchStudents();
     fetchClasses();
+    fetchBranches();
   }, []);
 
   const generateReport = async (reportType: 'fees' | 'results') => {
@@ -64,13 +76,14 @@ const Reports: React.FC = () => {
     if (reportType === 'fees') {
       params = {
         format: feeReportFormat,
-        studentId: feeReportStudent,
+        branchId: feeReportBranch,
       };
     } else {
       params = {
         format: resultReportFormat,
         studentId: resultReportStudent,
         classId: resultReportClass,
+        branchId: resultReportBranch,
         session: resultReportSession,
         term: resultReportTerm,
       };
@@ -116,12 +129,12 @@ const Reports: React.FC = () => {
                   </IonCardHeader>
                   <IonCardContent>
                     <IonItem>
-                      <IonLabel>Student</IonLabel>
-                      <IonSelect value={feeReportStudent} onIonChange={(e) => setFeeReportStudent(e.detail.value)}>
+                      <IonLabel>Branch</IonLabel>
+                      <IonSelect value={feeReportBranch} onIonChange={(e) => setFeeReportBranch(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {students.map((student) => (
-                          <IonSelectOption key={student._id} value={student._id}>
-                            {student.name}
+                        {branches.map((branch) => (
+                          <IonSelectOption key={branch._id} value={branch._id}>
+                            {branch.name}
                           </IonSelectOption>
                         ))}
                       </IonSelect>
@@ -147,7 +160,18 @@ const Reports: React.FC = () => {
                     <IonCardTitle>Result Report</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
-                  <IonItem>
+                    <IonItem>
+                      <IonLabel>Branch</IonLabel>
+                      <IonSelect value={resultReportBranch} onIonChange={(e) => setResultReportBranch(e.detail.value)}>
+                        <IonSelectOption value="">All</IonSelectOption>
+                        {branches.map((branch) => (
+                          <IonSelectOption key={branch._id} value={branch._id}>
+                            {branch.name}
+                          </IonSelectOption>
+                        ))}
+                      </IonSelect>
+                    </IonItem>
+                    <IonItem>
                       <IonLabel>Student</IonLabel>
                       <IonSelect value={resultReportStudent} onIonChange={(e) => setResultReportStudent(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
