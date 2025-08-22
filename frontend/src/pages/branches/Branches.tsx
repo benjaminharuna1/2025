@@ -20,15 +20,14 @@ import {
   IonCardContent,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { Branch } from '../../types';
 import './Branches.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const Branches: React.FC = () => {
-  const [branches, setBranches] = useState<any[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState<any | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
 
@@ -38,7 +37,7 @@ const Branches: React.FC = () => {
 
   const fetchBranches = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      const { data } = await api.get('/branches');
       if (data && Array.isArray(data.branches)) {
         setBranches(data.branches);
       } else if (Array.isArray(data)) {
@@ -57,20 +56,20 @@ const Branches: React.FC = () => {
   const handleSave = async () => {
     const branchData = { name, address };
     if (selectedBranch) {
-      await axios.put(`${API_URL}/branches/${selectedBranch._id}`, branchData, { withCredentials: true });
+      await api.put(`/branches/${selectedBranch._id}`, branchData);
     } else {
-      await axios.post(`${API_URL}/branches`, branchData, { withCredentials: true });
+      await api.post('/branches', branchData);
     }
     fetchBranches();
     closeModal();
   };
 
-  const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/branches/${id}`, { withCredentials: true });
+  const handleDelete = async (id:string) => {
+    await api.delete(`/branches/${id}`);
     fetchBranches();
   };
 
-  const openModal = (branch: any | null = null) => {
+  const openModal = (branch: Branch | null = null) => {
     setSelectedBranch(branch);
     setName(branch ? branch.name : '');
     setAddress(branch ? branch.address : '');

@@ -1,0 +1,108 @@
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: 'Super Admin' | 'Branch Admin' | 'Teacher' | 'Student' | 'Parent';
+  branchId?: string;
+  classId?: string;
+  profilePicture?: string;
+}
+
+export interface Branch {
+  _id: string;
+  name: string;
+  address: string;
+}
+
+export interface ClassLevel {
+  _id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Class {
+  _id:string;
+  name: string;
+  classLevelId: string;
+  teacherId: string;
+  branchId: string;
+}
+
+export interface Subject {
+  _id: string;
+  name: string;
+  classId: string;
+  teacherId: string;
+}
+
+export interface StudentProfile {
+    _id: string;
+    classId?: string;
+    branchId?: string;
+    dateOfBirth?: string;
+    admissionNumber?: string;
+    gender?: string;
+    phoneNumber?: string;
+    address?: string;
+    bloodGroup?: string;
+    sponsor?: string;
+}
+
+export interface TeacherProfile {
+    _id: string;
+    gender?: string;
+    phoneNumber?: string;
+    classes?: string[];
+    subjects?: string[];
+}
+
+export interface ParentProfile {
+    _id: string;
+    gender?: string;
+    phoneNumber?: string;
+    students?: string[];
+}
+
+export interface FeeStructure {
+  _id: string;
+  name: string;
+  amount: number;
+  classLevelId: string;
+  branchId: string;
+}
+
+export interface FeePayment {
+  _id: string;
+  studentId: string;
+  feeStructureId: string;
+  amountPaid: number;
+  paymentDate: string;
+}
+
+export interface AttendanceRecord {
+  studentId: string;
+  status: 'Present' | 'Absent' | 'Late';
+}
+
+export interface Attendance {
+  _id: string;
+  classId: string;
+  branchId: string;
+  date: string;
+  records: AttendanceRecord[];
+}
+
+export interface Result {
+  _id: string;
+  studentId: string;
+  subjectId: string;
+  marks: number;
+  grade: string;
+}
+
+export interface Announcement {
+  _id: string;
+  title: string;
+  content: string;
+  branchId?: string;
+}
