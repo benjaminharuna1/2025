@@ -18,18 +18,23 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
+  IonButtons,
+  IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { ClassLevel } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './ClassLevels.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const ClassLevels: React.FC = () => {
-  const [classLevels, setClassLevels] = useState<any[]>([]);
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedClassLevel, setSelectedClassLevel] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [selectedClassLevel, setSelectedClassLevel] = useState<ClassLevel | null>(null);
+  const [formData, setFormData] = useState<Partial<ClassLevel>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchClassLevels();
@@ -37,7 +42,7 @@ const ClassLevels: React.FC = () => {
 
   const fetchClassLevels = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/classlevels`, { withCredentials: true });
+      const { data } = await api.get('/classlevels');
       if (Array.isArray(data)) {
         setClassLevels(data);
       } else {
@@ -50,21 +55,33 @@ const ClassLevels: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedClassLevel) {
-      await axios.put(`${API_URL}/classlevels/${selectedClassLevel._id}`, formData, { withCredentials: true });
-    } else {
-      await axios.post(`${API_URL}/classlevels`, formData, { withCredentials: true });
+    try {
+      if (selectedClassLevel) {
+        await api.put(`/classlevels/${selectedClassLevel._id}`, formData);
+      } else {
+        await api.post('/classlevels', formData);
+      }
+      fetchClassLevels();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving class level:', error);
+      setToastMessage('Failed to save class level.');
+      setShowToast(true);
     }
-    fetchClassLevels();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/classlevels/${id}`, { withCredentials: true });
-    fetchClassLevels();
+    try {
+      await api.delete(`/classlevels/${id}`);
+      fetchClassLevels();
+    } catch (error) {
+      console.error('Error deleting class level:', error);
+      setToastMessage('Failed to delete class level.');
+      setShowToast(true);
+    }
   };
 
-  const openModal = (classLevel: any | null = null) => {
+  const openModal = (classLevel: ClassLevel | null = null) => {
     setSelectedClassLevel(classLevel);
     setFormData(classLevel ? { ...classLevel } : {});
     setShowModal(true);
@@ -81,15 +98,20 @@ const ClassLevels: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Class Levels</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Class Levels</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -152,8 +174,15 @@ const ClassLevels: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

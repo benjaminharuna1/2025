@@ -25,6 +25,7 @@ import {
   calendarOutline,
   documentTextOutline,
   megaphoneOutline,
+  barChartOutline,
 } from 'ionicons/icons';
 
 const SidebarMenu: React.FC = () => {
@@ -51,6 +52,7 @@ const SidebarMenu: React.FC = () => {
       { text: 'Attendance', icon: calendarOutline, path: '/dashboard/attendance', roles: ['Super Admin', 'Branch Admin', 'Teacher'] },
       { text: 'Results', icon: documentTextOutline, path: '/dashboard/results', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Student', 'Parent'] },
       { text: 'Announcements', icon: megaphoneOutline, path: '/dashboard/announcements', roles: ['Super Admin', 'Branch Admin'] },
+      { text: 'Reports', icon: barChartOutline, path: '/dashboard/reports', roles: ['Super Admin', 'Branch Admin', 'Accountant'] },
     ];
 
     return allLinks

@@ -20,21 +20,26 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonButtons,
+  IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { FeePayment, User, FeeStructure } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const FeePayments: React.FC = () => {
-  const [feePayments, setFeePayments] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [feeStructures, setFeeStructures] = useState<any[]>([]);
+  const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
+  const [students, setStudents] = useState<User[]>([]);
+  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedFeePayment, setSelectedFeePayment] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [selectedFeePayment, setSelectedFeePayment] = useState<FeePayment | null>(null);
+  const [formData, setFormData] = useState<Partial<FeePayment>>({});
   const [filterStudent, setFilterStudent] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchFeePayments();
@@ -44,8 +49,7 @@ const FeePayments: React.FC = () => {
 
   const fetchFeePayments = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/feepayments`, {
-        withCredentials: true,
+      const { data } = await api.get('/feepayments', {
         params: { studentId: filterStudent },
       });
       if (data && Array.isArray(data.feePayments)) {
@@ -61,8 +65,7 @@ const FeePayments: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/users`, {
-        withCredentials: true,
+      const { data } = await api.get('/users', {
         params: { role: 'Student' },
       });
       if (data && Array.isArray(data.users)) {
@@ -75,7 +78,7 @@ const FeePayments: React.FC = () => {
 
   const fetchFeeStructures = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/feestructures`, { withCredentials: true });
+      const { data } = await api.get('/feestructures');
       if (data && Array.isArray(data.feeStructures)) {
         setFeeStructures(data.feeStructures);
       }
@@ -85,21 +88,33 @@ const FeePayments: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedFeePayment) {
-      await axios.put(`${API_URL}/feepayments/${selectedFeePayment._id}`, formData, { withCredentials: true });
-    } else {
-      await axios.post(`${API_URL}/feepayments`, formData, { withCredentials: true });
+    try {
+      if (selectedFeePayment) {
+        await api.put(`/feepayments/${selectedFeePayment._id}`, formData);
+      } else {
+        await api.post('/feepayments', formData);
+      }
+      fetchFeePayments();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving fee payment:', error);
+      setToastMessage('Failed to save fee payment.');
+      setShowToast(true);
     }
-    fetchFeePayments();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/feepayments/${id}`, { withCredentials: true });
-    fetchFeePayments();
+    try {
+      await api.delete(`/feepayments/${id}`);
+      fetchFeePayments();
+    } catch (error) {
+      console.error('Error deleting fee payment:', error);
+      setToastMessage('Failed to delete fee payment.');
+      setShowToast(true);
+    }
   };
 
-  const openModal = (feePayment: any | null = null) => {
+  const openModal = (feePayment: FeePayment | null = null) => {
     setSelectedFeePayment(feePayment);
     setFormData(feePayment ? { ...feePayment } : {});
     setShowModal(true);
@@ -116,15 +131,20 @@ const FeePayments: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Fee Payments</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Fee Payments</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -236,8 +256,15 @@ const FeePayments: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

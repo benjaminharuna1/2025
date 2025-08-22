@@ -18,26 +18,37 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
+  IonSelect,
+  IonSelectOption,
+  IonButtons,
+  IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { Subject, Class, User as Teacher } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './Subjects.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const Subjects: React.FC = () => {
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [formData, setFormData] = useState<Partial<Subject>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchSubjects();
+    fetchClasses();
+    fetchTeachers();
   }, []);
 
   const fetchSubjects = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
+      const { data } = await api.get('/subjects');
       if (data && Array.isArray(data.subjects)) {
         setSubjects(data.subjects);
       } else {
@@ -49,22 +60,52 @@ const Subjects: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    if (selectedSubject) {
-      await axios.put(`${API_URL}/subjects/${selectedSubject._id}`, formData, { withCredentials: true });
-    } else {
-      await axios.post(`${API_URL}/subjects`, formData, { withCredentials: true });
+  const fetchClasses = async () => {
+    try {
+      const { data } = await api.get('/classes');
+      setClasses(data.classes || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
     }
-    fetchSubjects();
-    closeModal();
+  };
+
+  const fetchTeachers = async () => {
+    try {
+      const { data } = await api.get('/users?role=Teacher');
+      setTeachers(data.users || []);
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      if (selectedSubject) {
+        await api.put(`/subjects/${selectedSubject._id}`, formData);
+      } else {
+        await api.post('/subjects', formData);
+      }
+      fetchSubjects();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving subject:', error);
+      setToastMessage('Failed to save subject.');
+      setShowToast(true);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/subjects/${id}`, { withCredentials: true });
-    fetchSubjects();
+    try {
+      await api.delete(`/subjects/${id}`);
+      fetchSubjects();
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      setToastMessage('Failed to delete subject.');
+      setShowToast(true);
+    }
   };
 
-  const openModal = (subject: any | null = null) => {
+  const openModal = (subject: Subject | null = null) => {
     setSelectedSubject(subject);
     setFormData(subject ? { ...subject } : {});
     setShowModal(true);
@@ -81,79 +122,109 @@ const Subjects: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Subjects</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
-            <IonCol>
-              <IonButton onClick={() => openModal()}>
-                <IonIcon slot="start" icon={add} />
-                Add Subject
-              </IonButton>
-            </IonCol>
-          </IonRow>
-          <IonRow>
-            <IonCol>
-              <div className="ion-padding">
-                <table className="responsive-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Description</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subjects.map((subject) => (
-                      <tr key={subject._id}>
-                        <td data-label="Name">{subject.name}</td>
-                        <td data-label="Description">{subject.description}</td>
-                        <td data-label="Actions">
-                          <IonButton onClick={() => openModal(subject)}>
-                            <IonIcon slot="icon-only" icon={create} />
-                          </IonButton>
-                          <IonButton color="danger" onClick={() => handleDelete(subject._id)}>
-                            <IonIcon slot="icon-only" icon={trash} />
-                          </IonButton>
-                        </td>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Subjects</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
+              <IonCol>
+                <IonButton onClick={() => openModal()}>
+                  <IonIcon slot="start" icon={add} />
+                  Add Subject
+                </IonButton>
+              </IonCol>
+            </IonRow>
+            <IonRow>
+              <IonCol>
+                <div className="ion-padding">
+                  <table className="responsive-table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Class</th>
+                        <th>Teacher</th>
+                        <th>Actions</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {subjects.map((subject) => (
+                        <tr key={subject._id}>
+                          <td data-label="Name">{subject.name}</td>
+                          <td data-label="Class">{typeof subject.classId === 'object' && subject.classId.name}</td>
+                          <td data-label="Teacher">{typeof subject.teacherId === 'object' && subject.teacherId.name}</td>
+                          <td data-label="Actions">
+                            <IonButton onClick={() => openModal(subject)}>
+                              <IonIcon slot="icon-only" icon={create} />
+                            </IonButton>
+                            <IonButton color="danger" onClick={() => handleDelete(subject._id)}>
+                              <IonIcon slot="icon-only" icon={trash} />
+                            </IonButton>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+          <IonModal isOpen={showModal} onDidDismiss={closeModal}>
+            <IonCard>
+              <IonCardHeader>
+                <IonCardTitle>{selectedSubject ? 'Edit' : 'Add'} Subject</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonItem>
+                  <IonLabel position="floating">Name</IonLabel>
+                  <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Class</IonLabel>
+                  <IonSelect name="classId" value={formData.classId} onIonChange={handleInputChange}>
+                    {classes.map((c) => (
+                      <IonSelectOption key={c._id} value={c._id}>
+                        {c.name}
+                      </IonSelectOption>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
-        <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>{selectedSubject ? 'Edit' : 'Add'} Subject</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <IonItem>
-                <IonLabel position="floating">Name</IonLabel>
-                <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Description</IonLabel>
-                <IonInput name="description" value={formData.description} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                Save
-              </IonButton>
-              <IonButton expand="full" color="light" onClick={closeModal}>
-                Cancel
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
-        </IonModal>
-      </IonContent>
-    </IonPage>
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Teacher</IonLabel>
+                  <IonSelect name="teacherId" value={formData.teacherId} onIonChange={handleInputChange}>
+                    {teachers.map((t) => (
+                      <IonSelectOption key={t._id} value={t._id}>
+                        {t.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
+                  Save
+                </IonButton>
+                <IonButton expand="full" color="light" onClick={closeModal}>
+                  Cancel
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
+        </IonContent>
+      </IonPage>
+    </>
   );
 };
 
