@@ -22,6 +22,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash, cloudUploadOutline } from 'ionicons/icons';
 import api from '../../services/api';
@@ -39,6 +40,8 @@ const Results: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [formData, setFormData] = useState<Partial<Result>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchResults();
@@ -94,18 +97,30 @@ const Results: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedResult) {
-      await api.put(`/results/${selectedResult._id}`, formData);
-    } else {
-      await api.post('/results', formData);
+    try {
+      if (selectedResult) {
+        await api.put(`/results/${selectedResult._id}`, formData);
+      } else {
+        await api.post('/results', formData);
+      }
+      fetchResults();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving result:', error);
+      setToastMessage('Failed to save result.');
+      setShowToast(true);
     }
-    fetchResults();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/results/${id}`);
-    fetchResults();
+    try {
+      await api.delete(`/results/${id}`);
+      fetchResults();
+    } catch (error) {
+      console.error('Error deleting result:', error);
+      setToastMessage('Failed to delete result.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (result: Result | null = null) => {
@@ -149,6 +164,8 @@ const Results: React.FC = () => {
       setSelectedFile(null);
     } catch (error) {
       console.error('Error importing results:', error);
+      setToastMessage('Failed to import results.');
+      setShowToast(true);
     }
   };
 
@@ -312,6 +329,12 @@ const Results: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>

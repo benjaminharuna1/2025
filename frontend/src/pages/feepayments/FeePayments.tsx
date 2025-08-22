@@ -22,6 +22,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -37,6 +38,8 @@ const FeePayments: React.FC = () => {
   const [selectedFeePayment, setSelectedFeePayment] = useState<FeePayment | null>(null);
   const [formData, setFormData] = useState<Partial<FeePayment>>({});
   const [filterStudent, setFilterStudent] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchFeePayments();
@@ -85,18 +88,30 @@ const FeePayments: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedFeePayment) {
-      await api.put(`/feepayments/${selectedFeePayment._id}`, formData);
-    } else {
-      await api.post('/feepayments', formData);
+    try {
+      if (selectedFeePayment) {
+        await api.put(`/feepayments/${selectedFeePayment._id}`, formData);
+      } else {
+        await api.post('/feepayments', formData);
+      }
+      fetchFeePayments();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving fee payment:', error);
+      setToastMessage('Failed to save fee payment.');
+      setShowToast(true);
     }
-    fetchFeePayments();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/feepayments/${id}`);
-    fetchFeePayments();
+    try {
+      await api.delete(`/feepayments/${id}`);
+      fetchFeePayments();
+    } catch (error) {
+      console.error('Error deleting fee payment:', error);
+      setToastMessage('Failed to delete fee payment.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (feePayment: FeePayment | null = null) => {
@@ -241,6 +256,12 @@ const FeePayments: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>

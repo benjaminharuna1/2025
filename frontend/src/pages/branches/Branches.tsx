@@ -20,6 +20,7 @@ import {
   IonCardContent,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -33,6 +34,8 @@ const Branches: React.FC = () => {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchBranches();
@@ -58,18 +61,30 @@ const Branches: React.FC = () => {
 
   const handleSave = async () => {
     const branchData = { name, address };
-    if (selectedBranch) {
-      await api.put(`/branches/${selectedBranch._id}`, branchData);
-    } else {
-      await api.post('/branches', branchData);
+    try {
+      if (selectedBranch) {
+        await api.put(`/branches/${selectedBranch._id}`, branchData);
+      } else {
+        await api.post('/branches', branchData);
+      }
+      fetchBranches();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving branch:', error);
+      setToastMessage('Failed to save branch.');
+      setShowToast(true);
     }
-    fetchBranches();
-    closeModal();
   };
 
   const handleDelete = async (id:string) => {
-    await api.delete(`/branches/${id}`);
-    fetchBranches();
+    try {
+      await api.delete(`/branches/${id}`);
+      fetchBranches();
+    } catch (error) {
+      console.error('Error deleting branch:', error);
+      setToastMessage('Failed to delete branch.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (branch: Branch | null = null) => {
@@ -163,6 +178,12 @@ const Branches: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>

@@ -23,6 +23,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -35,6 +36,8 @@ const Announcements: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [formData, setFormData] = useState<Partial<Announcement>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchAnnouncements();
@@ -60,18 +63,30 @@ const Announcements: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedAnnouncement) {
-      await api.put(`/announcements/${selectedAnnouncement._id}`, formData);
-    } else {
-      await api.post('/announcements', formData);
+    try {
+      if (selectedAnnouncement) {
+        await api.put(`/announcements/${selectedAnnouncement._id}`, formData);
+      } else {
+        await api.post('/announcements', formData);
+      }
+      fetchAnnouncements();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving announcement:', error);
+      setToastMessage('Failed to save announcement.');
+      setShowToast(true);
     }
-    fetchAnnouncements();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/announcements/${id}`);
-    fetchAnnouncements();
+    try {
+      await api.delete(`/announcements/${id}`);
+      fetchAnnouncements();
+    } catch (error) {
+      console.error('Error deleting announcement:', error);
+      setToastMessage('Failed to delete announcement.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (announcement: Announcement | null = null) => {
@@ -180,6 +195,12 @@ const Announcements: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>

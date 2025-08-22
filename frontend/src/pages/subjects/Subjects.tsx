@@ -22,6 +22,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -36,6 +37,8 @@ const Subjects: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [formData, setFormData] = useState<Partial<Subject>>({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchSubjects();
@@ -76,18 +79,30 @@ const Subjects: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedSubject) {
-      await api.put(`/subjects/${selectedSubject._id}`, formData);
-    } else {
-      await api.post('/subjects', formData);
+    try {
+      if (selectedSubject) {
+        await api.put(`/subjects/${selectedSubject._id}`, formData);
+      } else {
+        await api.post('/subjects', formData);
+      }
+      fetchSubjects();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving subject:', error);
+      setToastMessage('Failed to save subject.');
+      setShowToast(true);
     }
-    fetchSubjects();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/subjects/${id}`);
-    fetchSubjects();
+    try {
+      await api.delete(`/subjects/${id}`);
+      fetchSubjects();
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      setToastMessage('Failed to delete subject.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (subject: Subject | null = null) => {
@@ -201,6 +216,12 @@ const Subjects: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
         </IonContent>
       </IonPage>
     </>

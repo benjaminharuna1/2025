@@ -22,6 +22,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -38,6 +39,8 @@ const Classes: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [formData, setFormData] = useState<Partial<Class>>({});
   const [filterBranch, setFilterBranch] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchClasses();
@@ -98,18 +101,30 @@ const Classes: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (selectedClass) {
-      await api.put(`/classes/${selectedClass._id}`, formData);
-    } else {
-      await api.post('/classes', formData);
+    try {
+      if (selectedClass) {
+        await api.put(`/classes/${selectedClass._id}`, formData);
+      } else {
+        await api.post('/classes', formData);
+      }
+      fetchClasses();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving class:', error);
+      setToastMessage('Failed to save class.');
+      setShowToast(true);
     }
-    fetchClasses();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/classes/${id}`);
-    fetchClasses();
+    try {
+      await api.delete(`/classes/${id}`);
+      fetchClasses();
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      setToastMessage('Failed to delete class.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (klass: Class | null = null) => {
@@ -248,6 +263,12 @@ const Classes: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>

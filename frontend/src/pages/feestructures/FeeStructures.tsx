@@ -22,6 +22,7 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
@@ -36,6 +37,8 @@ const FeeStructures: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
   const [formData, setFormData] = useState<Partial<FeeStructure>>({ fees: [] });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [filterClassLevel, setFilterClassLevel] = useState('');
   const [filterSession, setFilterSession] = useState('');
@@ -91,19 +94,31 @@ const FeeStructures: React.FC = () => {
   };
 
   const handleSave = async () => {
-    console.log('Saving fee structure:', formData);
-    if (selectedFeeStructure) {
-      await api.put(`/feestructures/${selectedFeeStructure._id}`, formData);
-    } else {
-      await api.post('/feestructures', formData);
+    try {
+      console.log('Saving fee structure:', formData);
+      if (selectedFeeStructure) {
+        await api.put(`/feestructures/${selectedFeeStructure._id}`, formData);
+      } else {
+        await api.post('/feestructures', formData);
+      }
+      fetchFeeStructures();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving fee structure:', error);
+      setToastMessage('Failed to save fee structure.');
+      setShowToast(true);
     }
-    fetchFeeStructures();
-    closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await api.delete(`/feestructures/${id}`);
-    fetchFeeStructures();
+    try {
+      await api.delete(`/feestructures/${id}`);
+      fetchFeeStructures();
+    } catch (error) {
+      console.error('Error deleting fee structure:', error);
+      setToastMessage('Failed to delete fee structure.');
+      setShowToast(true);
+    }
   };
 
   const openModal = (feeStructure: FeeStructure | null = null) => {
@@ -304,6 +319,12 @@ const FeeStructures: React.FC = () => {
             </IonCardContent>
           </IonCard>
         </IonModal>
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={2000}
+        />
       </IonContent>
     </IonPage>
     </>
