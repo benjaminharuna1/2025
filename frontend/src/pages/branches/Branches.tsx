@@ -165,6 +165,7 @@ const Branches: React.FC = () => {
         </IonModal>
       </IonContent>
     </IonPage>
+    </>
   );
 };
 
