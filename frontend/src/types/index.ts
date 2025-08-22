@@ -36,6 +36,7 @@ export interface Subject {
 }
 
 export interface Student extends User {
+    userId: any;
     admissionNumber?: string;
     dateOfBirth?: string;
     gender?: string;

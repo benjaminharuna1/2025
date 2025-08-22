@@ -22,7 +22,6 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
-  IonToast,
 } from '@ionic/react';
 import { add, create, trash, cloudUploadOutline } from 'ionicons/icons';
 import api from '../../services/api';
@@ -40,8 +39,6 @@ const Results: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [formData, setFormData] = useState<Partial<Result>>({});
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     fetchResults();
@@ -54,7 +51,7 @@ const Results: React.FC = () => {
   const fetchResults = async () => {
     try {
       const { data } = await api.get('/results');
-      setResults(data.results || []);
+      setResults(data.results || data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
     }
@@ -62,8 +59,8 @@ const Results: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await api.get('/users?role=Student');
-      setStudents(data.users || []);
+      const { data } = await api.get('/students');
+      setStudents(data.students || []);
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -105,10 +102,9 @@ const Results: React.FC = () => {
       }
       fetchResults();
       closeModal();
-    } catch (error) {
-      console.error('Error saving result:', error);
-      setToastMessage('Failed to save result.');
-      setShowToast(true);
+    } catch (err: any) {
+      console.error("Save failed:", err.response?.data || err.message);
+      alert(err.response?.data?.message || "Failed to save result");
     }
   };
 
@@ -116,10 +112,9 @@ const Results: React.FC = () => {
     try {
       await api.delete(`/results/${id}`);
       fetchResults();
-    } catch (error) {
-      console.error('Error deleting result:', error);
-      setToastMessage('Failed to delete result.');
-      setShowToast(true);
+    } catch (err: any) {
+      console.error("Delete failed:", err.response?.data || err.message);
+      alert(err.response?.data?.message || "Failed to delete result");
     }
   };
 
@@ -164,8 +159,6 @@ const Results: React.FC = () => {
       setSelectedFile(null);
     } catch (error) {
       console.error('Error importing results:', error);
-      setToastMessage('Failed to import results.');
-      setShowToast(true);
     }
   };
 
@@ -184,159 +177,164 @@ const Results: React.FC = () => {
         <IonContent>
           <IonGrid>
             <IonRow>
-            <IonCol>
-              <IonButton onClick={() => openModal()}>
-                <IonIcon slot="start" icon={add} />
-                Add Result
-              </IonButton>
-              <IonButton onClick={() => setShowImportModal(true)} color="secondary">
-                <IonIcon slot="start" icon={cloudUploadOutline} />
-                Import Results
-              </IonButton>
-            </IonCol>
-          </IonRow>
-          <IonRow>
-            <IonCol>
-              <div className="ion-padding">
-                <table className="responsive-table">
-                  <thead>
-                    <tr>
-                      <th>Student</th>
-                      <th>Subject</th>
-                      <th>Session</th>
-                      <th>Term</th>
-                      <th>Marks</th>
-                      <th>Grade</th>
-                      <th>Remarks</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((result) => (
-                      <tr key={result._id}>
-                        <td>{typeof result.studentId === 'object' && result.studentId.name}</td>
-                        <td>{typeof result.subjectId === 'object' && result.subjectId.name}</td>
-                        <td>{result.session}</td>
-                        <td>{result.term}</td>
-                        <td>{result.marks}</td>
-                        <td>{result.grade}</td>
-                        <td>{result.remarks}</td>
-                        <td>
-                          <IonButton onClick={() => openModal(result)}>
-                            <IonIcon slot="icon-only" icon={create} />
-                          </IonButton>
-                          <IonButton color="danger" onClick={() => handleDelete(result._id)}>
-                            <IonIcon slot="icon-only" icon={trash} />
-                          </IonButton>
-                        </td>
+              <IonCol>
+                <IonButton onClick={() => openModal()}>
+                  <IonIcon slot="start" icon={add} />
+                  Add Result
+                </IonButton>
+                <IonButton onClick={() => setShowImportModal(true)} color="secondary">
+                  <IonIcon slot="start" icon={cloudUploadOutline} />
+                  Import Results
+                </IonButton>
+              </IonCol>
+            </IonRow>
+            <IonRow>
+              <IonCol>
+                <div className="ion-padding">
+                  <table className="responsive-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Class</th>
+                        <th>Branch</th>
+                        <th>Session</th>
+                        <th>Term</th>
+                        <th>Marks</th>
+                        <th>Grade</th>
+                        <th>Remarks</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </IonCol>
-          </IonRow>
-        </IonGrid>
-        <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <IonItem>
-                <IonLabel>Student</IonLabel>
-                <IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>
-                  {students.map((student) => (
-                    <IonSelectOption key={student._id} value={student._id}>
-                      {student.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel>Subject</IonLabel>
-                <IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleInputChange}>
-                  {subjects.map((subject) => (
-                    <IonSelectOption key={subject._id} value={subject._id}>
-                      {subject.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel>Branch</IonLabel>
-                <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
-                  {branches.map((branch) => (
-                    <IonSelectOption key={branch._id} value={branch._id}>
-                      {branch.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel>Class</IonLabel>
-                <IonSelect name="classId" value={formData.classId} onIonChange={handleInputChange}>
-                  {classes.map((c) => (
-                    <IonSelectOption key={c._id} value={c._id}>
-                      {c.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Session</IonLabel>
-                <IonInput name="session" value={formData.session} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Term</IonLabel>
-                <IonInput name="term" value={formData.term} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Marks</IonLabel>
-                <IonInput name="marks" type="number" value={formData.marks} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Grade</IonLabel>
-                <IonInput name="grade" value={formData.grade} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Remarks</IonLabel>
-                <IonInput name="remarks" value={formData.remarks} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                Save
-              </IonButton>
-              <IonButton expand="full" color="light" onClick={closeModal}>
-                Cancel
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
-        </IonModal>
+                    </thead>
+                    <tbody>
+                      {results.map((result) => (
+                        <tr key={result._id}>
+                          <td>
+                            {/* Student Name (via userId) + Admission Number */}
+                            {(result.studentId as any)?.userId?.name || "N/A"}{" "}
+                            ({(result.studentId as any)?.admissionNumber || "—"})
+                          </td>
+                          <td>{(result.subjectId as any)?.name || "N/A"}</td>
+                          <td>{(result.classId as any)?.name || "N/A"}</td>
+                          <td>{(result.branchId as any)?.name || "N/A"}</td>
+                          <td>{result.session}</td>
+                          <td>{result.term}</td>
+                          <td>{result.marks}</td>
+                          <td>{result.grade}</td>
+                          <td>{result.remarks}</td>
+                          <td>
+                            <IonButton onClick={() => openModal(result)}>
+                              <IonIcon slot="icon-only" icon={create} />
+                            </IonButton>
+                            <IonButton color="danger" onClick={() => handleDelete(result._id)}>
+                              <IonIcon slot="icon-only" icon={trash} />
+                            </IonButton>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
 
-        <IonModal isOpen={showImportModal} onDidDismiss={() => setShowImportModal(false)}>
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>Import Results</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
-              <IonButton expand="full" onClick={handleImport} disabled={!selectedFile} className="ion-margin-top">
-                Import
-              </IonButton>
-              <IonButton expand="full" color="light" onClick={() => setShowImportModal(false)}>
-                Cancel
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
-        </IonModal>
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={2000}
-        />
-      </IonContent>
-    </IonPage>
+          {/* Add/Edit Modal */}
+          <IonModal isOpen={showModal} onDidDismiss={closeModal}>
+            <IonCard>
+              <IonCardHeader>
+                <IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonItem>
+                  <IonLabel>Student</IonLabel>
+                  <IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>
+                    {students.map((student) => (
+                      <IonSelectOption key={student._id} value={student._id}>
+                        {student.userId?.name} ({student.admissionNumber})
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Subject</IonLabel>
+                  <IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleInputChange}>
+                    {subjects.map((subject) => (
+                      <IonSelectOption key={subject._id} value={subject._id}>
+                        {subject.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
+                    {branches.map((branch) => (
+                      <IonSelectOption key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Class</IonLabel>
+                  <IonSelect name="classId" value={formData.classId} onIonChange={handleInputChange}>
+                    {classes.map((c) => (
+                      <IonSelectOption key={c._id} value={c._id}>
+                        {c.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Session</IonLabel>
+                  <IonInput name="session" value={formData.session} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Term</IonLabel>
+                  <IonInput name="term" value={formData.term} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Marks</IonLabel>
+                  <IonInput name="marks" type="number" value={formData.marks} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Grade</IonLabel>
+                  <IonInput name="grade" value={formData.grade} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Remarks</IonLabel>
+                  <IonInput name="remarks" value={formData.remarks} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
+                  Save
+                </IonButton>
+                <IonButton expand="full" color="light" onClick={closeModal}>
+                  Cancel
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </IonModal>
+
+          {/* Import Modal */}
+          <IonModal isOpen={showImportModal} onDidDismiss={() => setShowImportModal(false)}>
+            <IonCard>
+              <IonCardHeader>
+                <IonCardTitle>Import Results</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+                <IonButton expand="full" onClick={handleImport} disabled={!selectedFile} className="ion-margin-top">
+                  Import
+                </IonButton>
+                <IonButton expand="full" color="light" onClick={() => setShowImportModal(false)}>
+                  Cancel
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </IonModal>
+        </IonContent>
+      </IonPage>
     </>
   );
 };
