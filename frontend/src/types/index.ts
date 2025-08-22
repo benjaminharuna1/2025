@@ -101,8 +101,14 @@ export interface Result {
   _id: string;
   studentId: string | { _id: string; name: string };
   subjectId: string | { _id: string; name: string };
+  classId: string | { _id: string; name: string };
+  branchId: string | { _id: string; name: string };
+  session: string;
+  term: string;
   marks: number;
   grade: string;
+  remarks?: string;
+  recordedBy: string | { _id: string; name: string };
 }
 
 export interface Announcement {

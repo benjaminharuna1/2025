@@ -23,16 +23,20 @@ import {
   IonButtons,
   IonMenuButton,
 } from '@ionic/react';
-import { add, create, trash } from 'ionicons/icons';
+import { add, create, trash, cloudUploadOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject } from '../../types';
+import { Result, Student, Subject, Branch, Class } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 
 const Results: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [formData, setFormData] = useState<Partial<Result>>({});
 
@@ -40,6 +44,8 @@ const Results: React.FC = () => {
     fetchResults();
     fetchStudents();
     fetchSubjects();
+    fetchBranches();
+    fetchClasses();
   }, []);
 
   const fetchResults = async () => {
@@ -66,6 +72,24 @@ const Results: React.FC = () => {
       setSubjects(data.subjects || []);
     } catch (error) {
       console.error('Error fetching subjects:', error);
+    }
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      setBranches(data.branches || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const { data } = await api.get('/classes');
+      setClasses(data.classes || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
     }
   };
 
@@ -102,6 +126,32 @@ const Results: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) return;
+
+    const importData = new FormData();
+    importData.append('file', selectedFile);
+
+    try {
+      await api.post('/results/import', importData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      fetchResults();
+      setShowImportModal(false);
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error importing results:', error);
+    }
+  };
+
   return (
     <>
       <SidebarMenu />
@@ -122,6 +172,10 @@ const Results: React.FC = () => {
                 <IonIcon slot="start" icon={add} />
                 Add Result
               </IonButton>
+              <IonButton onClick={() => setShowImportModal(true)} color="secondary">
+                <IonIcon slot="start" icon={cloudUploadOutline} />
+                Import Results
+              </IonButton>
             </IonCol>
           </IonRow>
           <IonRow>
@@ -132,8 +186,11 @@ const Results: React.FC = () => {
                     <tr>
                       <th>Student</th>
                       <th>Subject</th>
+                      <th>Session</th>
+                      <th>Term</th>
                       <th>Marks</th>
                       <th>Grade</th>
+                      <th>Remarks</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -142,8 +199,11 @@ const Results: React.FC = () => {
                       <tr key={result._id}>
                         <td>{typeof result.studentId === 'object' && result.studentId.name}</td>
                         <td>{typeof result.subjectId === 'object' && result.subjectId.name}</td>
+                        <td>{result.session}</td>
+                        <td>{result.term}</td>
                         <td>{result.marks}</td>
                         <td>{result.grade}</td>
+                        <td>{result.remarks}</td>
                         <td>
                           <IonButton onClick={() => openModal(result)}>
                             <IonIcon slot="icon-only" icon={create} />
@@ -187,6 +247,34 @@ const Results: React.FC = () => {
                 </IonSelect>
               </IonItem>
               <IonItem>
+                <IonLabel>Branch</IonLabel>
+                <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
+                  {branches.map((branch) => (
+                    <IonSelectOption key={branch._id} value={branch._id}>
+                      {branch.name}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel>Class</IonLabel>
+                <IonSelect name="classId" value={formData.classId} onIonChange={handleInputChange}>
+                  {classes.map((c) => (
+                    <IonSelectOption key={c._id} value={c._id}>
+                      {c.name}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Session</IonLabel>
+                <IonInput name="session" value={formData.session} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Term</IonLabel>
+                <IonInput name="term" value={formData.term} onIonChange={handleInputChange} />
+              </IonItem>
+              <IonItem>
                 <IonLabel position="floating">Marks</IonLabel>
                 <IonInput name="marks" type="number" value={formData.marks} onIonChange={handleInputChange} />
               </IonItem>
@@ -194,10 +282,31 @@ const Results: React.FC = () => {
                 <IonLabel position="floating">Grade</IonLabel>
                 <IonInput name="grade" value={formData.grade} onIonChange={handleInputChange} />
               </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Remarks</IonLabel>
+                <IonInput name="remarks" value={formData.remarks} onIonChange={handleInputChange} />
+              </IonItem>
               <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
                 Save
               </IonButton>
               <IonButton expand="full" color="light" onClick={closeModal}>
+                Cancel
+              </IonButton>
+            </IonCardContent>
+          </IonCard>
+        </IonModal>
+
+        <IonModal isOpen={showImportModal} onDidDismiss={() => setShowImportModal(false)}>
+          <IonCard>
+            <IonCardHeader>
+              <IonCardTitle>Import Results</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+              <IonButton expand="full" onClick={handleImport} disabled={!selectedFile} className="ion-margin-top">
+                Import
+              </IonButton>
+              <IonButton expand="full" color="light" onClick={() => setShowImportModal(false)}>
                 Cancel
               </IonButton>
             </IonCardContent>

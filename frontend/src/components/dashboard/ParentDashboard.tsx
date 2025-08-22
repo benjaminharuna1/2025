@@ -24,10 +24,11 @@ const ParentDashboard: React.FC = () => {
         const parentProfile: ParentProfile = profileRes.data;
 
         if (parentProfile.students) {
-          const childrenPromises = parentProfile.students.map(async (studentId: any) => {
-            const studentRes = await api.get(`/students/${studentId._id || studentId}`);
-            const resultsRes = await api.get(`/results?studentId=${studentId._id || studentId}`);
-            const attendanceRes = await api.get(`/attendance?studentId=${studentId._id || studentId}`);
+          const childrenPromises = parentProfile.students.map(async (student) => {
+            const studentId = typeof student === 'string' ? student : student._id;
+            const studentRes = await api.get(`/students/${studentId}`);
+            const resultsRes = await api.get(`/results?studentId=${studentId}`);
+            const attendanceRes = await api.get(`/attendance?studentId=${studentId}`);
             return {
               student: studentRes.data,
               results: resultsRes.data.results || resultsRes.data,
