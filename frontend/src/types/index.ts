@@ -35,12 +35,9 @@ export interface Subject {
   teacherId: string;
 }
 
-export interface StudentProfile {
-    _id: string;
-    classId?: string;
-    branchId?: string;
-    dateOfBirth?: string;
+export interface Student extends User {
     admissionNumber?: string;
+    dateOfBirth?: string;
     gender?: string;
     phoneNumber?: string;
     address?: string;
@@ -63,20 +60,28 @@ export interface ParentProfile {
     students?: string[];
 }
 
+export interface Fee {
+  feeType: string;
+  amount: number;
+}
+
 export interface FeeStructure {
   _id: string;
-  name: string;
-  amount: number;
-  classLevelId: string;
-  branchId: string;
+  branchId: string | { _id: string; name: string };
+  classLevel: string | { _id: string; name: string };
+  session: string;
+  term: string;
+  fees: Fee[];
 }
 
 export interface FeePayment {
   _id: string;
-  studentId: string;
-  feeStructureId: string;
+  studentId: string | { _id: string; userId: { name: string } };
+  feeStructureId: string | { _id: string; session: string; term: string };
   amountPaid: number;
   paymentDate: string;
+  paymentMethod: string;
+  status: 'Paid' | 'Pending' | 'Failed';
 }
 
 export interface AttendanceRecord {
@@ -94,8 +99,8 @@ export interface Attendance {
 
 export interface Result {
   _id: string;
-  studentId: string;
-  subjectId: string;
+  studentId: string | { _id: string; name: string };
+  subjectId: string | { _id: string; name: string };
   marks: number;
   grade: string;
 }
@@ -104,5 +109,5 @@ export interface Announcement {
   _id: string;
   title: string;
   content: string;
-  branchId?: string;
+  branchId?: string | { _id: string; name: string };
 }

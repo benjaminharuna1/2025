@@ -22,18 +22,17 @@ import {
   IonSelectOption,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { FeeStructure, Branch, ClassLevel } from '../../types';
 import './FeeStructures.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const FeeStructures: React.FC = () => {
-  const [feeStructures, setFeeStructures] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [classLevels, setClassLevels] = useState<any[]>([]);
+  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedFeeStructure, setSelectedFeeStructure] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({ fees: [] });
+  const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
+  const [formData, setFormData] = useState<Partial<FeeStructure>>({ fees: [] });
   const [filterBranch, setFilterBranch] = useState('');
   const [filterClassLevel, setFilterClassLevel] = useState('');
   const [filterSession, setFilterSession] = useState('');
@@ -47,8 +46,7 @@ const FeeStructures: React.FC = () => {
 
   const fetchFeeStructures = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/feestructures`, {
-        withCredentials: true,
+      const { data } = await api.get('/feestructures', {
         params: {
           branchId: filterBranch,
           classLevel: filterClassLevel,
@@ -69,7 +67,7 @@ const FeeStructures: React.FC = () => {
 
   const fetchBranches = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      const { data } = await api.get('/branches');
       if (data && Array.isArray(data.branches)) {
         setBranches(data.branches);
       }
@@ -80,7 +78,7 @@ const FeeStructures: React.FC = () => {
 
   const fetchClassLevels = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/classlevels`, { withCredentials: true });
+      const { data } = await api.get('/classlevels');
       if (Array.isArray(data)) {
         setClassLevels(data);
       }
@@ -92,20 +90,20 @@ const FeeStructures: React.FC = () => {
   const handleSave = async () => {
     console.log('Saving fee structure:', formData);
     if (selectedFeeStructure) {
-      await axios.put(`${API_URL}/feestructures/${selectedFeeStructure._id}`, formData, { withCredentials: true });
+      await api.put(`/feestructures/${selectedFeeStructure._id}`, formData);
     } else {
-      await axios.post(`${API_URL}/feestructures`, formData, { withCredentials: true });
+      await api.post('/feestructures', formData);
     }
     fetchFeeStructures();
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/feestructures/${id}`, { withCredentials: true });
+    await api.delete(`/feestructures/${id}`);
     fetchFeeStructures();
   };
 
-  const openModal = (feeStructure: any | null = null) => {
+  const openModal = (feeStructure: FeeStructure | null = null) => {
     setSelectedFeeStructure(feeStructure);
     setFormData(feeStructure ? { ...feeStructure } : { fees: [] });
     setShowModal(true);

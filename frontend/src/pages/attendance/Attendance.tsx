@@ -17,31 +17,10 @@ import {
   IonCol,
   IonLoading,
 } from '@ionic/react';
-import axios from 'axios';
+import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { Branch, ClassLevel, Class, Student } from '../../types';
 import './Attendance.css';
-
-interface Branch {
-  _id: string;
-  name: string;
-}
-
-interface ClassLevel {
-  _id: string;
-  name: string;
-}
-
-interface Class {
-  _id: string;
-  name: string;
-  branchId: string;
-}
-
-interface Student {
-  _id: string;
-  name: string;
-  admissionNumber: string;
-}
 
 const Attendance: React.FC = () => {
   const { user } = useAuth();
@@ -63,7 +42,7 @@ const Attendance: React.FC = () => {
   useEffect(() => {
     const fetchBranches = async () => {
       try {
-        const { data } = await axios.get('/api/branches');
+        const { data } = await api.get('/branches');
         setBranches(data.branches || []);
       } catch (error) {
         setToastMessage('Error fetching branches');
@@ -74,7 +53,7 @@ const Attendance: React.FC = () => {
 
     const fetchClassLevels = async () => {
       try {
-        const { data } = await axios.get('/api/classlevels');
+        const { data } = await api.get('/classlevels');
         setClassLevels(data.classLevels || []);
       } catch (error) {
         setToastMessage('Error fetching class levels');
@@ -97,8 +76,8 @@ const Attendance: React.FC = () => {
       if (selectedBranch && selectedClassLevel) {
         setLoading(true);
         try {
-          const { data } = await axios.get(
-            `/api/classes?branchId=${selectedBranch}&classLevel=${selectedClassLevel}`
+          const { data } = await api.get(
+            `/classes?branchId=${selectedBranch}&classLevel=${selectedClassLevel}`
           );
           setClasses(data.classes || []);
         } catch (error) {
@@ -119,7 +98,7 @@ const Attendance: React.FC = () => {
       if (selectedClass) {
         setLoading(true);
         try {
-          const { data } = await axios.get(`/api/students?classId=${selectedClass}`);
+          const { data } = await api.get(`/students?classId=${selectedClass}`);
           setStudents(data.students || []);
 
           // initialize attendance with "Present"
@@ -160,7 +139,7 @@ const Attendance: React.FC = () => {
         date,
         status: attendance[student._id] || 'Present',
       }));
-      await axios.post('/api/attendance', attendanceData);
+      await api.post('/attendance', attendanceData);
       setToastMessage('Attendance submitted successfully');
       setToastColor('success');
       setShowToast(true);
