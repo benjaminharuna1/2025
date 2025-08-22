@@ -20,21 +20,23 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
-import axios from 'axios';
+import api from '../../services/api';
+import { Class, Branch, ClassLevel, User as Teacher } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './Classes.css';
 
-const API_URL = 'http://localhost:3000/api';
-
 const Classes: React.FC = () => {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [classLevels, setClassLevels] = useState<any[]>([]);
-  const [teachers, setTeachers] = useState<any[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<any | null>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [formData, setFormData] = useState<Partial<Class>>({});
   const [filterBranch, setFilterBranch] = useState('');
 
   useEffect(() => {
@@ -46,8 +48,7 @@ const Classes: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/classes`, {
-        withCredentials: true,
+      const { data } = await api.get('/classes', {
         params: { branchId: filterBranch },
       });
       if (data && Array.isArray(data.classes)) {
@@ -63,7 +64,7 @@ const Classes: React.FC = () => {
 
   const fetchBranches = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      const { data } = await api.get('/branches');
       if (data && Array.isArray(data.branches)) {
         setBranches(data.branches);
       }
@@ -74,7 +75,7 @@ const Classes: React.FC = () => {
 
   const fetchClassLevels = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/classlevels`, { withCredentials: true });
+      const { data } = await api.get('/classlevels');
       if (Array.isArray(data)) {
         setClassLevels(data);
       }
@@ -85,8 +86,7 @@ const Classes: React.FC = () => {
 
   const fetchTeachers = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/users`, {
-        withCredentials: true,
+      const { data } = await api.get('/users', {
         params: { role: 'Teacher' },
       });
       if (data && Array.isArray(data.users)) {
@@ -99,20 +99,20 @@ const Classes: React.FC = () => {
 
   const handleSave = async () => {
     if (selectedClass) {
-      await axios.put(`${API_URL}/classes/${selectedClass._id}`, formData, { withCredentials: true });
+      await api.put(`/classes/${selectedClass._id}`, formData);
     } else {
-      await axios.post(`${API_URL}/classes`, formData, { withCredentials: true });
+      await api.post('/classes', formData);
     }
     fetchClasses();
     closeModal();
   };
 
   const handleDelete = async (id: string) => {
-    await axios.delete(`${API_URL}/classes/${id}`, { withCredentials: true });
+    await api.delete(`/classes/${id}`);
     fetchClasses();
   };
 
-  const openModal = (klass: any | null = null) => {
+  const openModal = (klass: Class | null = null) => {
     setSelectedClass(klass);
     setFormData(klass ? { ...klass } : {});
     setShowModal(true);
@@ -129,15 +129,20 @@ const Classes: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Classes</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Classes</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -245,6 +250,7 @@ const Classes: React.FC = () => {
         </IonModal>
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

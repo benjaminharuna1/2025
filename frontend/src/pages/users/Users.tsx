@@ -17,20 +17,22 @@ import {
   IonLoading,
   IonToast,
   IonSearchbar,
+  IonButtons,
+  IonMenuButton,
 } from "@ionic/react";
-import axios from "axios";
-
-const API_URL = "http://localhost:3000/api";
+import api from "../../services/api";
+import { User, Branch, Class, Subject, Student } from "../../types";
+import SidebarMenu from "../../components/SidebarMenu";
 
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
@@ -68,7 +70,7 @@ const UsersPage: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/users`, { withCredentials: true });
+      const res = await api.get('/users');
       setUsers(res.data.users || res.data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -81,7 +83,7 @@ const UsersPage: React.FC = () => {
 
   const fetchBranches = async () => {
     try {
-      const res = await axios.get(`${API_URL}/branches`, { withCredentials: true });
+      const res = await api.get('/branches');
       setBranches(res.data.branches || res.data || []);
     } catch (error) {
       console.error("Error fetching branches:", error);
@@ -91,7 +93,7 @@ const UsersPage: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await axios.get(`${API_URL}/classes`, { withCredentials: true });
+      const res = await api.get('/classes');
       setClasses(res.data.classes || []);
     } catch (error) {
       console.error("Error fetching classes:", error);
@@ -101,7 +103,7 @@ const UsersPage: React.FC = () => {
 
   const fetchSubjects = async () => {
     try {
-      const res = await axios.get(`${API_URL}/subjects`, { withCredentials: true });
+      const res = await api.get('/subjects');
       setSubjects(res.data.subjects || res.data || []);
     } catch (error) {
       console.error("Error fetching subjects:", error);
@@ -111,7 +113,7 @@ const UsersPage: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const res = await axios.get(`${API_URL}/students`, { withCredentials: true });
+      const res = await api.get('/students');
       setStudents(res.data.students || res.data || []);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -311,10 +313,10 @@ const UsersPage: React.FC = () => {
 
     if (selectedUser) {
       // Update
-      await axios.put(`${API_URL}/users/${selectedUser._id}`, payload, { withCredentials: true });
+      await api.put(`/users/${selectedUser._id}`, payload);
     } else {
       // Create
-      await axios.post(`${API_URL}/users`, payload, { withCredentials: true });
+      await api.post('/users', payload);
     }
 
     fetchUsers();
@@ -335,7 +337,7 @@ const UsersPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.delete(`${API_URL}/users/${id}`, { withCredentials: true });
+      await api.delete(`/users/${id}`);
       showToast("User deleted successfully");
       fetchUsers();
     } catch (error) {
@@ -347,15 +349,20 @@ const UsersPage: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>User Management</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonSearchbar
-          value={searchText}
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>User Management</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonSearchbar
+            value={searchText}
           onIonInput={(e) => setSearchText(e.detail.value!)}
           placeholder="Search by name"
         />
@@ -576,6 +583,7 @@ const UsersPage: React.FC = () => {
         />
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

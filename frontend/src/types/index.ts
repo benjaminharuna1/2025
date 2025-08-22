@@ -23,8 +23,8 @@ export interface ClassLevel {
 export interface Class {
   _id:string;
   name: string;
-  classLevelId: string;
-  teacherId: string;
+  classLevel: string | { _id: string; name: string };
+  teacher: string | { _id: string; name: string };
   branchId: string;
 }
 

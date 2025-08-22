@@ -18,10 +18,13 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Branch } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './Branches.css';
 
 const Branches: React.FC = () => {
@@ -84,15 +87,20 @@ const Branches: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Branches</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Branches</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />

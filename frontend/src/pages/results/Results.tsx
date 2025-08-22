@@ -20,10 +20,13 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Result, Student, Subject } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 
 const Results: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -100,15 +103,20 @@ const Results: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Results</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Results</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -197,6 +205,7 @@ const Results: React.FC = () => {
         </IonModal>
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

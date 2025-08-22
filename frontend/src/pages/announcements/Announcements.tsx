@@ -21,10 +21,13 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Announcement, Branch } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 
 const Announcements: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -90,15 +93,20 @@ const Announcements: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Announcements</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Announcements</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -174,6 +182,7 @@ const Announcements: React.FC = () => {
         </IonModal>
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

@@ -20,10 +20,13 @@ import {
   IonCardContent,
   IonSelect,
   IonSelectOption,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { FeePayment, User, FeeStructure } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
@@ -113,15 +116,20 @@ const FeePayments: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Fee Payments</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent>
-        <IonGrid>
-          <IonRow>
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Fee Payments</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent>
+          <IonGrid>
+            <IonRow>
             <IonCol>
               <IonButton onClick={() => openModal()}>
                 <IonIcon slot="start" icon={add} />
@@ -235,6 +243,7 @@ const FeePayments: React.FC = () => {
         </IonModal>
       </IonContent>
     </IonPage>
+    </>
   );
 };
 

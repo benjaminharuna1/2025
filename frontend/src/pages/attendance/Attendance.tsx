@@ -16,10 +16,13 @@ import {
   IonRow,
   IonCol,
   IonLoading,
+  IonButtons,
+  IonMenuButton,
 } from '@ionic/react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Branch, ClassLevel, Class, Student } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 import './Attendance.css';
 
 const Attendance: React.FC = () => {
@@ -166,14 +169,19 @@ const Attendance: React.FC = () => {
   }
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Attendance</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent fullscreen>
-        <IonHeader collapse="condense">
+    <>
+      <SidebarMenu />
+      <IonPage id="main-content">
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+            <IonTitle>Attendance</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+        <IonContent fullscreen>
+          <IonHeader collapse="condense">
           <IonToolbar>
             <IonTitle size="large">Attendance</IonTitle>
           </IonToolbar>
@@ -278,6 +286,7 @@ const Attendance: React.FC = () => {
         />
       </IonContent>
     </IonPage>
+    </>
   );
 };
 
