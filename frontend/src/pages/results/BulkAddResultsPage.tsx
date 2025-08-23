@@ -21,7 +21,8 @@ import {
 } from '@ionic/react';
 import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Student, Subject, Class } from '../../types';
+import { Student, Subject, Class, Branch } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface MarkEntry {
   studentId: string;
@@ -31,14 +32,21 @@ interface MarkEntry {
   exam?: number | string;
 }
 
+
 const BulkAddResultsPage: React.FC = () => {
+  const { user } = useAuth();
+
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<MarkEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    user?.role === 'Super Admin' ? '' : user?.branchId || ''
+  );
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
@@ -47,7 +55,16 @@ const BulkAddResultsPage: React.FC = () => {
   useEffect(() => {
     fetchClasses();
     fetchSubjects();
-  }, []);
+    if (user?.role === 'Super Admin') {
+      fetchBranches();
+    }
+
+    // ✅ Auto-select current academic session
+    const sessions = generateSessions();
+    if (sessions.length > 0) {
+      setSelectedSession(sessions[0]); // e.g., 2024/2025
+    }
+  }, [user]);
 
   useEffect(() => {
     if (selectedClass) {
@@ -58,8 +75,7 @@ const BulkAddResultsPage: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    // Initialize marks state when students are fetched
-    const initialMarks = students.map(student => ({
+    const initialMarks = students.map((student) => ({
       studentId: student._id,
       firstCA: '',
       secondCA: '',
@@ -68,6 +84,15 @@ const BulkAddResultsPage: React.FC = () => {
     }));
     setMarks(initialMarks);
   }, [students]);
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      setBranches(data.branches || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -99,30 +124,42 @@ const BulkAddResultsPage: React.FC = () => {
     }
   };
 
-  const handleMarkChange = (studentId: string, field: keyof MarkEntry, value: string) => {
-    const updatedMarks = marks.map(mark =>
+  const handleMarkChange = (
+    studentId: string,
+    field: keyof MarkEntry,
+    value: string
+  ) => {
+    const updatedMarks = marks.map((mark) =>
       mark.studentId === studentId ? { ...mark, [field]: value } : mark
     );
     setMarks(updatedMarks);
   };
 
-  const handleSubmitAll = async () => {
-    setLoading(true);
-    const resultsToSubmit = marks
-      .map(mark => ({
-        studentId: mark.studentId,
-        firstCA: Number(mark.firstCA) || 0,
-        secondCA: Number(mark.secondCA) || 0,
-        thirdCA: Number(mark.thirdCA) || 0,
-        exam: Number(mark.exam) || 0,
-      }))
-      .filter(mark => mark.firstCA || mark.secondCA || mark.thirdCA || mark.exam); // Only submit if at least one score is entered
+  // ✅ Generate session list dynamically
+  const generateSessions = () => {
+    const currentYear = new Date().getFullYear();
+    const sessions: string[] = [];
+    for (let i = currentYear - 1; i <= currentYear + 5; i++) {
+      sessions.push(`${i}/${i + 1}`);
+    }
+    return sessions;
+  };
 
-    if (resultsToSubmit.length === 0) {
-      alert("No marks entered. Nothing to submit.");
-      setLoading(false);
+  const handleSubmitAll = async () => {
+    if (
+      !selectedClass ||
+      !selectedSubject ||
+      !selectedSession ||
+      !selectedTerm ||
+      (!selectedBranch && user?.role === 'Super Admin') // enforce branch selection
+    ) {
+      alert(
+        'Please select class, subject, session, term (and branch if Super Admin)'
+      );
       return;
     }
+
+    setLoading(true);
 
     try {
       await api.post('/results/bulk', {
@@ -130,20 +167,43 @@ const BulkAddResultsPage: React.FC = () => {
         subjectId: selectedSubject,
         session: selectedSession,
         term: selectedTerm,
-        results: resultsToSubmit
+        branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
+        results: marks.map((mark) => ({
+          studentId: mark.studentId,
+          firstCA: Number(mark.firstCA) || 0,
+          secondCA: Number(mark.secondCA) || 0,
+          thirdCA: Number(mark.thirdCA) || 0,
+          exam: Number(mark.exam) || 0,
+        })),
       });
+
       alert('Results submitted successfully!');
-      // Reset form
-      setMarks(students.map(student => ({ studentId: student._id, firstCA: '', secondCA: '', thirdCA: '', exam: '' })));
+
+      // reset inputs
+      setMarks(
+        students.map((student) => ({
+          studentId: student._id,
+          firstCA: '',
+          secondCA: '',
+          thirdCA: '',
+          exam: '',
+        }))
+      );
     } catch (err: any) {
-      console.error("Bulk add failed:", err.response?.data || err.message);
-      alert(err.response?.data?.message || "Failed to submit results.");
+      console.error('Bulk add failed:', err.response?.data || err.message);
+      alert(err.response?.data?.message || 'Failed to submit results.');
     } finally {
       setLoading(false);
     }
   };
 
-  const canSubmit = selectedClass && selectedSubject && selectedSession && selectedTerm && students.length > 0;
+  const canSubmit =
+    (user?.role !== 'Super Admin' || selectedBranch) &&
+    selectedClass &&
+    selectedSubject &&
+    selectedSession &&
+    selectedTerm &&
+    students.length > 0;
 
   return (
     <IonPage>
@@ -159,32 +219,76 @@ const BulkAddResultsPage: React.FC = () => {
         <IonLoading isOpen={loading} message="Please wait..." />
         <IonGrid>
           <IonRow>
+            {user?.role === 'Super Admin' && (
+              <IonCol size-md="3" size="12">
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect
+                    value={selectedBranch}
+                    onIonChange={(e) => setSelectedBranch(e.detail.value)}
+                  >
+                    {branches.map((b) => (
+                      <IonSelectOption key={b._id} value={b._id}>
+                        {b.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
+            )}
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Class</IonLabel>
-                <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)}>
-                  {classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}
+                <IonSelect
+                  value={selectedClass}
+                  onIonChange={(e) => setSelectedClass(e.detail.value)}
+                >
+                  {classes.map((c) => (
+                    <IonSelectOption key={c._id} value={c._id}>
+                      {c.name}
+                    </IonSelectOption>
+                  ))}
                 </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Subject</IonLabel>
-                <IonSelect value={selectedSubject} onIonChange={(e) => setSelectedSubject(e.detail.value)}>
-                  {subjects.map((s) => (<IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>))}
+                <IonSelect
+                  value={selectedSubject}
+                  onIonChange={(e) => setSelectedSubject(e.detail.value)}
+                >
+                  {subjects.map((s) => (
+                    <IonSelectOption key={s._id} value={s._id}>
+                      {s.name}
+                    </IonSelectOption>
+                  ))}
                 </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Session</IonLabel>
-                <IonInput value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value!)} placeholder="e.g. 2024/2025" />
+                <IonSelect
+                  value={selectedSession}
+                  placeholder="Select session"
+                  onIonChange={(e) => setSelectedSession(e.detail.value)}
+                >
+                  {generateSessions().map((session) => (
+                    <IonSelectOption key={session} value={session}>
+                      {session}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Term</IonLabel>
-                <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}>
+                <IonSelect
+                  value={selectedTerm}
+                  onIonChange={(e) => setSelectedTerm(e.detail.value)}
+                >
                   <IonSelectOption value="First">First</IonSelectOption>
                   <IonSelectOption value="Second">Second</IonSelectOption>
                   <IonSelectOption value="Third">Third</IonSelectOption>
@@ -217,7 +321,13 @@ const BulkAddResultsPage: React.FC = () => {
                             <IonInput
                               type="number"
                               value={marks[index]?.firstCA}
-                              onIonChange={(e) => handleMarkChange(student._id, 'firstCA', e.detail.value!)}
+                              onIonChange={(e) =>
+                                handleMarkChange(
+                                  student._id,
+                                  'firstCA',
+                                  e.detail.value!
+                                )
+                              }
                               placeholder="0"
                             />
                           </td>
@@ -225,7 +335,13 @@ const BulkAddResultsPage: React.FC = () => {
                             <IonInput
                               type="number"
                               value={marks[index]?.secondCA}
-                              onIonChange={(e) => handleMarkChange(student._id, 'secondCA', e.detail.value!)}
+                              onIonChange={(e) =>
+                                handleMarkChange(
+                                  student._id,
+                                  'secondCA',
+                                  e.detail.value!
+                                )
+                              }
                               placeholder="0"
                             />
                           </td>
@@ -233,7 +349,13 @@ const BulkAddResultsPage: React.FC = () => {
                             <IonInput
                               type="number"
                               value={marks[index]?.thirdCA}
-                              onIonChange={(e) => handleMarkChange(student._id, 'thirdCA', e.detail.value!)}
+                              onIonChange={(e) =>
+                                handleMarkChange(
+                                  student._id,
+                                  'thirdCA',
+                                  e.detail.value!
+                                )
+                              }
                               placeholder="0"
                             />
                           </td>
@@ -241,7 +363,13 @@ const BulkAddResultsPage: React.FC = () => {
                             <IonInput
                               type="number"
                               value={marks[index]?.exam}
-                              onIonChange={(e) => handleMarkChange(student._id, 'exam', e.detail.value!)}
+                              onIonChange={(e) =>
+                                handleMarkChange(
+                                  student._id,
+                                  'exam',
+                                  e.detail.value!
+                                )
+                              }
                               placeholder="0"
                             />
                           </td>
