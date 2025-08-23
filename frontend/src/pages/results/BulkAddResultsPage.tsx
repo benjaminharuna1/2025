@@ -346,81 +346,82 @@ const handleSubmitAll = async () => {
               <IonCol>
                 <div className="ion-padding">
                   <table className="responsive-table">
-                    <thead>
-                      <tr>
-                        <th>Student Name</th>
-                        <th>Admission No</th>
-                        <th>1st CA</th>
-                        <th>2nd CA</th>
-                        <th>3rd CA</th>
-                        <th>Exam</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, index) => (
-                        <tr key={student._id}>
-                          <td>{student.userId?.name}</td>
-                          <td>{student.admissionNumber}</td>
-                          <td>
-                            <IonInput
-                              type="number"
-                              value={marks[index]?.firstCA}
-                              onIonChange={(e) =>
-                                handleMarkChange(
-                                  student._id,
-                                  'firstCA',
-                                  e.detail.value!
-                                )
-                              }
-                              placeholder="0"
-                            />
-                          </td>
-                          <td>
-                            <IonInput
-                              type="number"
-                              value={marks[index]?.secondCA}
-                              onIonChange={(e) =>
-                                handleMarkChange(
-                                  student._id,
-                                  'secondCA',
-                                  e.detail.value!
-                                )
-                              }
-                              placeholder="0"
-                            />
-                          </td>
-                          <td>
-                            <IonInput
-                              type="number"
-                              value={marks[index]?.thirdCA}
-                              onIonChange={(e) =>
-                                handleMarkChange(
-                                  student._id,
-                                  'thirdCA',
-                                  e.detail.value!
-                                )
-                              }
-                              placeholder="0"
-                            />
-                          </td>
-                          <td>
-                            <IonInput
-                              type="number"
-                              value={marks[index]?.exam}
-                              onIonChange={(e) =>
-                                handleMarkChange(
-                                  student._id,
-                                  'exam',
-                                  e.detail.value!
-                                )
-                              }
-                              placeholder="0"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+  <thead>
+    <tr>
+      <th>Student Name</th>
+      <th>Admission No</th>
+      <th>1st CA</th>
+      <th>2nd CA</th>
+      <th>3rd CA</th>
+      <th>Exam</th>
+      <th>Total</th> {/* New column */}
+    </tr>
+  </thead>
+  <tbody>
+    {students.map((student, index) => {
+      const total =
+        (Number(marks[index]?.firstCA) || 0) +
+        (Number(marks[index]?.secondCA) || 0) +
+        (Number(marks[index]?.thirdCA) || 0) +
+        (Number(marks[index]?.exam) || 0);
+
+      return (
+        <tr key={student._id}>
+          <td data-label="Student Name">
+            <span>{student.userId?.name}</span>
+          </td>
+          <td data-label="Admission Number">
+            <span>{student.admissionNumber}</span>
+          </td>
+          <td data-label="1st CA">
+            <IonInput
+              type="number"
+              value={marks[index]?.firstCA}
+              onIonChange={(e) =>
+                handleMarkChange(student._id, 'firstCA', e.detail.value!)
+              }
+              placeholder="0"
+            />
+          </td>
+          <td data-label="2nd CA">
+            <IonInput
+              type="number"
+              value={marks[index]?.secondCA}
+              onIonChange={(e) =>
+                handleMarkChange(student._id, 'secondCA', e.detail.value!)
+              }
+              placeholder="0"
+            />
+          </td>
+          <td data-label="3rd CA">
+            <IonInput
+              type="number"
+              value={marks[index]?.thirdCA}
+              onIonChange={(e) =>
+                handleMarkChange(student._id, 'thirdCA', e.detail.value!)
+              }
+              placeholder="0"
+            />
+          </td>
+          <td data-label="Exam">
+            <IonInput
+              type="number"
+              value={marks[index]?.exam}
+              onIonChange={(e) =>
+                handleMarkChange(student._id, 'exam', e.detail.value!)
+              }
+              placeholder="0"
+            />
+          </td>
+          <td data-label="Total">
+            <span>{total}</span> {/* Live computed total */}
+          </td>
+        </tr>
+      );
+    })}
+  </tbody>
+</table>
+
                   <IonButton
                     expand="full"
                     onClick={handleSubmitAll}
