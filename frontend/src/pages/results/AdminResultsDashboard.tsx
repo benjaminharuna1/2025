@@ -288,8 +288,8 @@ const AdminResultsDashboard: React.FC = () => {
   const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.userId)
-      return result.studentId.userId.name;
+    if (typeof result.studentId === 'object' && result.studentId.name)
+      return result.studentId.name;
     const student = students.find((s) => s._id === result.studentId);
     return student ? student.userId.name : 'N/A';
   };
