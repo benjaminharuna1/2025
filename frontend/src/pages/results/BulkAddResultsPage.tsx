@@ -32,7 +32,6 @@ interface MarkEntry {
   exam?: number | string;
 }
 
-
 const BulkAddResultsPage: React.FC = () => {
   const { user } = useAuth();
 
@@ -43,7 +42,6 @@ const BulkAddResultsPage: React.FC = () => {
   const [marks, setMarks] = useState<MarkEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Filters
   const [selectedBranch, setSelectedBranch] = useState<string>(
     user?.role === 'Super Admin' ? '' : user?.branchId || ''
   );
@@ -59,31 +57,29 @@ const BulkAddResultsPage: React.FC = () => {
       fetchBranches();
     }
 
-    // ✅ Auto-select current academic session
+    // Auto-select current session
     const sessions = generateSessions();
     if (sessions.length > 0) {
-      setSelectedSession(sessions[0]); // e.g., 2024/2025
+      setSelectedSession(sessions[0]);
     }
   }, [user]);
 
   useEffect(() => {
-    if (selectedClass) {
-      fetchStudentsInClass(selectedClass);
-    } else {
-      setStudents([]);
-    }
+    if (selectedClass) fetchStudentsInClass(selectedClass);
+    else setStudents([]);
   }, [selectedClass]);
 
   useEffect(() => {
-    const initialMarks = students.map((student) => ({
-      studentId: student._id,
-      firstCA: '',
-      secondCA: '',
-      thirdCA: '',
-      exam: '',
-    }));
-    setMarks(initialMarks);
-  }, [students]);
+    if (
+      students.length > 0 &&
+      selectedClass &&
+      selectedSubject &&
+      selectedSession &&
+      selectedTerm
+    ) {
+      fetchExistingResults();
+    }
+  }, [students, selectedClass, selectedSubject, selectedSession, selectedTerm]);
 
   const fetchBranches = async () => {
     try {
@@ -124,18 +120,53 @@ const BulkAddResultsPage: React.FC = () => {
     }
   };
 
+  const fetchExistingResults = async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/results', {
+        params: {
+          classId: selectedClass,
+          subjectId: selectedSubject,
+          session: selectedSession,
+          term: selectedTerm,
+        },
+      });
+
+      const resultMap: Record<string, MarkEntry> = {};
+      data.forEach((res: any) => {
+        resultMap[res.studentId._id] = {
+          studentId: res.studentId._id,
+          firstCA: res.firstCA ?? '',
+          secondCA: res.secondCA ?? '',
+          thirdCA: res.thirdCA ?? '',
+          exam: res.exam ?? '',
+        };
+      });
+
+      const initialMarks = students.map((student) =>
+        resultMap[student._id]
+          ? resultMap[student._id]
+          : { studentId: student._id, firstCA: '', secondCA: '', thirdCA: '', exam: '' }
+      );
+
+      setMarks(initialMarks);
+    } catch (err) {
+      console.error('Error fetching existing results:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMarkChange = (
     studentId: string,
     field: keyof MarkEntry,
     value: string
   ) => {
-    const updatedMarks = marks.map((mark) =>
-      mark.studentId === studentId ? { ...mark, [field]: value } : mark
+    setMarks((prev) =>
+      prev.map((m) => (m.studentId === studentId ? { ...m, [field]: value } : m))
     );
-    setMarks(updatedMarks);
   };
 
-  // ✅ Generate session list dynamically
   const generateSessions = () => {
     const currentYear = new Date().getFullYear();
     const sessions: string[] = [];
@@ -151,7 +182,7 @@ const BulkAddResultsPage: React.FC = () => {
       !selectedSubject ||
       !selectedSession ||
       !selectedTerm ||
-      (!selectedBranch && user?.role === 'Super Admin') // enforce branch selection
+      (!selectedBranch && user?.role === 'Super Admin')
     ) {
       alert(
         'Please select class, subject, session, term (and branch if Super Admin)'
@@ -160,7 +191,6 @@ const BulkAddResultsPage: React.FC = () => {
     }
 
     setLoading(true);
-
     try {
       await api.post('/results/bulk', {
         classId: selectedClass,
@@ -179,7 +209,7 @@ const BulkAddResultsPage: React.FC = () => {
 
       alert('Results submitted successfully!');
 
-      // reset inputs
+      // Reset marks after submit
       setMarks(
         students.map((student) => ({
           studentId: student._id,
@@ -271,7 +301,6 @@ const BulkAddResultsPage: React.FC = () => {
                 <IonLabel>Session</IonLabel>
                 <IonSelect
                   value={selectedSession}
-                  placeholder="Select session"
                   onIonChange={(e) => setSelectedSession(e.detail.value)}
                 >
                   {generateSessions().map((session) => (
