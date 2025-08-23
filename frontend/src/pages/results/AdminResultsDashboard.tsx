@@ -196,16 +196,37 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const handleExport = () => {
-    const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
-    const params = new URLSearchParams({
-      classId: selectedClass,
-      session: selectedSession,
-      term: selectedTerm,
-      branchId,
-    }).toString();
-    window.open(`${API_URL}/results/export?${params}`, '_blank');
-  };
+  const handleExport = async () => {
+  const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
+
+  try {
+    const response = await api.post(
+      '/results/export', 
+      { 
+        classId: selectedClass, 
+        session: selectedSession, 
+        term: selectedTerm,
+        branchId
+      },
+      { responseType: 'blob' } // Important for file download
+    );
+
+    // Trigger download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute(
+      'download',
+      `results_${selectedClass}_${selectedSession}_${selectedTerm}.xlsx`
+    );
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err) {
+    console.error('Export failed:', err);
+    alert('Failed to export results.');
+  }
+};
 
   const openModal = (result: Result | null = null) => {
     const selectedClassObj = classes.find((c) => c._id === selectedClass);
