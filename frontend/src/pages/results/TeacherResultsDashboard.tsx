@@ -177,9 +177,7 @@ const TeacherResultsDashboard: React.FC = () => {
     const importData = new FormData();
     importData.append('file', selectedFile);
     try {
-      await api.post('/results/import', importData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await api.post('/results/import', importData, { headers: { 'Content-Type': 'multipart/form-data' } });
       fetchResults();
       setShowImportModal(false);
       setSelectedFile(null);

@@ -20,7 +20,9 @@ import {
   IonToast,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
-import api from '../../services/api';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000/api';
 
 const Register: React.FC = () => {
   const [name, setName] = useState('');
@@ -36,7 +38,7 @@ const Register: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await api.post('/auth/register/parent', { name, email, password });
+      await axios.post(`${API_URL}/auth/register/parent`, { name, email, password });
       setSuccess(true);
       setTimeout(() => history.push('/login'), 2000);
     } catch (err) {

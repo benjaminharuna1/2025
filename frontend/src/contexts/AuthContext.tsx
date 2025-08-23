@@ -1,5 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import api from '../services/api';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3000/api';
 
 interface User {
   _id: string;
@@ -23,19 +25,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   const login = async (credentials: any) => {
-    const { data } = await api.post('/auth/login', credentials);
+    const { data } = await axios.post(`${API_URL}/auth/login`, credentials, {
+      withCredentials: true,
+    });
     setUser(data);
   };
 
   const logout = async () => {
-    await api.post('/auth/logout');
+    await axios.post(`${API_URL}/auth/logout`, {}, { withCredentials: true });
     setUser(null);
   };
 
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const { data } = await api.get('/auth/me');
+        const { data } = await axios.get(`${API_URL}/auth/me`, {
+          withCredentials: true,
+        });
         setUser(data.user);
       } catch (error) {
         setUser(null);

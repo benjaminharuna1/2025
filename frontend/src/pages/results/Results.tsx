@@ -72,7 +72,7 @@ const Results: React.FC = () => {
                             <IonMenuButton />
                         </IonButtons>
                         <IonTitle>Unknown Role</IonTitle>
-                    </IonToolbar>
+                    </IxnToolbar>
                 </IonHeader>
                 <IonContent className="ion-padding">
                     <p>Your role is not recognized.</p>
