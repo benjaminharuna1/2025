@@ -294,6 +294,13 @@ const AdminResultsDashboard: React.FC = () => {
     return student ? student.userId.name : 'N/A';
   };
 
+  const getAdmissionNumber = (result: Result) => {
+    if (typeof result.studentId === 'object' && result.studentId.admissionNumber)
+      return result.studentId.admissionNumber;
+    const student = students.find((s) => s._id === result.studentId);
+    return student ? student.admissionNumber : 'N/A';
+  };
+
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name)
       return result.subjectId.name;
@@ -430,6 +437,7 @@ const AdminResultsDashboard: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Student</th>
+                        <th>Admission No.</th>
                         <th>Subject</th>
                         <th>1st CA</th>
                         <th>2nd CA</th>
@@ -446,6 +454,7 @@ const AdminResultsDashboard: React.FC = () => {
                       {results.map((result) => (
                         <tr key={result._id}>
                           <td>{getStudentName(result)}</td>
+                          <td>{getAdmissionNumber(result)}</td>
                           <td>{getSubjectName(result)}</td>
                           <td>{result.firstCA}</td>
                           <td>{result.secondCA}</td>
