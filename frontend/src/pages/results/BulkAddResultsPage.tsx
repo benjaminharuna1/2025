@@ -176,56 +176,71 @@ const BulkAddResultsPage: React.FC = () => {
     return sessions;
   };
 
-  const handleSubmitAll = async () => {
-    if (
-      !selectedClass ||
-      !selectedSubject ||
-      !selectedSession ||
-      !selectedTerm ||
-      (!selectedBranch && user?.role === 'Super Admin')
-    ) {
-      alert(
-        'Please select class, subject, session, term (and branch if Super Admin)'
-      );
-      return;
-    }
+const handleSubmitAll = async () => {
+  if (
+    !selectedClass ||
+    !selectedSubject ||
+    !selectedSession ||
+    !selectedTerm ||
+    (!selectedBranch && user?.role === 'Super Admin')
+  ) {
+    alert('Please select class, subject, session (and branch if Super Admin)');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      await api.post('/results/bulk', {
+  setLoading(true);
+
+  try {
+    // 1️⃣ Submit bulk results (backend will upsert)
+    await api.post('/results/bulk', {
+      classId: selectedClass,
+      subjectId: selectedSubject,
+      session: selectedSession,
+      term: selectedTerm,
+      branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
+      results: marks.map((mark) => ({
+        studentId: mark.studentId,
+        firstCA: Number(mark.firstCA) || 0,
+        secondCA: Number(mark.secondCA) || 0,
+        thirdCA: Number(mark.thirdCA) || 0,
+        exam: Number(mark.exam) || 0,
+      })),
+    });
+
+    // 2️⃣ Refetch results for current filters
+    const { data } = await api.get('/results', {
+      params: {
         classId: selectedClass,
         subjectId: selectedSubject,
         session: selectedSession,
         term: selectedTerm,
-        branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
-        results: marks.map((mark) => ({
-          studentId: mark.studentId,
-          firstCA: Number(mark.firstCA) || 0,
-          secondCA: Number(mark.secondCA) || 0,
-          thirdCA: Number(mark.thirdCA) || 0,
-          exam: Number(mark.exam) || 0,
-        })),
-      });
+      },
+    });
 
-      alert('Results submitted successfully!');
-
-      // Reset marks after submit
-      setMarks(
-        students.map((student) => ({
-          studentId: student._id,
-          firstCA: '',
-          secondCA: '',
-          thirdCA: '',
-          exam: '',
-        }))
+    // 3️⃣ Update marks array with returned data
+    const updatedMarks = students.map((student) => {
+      const existingResult = data.find(
+        (r: any) => r.studentId._id === student._id
       );
-    } catch (err: any) {
-      console.error('Bulk add failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to submit results.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        studentId: student._id,
+        firstCA: existingResult?.firstCA ?? '',
+        secondCA: existingResult?.secondCA ?? '',
+        thirdCA: existingResult?.thirdCA ?? '',
+        exam: existingResult?.exam ?? '',
+      };
+    });
+
+    setMarks(updatedMarks);
+
+    alert('Results submitted and updated successfully!');
+  } catch (err: any) {
+    console.error('Bulk add failed:', err.response?.data || err.message);
+    alert(err.response?.data?.message || 'Failed to submit results.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const canSubmit =
     (user?.role !== 'Super Admin' || selectedBranch) &&

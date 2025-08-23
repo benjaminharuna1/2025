@@ -493,115 +493,150 @@ const AdminResultsDashboard: React.FC = () => {
           </IonGrid>
 
           {/* Add/Edit Modal */}
-          <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>
-                  {selectedResult ? 'Edit' : 'Add'} Result
-                </IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                {user?.role === 'Super Admin' && (
-                  <IonItem>
-                    <IonLabel>Branch</IonLabel>
-                    <IonSelect
-                      name="branchId"
-                      value={formData.branchId as string}
-                      onIonChange={handleSelectChange}
-                    >
-                      {branches.map((b) => (
-                        <IonSelectOption key={b._id} value={b._id}>
-                          {b.name}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </IonItem>
-                )}
-                <IonItem>
-                  <IonLabel>Student</IonLabel>
-                  <IonSelect
-                    name="studentId"
-                    value={formData.studentId as string}
-                    onIonChange={handleSelectChange}
-                  >
-                    {students.map((student) => (
-                      <IonSelectOption key={student._id} value={student._id}>
-                        {student.userId?.name} ({student.admissionNumber})
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Subject</IonLabel>
-                  <IonSelect
-                    name="subjectId"
-                    value={formData.subjectId as string}
-                    onIonChange={handleSelectChange}
-                  >
-                    {subjects.map((subject) => (
-                      <IonSelectOption key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">First CA</IonLabel>
-                  <IonInput
-                    name="firstCA"
-                    type="number"
-                    value={formData.firstCA || ''}
-                    onIonChange={handleInputChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Second CA</IonLabel>
-                  <IonInput
-                    name="secondCA"
-                    type="number"
-                    value={formData.secondCA || ''}
-                    onIonChange={handleInputChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Third CA</IonLabel>
-                  <IonInput
-                    name="thirdCA"
-                    type="number"
-                    value={formData.thirdCA || ''}
-                    onIonChange={handleInputChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Exam</IonLabel>
-                  <IonInput
-                    name="exam"
-                    type="number"
-                    value={formData.exam || ''}
-                    onIonChange={handleInputChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Total Marks</IonLabel>
-                  <IonInput
-                    readonly
-                    value={
-                      (Number(formData.firstCA) || 0) +
-                      (Number(formData.secondCA) || 0) +
-                      (Number(formData.thirdCA) || 0) +
-                      (Number(formData.exam) || 0)
-                    }
-                  />
-                </IonItem>
-                <IonButton expand="block" onClick={handleSave}>
-                  Save
-                </IonButton>
-                <IonButton expand="block" color="medium" onClick={closeModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
-          </IonModal>
+          {/* Add/Edit Modal */}
+<IonModal isOpen={showModal} onDidDismiss={closeModal}>
+  <IonCard>
+    <IonCardHeader>
+      <IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle>
+    </IonCardHeader>
+    <IonCardContent>
+      {/* Branch (read-only except for Super Admin when adding new) */}
+      {user?.role === 'Super Admin' && !selectedResult ? (
+        <IonItem>
+          <IonLabel>Branch</IonLabel>
+          <IonSelect
+            name="branchId"
+            value={formData.branchId as string}
+            onIonChange={handleSelectChange}
+          >
+            {branches.map((b) => (
+              <IonSelectOption key={b._id} value={b._id}>
+                {b.name}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+      ) : (
+        <IonItem>
+          <IonLabel>Branch</IonLabel>
+          <IonInput
+            readonly
+            value={
+              branches.find((b) => b._id === formData.branchId)?.name || ''
+            }
+          />
+        </IonItem>
+      )}
+
+      {/* Student (read-only) */}
+      <IonItem>
+        <IonLabel>Student</IonLabel>
+        <IonInput
+          readonly
+          value={
+            typeof formData.studentId === 'object' && formData.studentId?.name
+              ? formData.studentId.name
+              : students.find((s) => s._id === formData.studentId)?.userId
+                  ?.name || ''
+          }
+        />
+      </IonItem>
+
+      {/* Subject (read-only) */}
+      <IonItem>
+        <IonLabel>Subject</IonLabel>
+        <IonInput
+          readonly
+          value={
+            typeof formData.subjectId === 'object' && formData.subjectId?.name
+              ? formData.subjectId.name
+              : subjects.find((s) => s._id === formData.subjectId)?.name || ''
+          }
+        />
+      </IonItem>
+
+      {/* Editable marks */}
+      <IonItem>
+        <IonLabel position="floating">First CA</IonLabel>
+        <IonInput
+          name="firstCA"
+          type="number"
+          value={formData.firstCA || ''}
+          onIonChange={handleInputChange}
+        />
+      </IonItem>
+      <IonItem>
+        <IonLabel position="floating">Second CA</IonLabel>
+        <IonInput
+          name="secondCA"
+          type="number"
+          value={formData.secondCA || ''}
+          onIonChange={handleInputChange}
+        />
+      </IonItem>
+      <IonItem>
+        <IonLabel position="floating">Third CA</IonLabel>
+        <IonInput
+          name="thirdCA"
+          type="number"
+          value={formData.thirdCA || ''}
+          onIonChange={handleInputChange}
+        />
+      </IonItem>
+      <IonItem>
+        <IonLabel position="floating">Exam</IonLabel>
+        <IonInput
+          name="exam"
+          type="number"
+          value={formData.exam || ''}
+          onIonChange={handleInputChange}
+        />
+      </IonItem>
+
+      {/* Total (read-only) */}
+      <IonItem>
+        <IonLabel>Total Marks</IonLabel>
+        <IonInput
+          readonly
+          value={
+            (Number(formData.firstCA) || 0) +
+            (Number(formData.secondCA) || 0) +
+            (Number(formData.thirdCA) || 0) +
+            (Number(formData.exam) || 0)
+          }
+        />
+      </IonItem>
+
+      {/* Comments */}
+      <IonItem>
+        <IonLabel position="floating">Teacher Comment</IonLabel>
+        <IonInput
+          name="teacherComment"
+          value={formData.teacherComment || ''}
+          onIonChange={handleInputChange}
+        />
+      </IonItem>
+      {['Super Admin', 'Branch Admin'].includes(user.role) && (
+        <IonItem>
+          <IonLabel position="floating">Principal Comment</IonLabel>
+          <IonInput
+            name="principalComment"
+            value={formData.principalComment || ''}
+            onIonChange={handleInputChange}
+          />
+        </IonItem>
+      )}
+
+      <IonButton expand="block" onClick={handleSave}>
+        Save
+      </IonButton>
+      <IonButton expand="block" color="medium" onClick={closeModal}>
+        Cancel
+      </IonButton>
+    </IonCardContent>
+  </IonCard>
+</IonModal>
+
 
           {/* Import Modal */}
           <IonModal
