@@ -197,36 +197,58 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleExport = async () => {
-  const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
+  if (!selectedClass || !selectedSession || !selectedTerm) {
+    alert('Please select class, session, and term before exporting.');
+    return;
+  }
 
   try {
-    const response = await api.post(
-      '/results/export', 
-      { 
-        classId: selectedClass, 
-        session: selectedSession, 
-        term: selectedTerm,
-        branchId
-      },
-      { responseType: 'blob' } // Important for file download
-    );
+    setLoading(true);
 
-    // Trigger download
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    // Prepare request payload
+    const payload: any = {
+      classId: selectedClass,
+      session: selectedSession,
+      term: selectedTerm,
+    };
+
+    if (user?.role === 'Super Admin') {
+      payload.branchId = formData.branchId;
+    }
+
+    // Make POST request to export endpoint
+    const response = await api.post('/results/export', payload, {
+      responseType: 'blob', // Important to handle file download
+    });
+
+    // Create a URL for the blob
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+
+    // Create a temporary link to trigger download
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute(
       'download',
-      `results_${selectedClass}_${selectedSession}_${selectedTerm}.xlsx`
+      `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
     );
     document.body.appendChild(link);
     link.click();
-    link.remove();
-  } catch (err) {
-    console.error('Export failed:', err);
+
+    // Clean up
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+  } catch (err: any) {
+    console.error('Export failed:', err.response?.data || err.message);
     alert('Failed to export results.');
+  } finally {
+    setLoading(false);
   }
 };
+
 
   const openModal = (result: Result | null = null) => {
     const selectedClassObj = classes.find((c) => c._id === selectedClass);
