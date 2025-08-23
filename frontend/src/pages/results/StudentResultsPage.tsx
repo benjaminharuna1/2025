@@ -63,13 +63,6 @@ const StudentResultsPage: React.FC = () => {
     setResults(filtered);
   }, [selectedSession, selectedTerm, allResults]);
 
-  const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.userId) {
-      return result.studentId.userId.name;
-    }
-    return 'N/A';
-  }
-
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) {
       return result.subjectId.name;
@@ -130,12 +123,13 @@ const StudentResultsPage: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Subject</th>
-                        <th>Marks</th>
+                        <th>1st CA</th>
+                        <th>2nd CA</th>
+                        <th>3rd CA</th>
+                        <th>Exam</th>
+                        <th>Total</th>
                         <th>Grade</th>
                         <th>Remarks</th>
-                        <th>Total Marks</th>
-                        <th>Average</th>
-                        <th>Position</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -143,17 +137,18 @@ const StudentResultsPage: React.FC = () => {
                         results.map((result) => (
                           <tr key={result._id}>
                             <td>{getSubjectName(result)}</td>
+                            <td>{result.firstCA ?? 'N/A'}</td>
+                            <td>{result.secondCA ?? 'N/A'}</td>
+                            <td>{result.thirdCA ?? 'N/A'}</td>
+                            <td>{result.exam ?? 'N/A'}</td>
                             <td>{result.marks}</td>
                             <td>{result.grade}</td>
                             <td>{result.remarks}</td>
-                            <td>{result.totalMarks ?? 'N/A'}</td>
-                            <td>{result.average ?? 'N/A'}</td>
-                            <td>{result.position ?? 'N/A'}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7} className="ion-text-center">
+                          <td colSpan={8} className="ion-text-center">
                             No results found for the selected filters.
                           </td>
                         </tr>

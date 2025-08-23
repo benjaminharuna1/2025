@@ -106,9 +106,14 @@ export interface Result {
   branchId: string | Branch;
   session: string;
   term: 'First' | 'Second' | 'Third';
-  marks: number;
+  marks: number; // This will be the total marks calculated by the backend
+  firstCA?: number;
+  secondCA?: number;
+  thirdCA?: number;
+  exam?: number;
   grade: string;
   remarks?: string;
+  teacherComment?: string;
   status: 'Draft' | 'Approved';
   totalMarks?: number;
   average?: number;

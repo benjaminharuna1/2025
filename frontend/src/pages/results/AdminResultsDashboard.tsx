@@ -30,7 +30,7 @@ import api from '../../services/api';
 import { Result, Student, Subject, Class } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminResultsDashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -108,10 +108,17 @@ const AdminResultsDashboard: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      const payload = {
+        ...formData,
+        firstCA: Number(formData.firstCA),
+        secondCA: Number(formData.secondCA),
+        thirdCA: Number(formData.thirdCA),
+        exam: Number(formData.exam),
+      };
       if (selectedResult) {
-        await api.put(`/results/${selectedResult._id}`, formData);
+        await api.put(`/results/${selectedResult._id}`, payload);
       } else {
-        await api.post('/results', formData);
+        await api.post('/results', payload);
       }
       fetchResults();
       closeModal();
@@ -263,11 +270,13 @@ const AdminResultsDashboard: React.FC = () => {
                       <tr>
                         <th>Student</th>
                         <th>Subject</th>
-                        <th>Marks</th>
+                        <th>1st CA</th>
+                        <th>2nd CA</th>
+                        <th>3rd CA</th>
+                        <th>Exam</th>
+                        <th>Total</th>
                         <th>Grade</th>
                         <th>Status</th>
-                        <th>Total Marks</th>
-                        <th>Average</th>
                         <th>Position</th>
                         <th>Actions</th>
                       </tr>
@@ -277,11 +286,13 @@ const AdminResultsDashboard: React.FC = () => {
                         <tr key={result._id}>
                           <td>{getStudentName(result)}</td>
                           <td>{getSubjectName(result)}</td>
+                          <td>{result.firstCA}</td>
+                          <td>{result.secondCA}</td>
+                          <td>{result.thirdCA}</td>
+                          <td>{result.exam}</td>
                           <td>{result.marks}</td>
                           <td>{result.grade}</td>
                           <td>{result.status}</td>
-                          <td>{result.totalMarks ?? 'N/A'}</td>
-                          <td>{result.average ?? 'N/A'}</td>
                           <td>{result.position ?? 'N/A'}</td>
                           <td>
                             {result.status === 'Draft' && (
@@ -308,8 +319,30 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCardContent>
                 <IonItem><IonLabel>Student</IonLabel><IonSelect name="studentId" value={formData.studentId} onIonChange={handleSelectChange}>{students.map((student) => (<IonSelectOption key={student._id} value={student._id}>{student.userId?.name} ({student.admissionNumber})</IonSelectOption>))}</IonSelect></IonItem>
                 <IonItem><IonLabel>Subject</IonLabel><IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleSelectChange}>{subjects.map((subject) => (<IonSelectOption key={subject._id} value={subject._id}>{subject.name}</IonSelectOption>))}</IonSelect></IonItem>
-                <IonItem><IonLabel position="floating">Marks</IonLabel><IonInput name="marks" type="number" value={formData.marks} onIonChange={handleInputChange} /></IonItem>
-                <IonItem><IonLabel position="floating">Teacher Comment</IonLabel><IonInput name="remarks" value={formData.remarks} onIonChange={handleInputChange} /></IonItem>
+                <IonItem>
+                  <IonLabel position="floating">First CA</IonLabel>
+                  <IonInput name="firstCA" type="number" value={formData.firstCA || ''} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Second CA</IonLabel>
+                  <IonInput name="secondCA" type="number" value={formData.secondCA || ''} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Third CA</IonLabel>
+                  <IonInput name="thirdCA" type="number" value={formData.thirdCA || ''} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Exam</IonLabel>
+                  <IonInput name="exam" type="number" value={formData.exam || ''} onIonChange={handleInputChange} />
+                </IonItem>
+                 <IonItem>
+                  <IonLabel>Total Marks</IonLabel>
+                  <IonInput readonly value={(Number(formData.firstCA) || 0) + (Number(formData.secondCA) || 0) + (Number(formData.thirdCA) || 0) + (Number(formData.exam) || 0)} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Teacher Comment</IonLabel>
+                  <IonInput name="teacherComment" value={formData.teacherComment || ''} onIonChange={handleInputChange} />
+                </IonItem>
                 <IonButton expand="full" onClick={handleSave} className="ion-margin-top">Save</IonButton>
                 <IonButton expand="full" color="light" onClick={closeModal}>Cancel</IonButton>
               </IonCardContent>
@@ -321,6 +354,7 @@ const AdminResultsDashboard: React.FC = () => {
             <IonCard>
               <IonCardHeader><IonCardTitle>Import Results</IonCardTitle></IonCardHeader>
               <IonCardContent>
+                <p>Prepare an Excel file with the following columns in this exact order: `Reg No`, `Subject`, `Session`, `Term`, `First CA`, `Second CA`, `Third CA`, `Exam`.</p>
                 <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
                 <IonButton expand="full" onClick={handleImport} disabled={!selectedFile} className="ion-margin-top">Import</IonButton>
                 <IonButton expand="full" color="light" onClick={() => setShowImportModal(false)}>Cancel</IonButton>
