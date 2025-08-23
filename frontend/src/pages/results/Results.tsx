@@ -52,14 +52,14 @@ const Results: React.FC = () => {
   }
 
   switch (user.role) {
-    case 'student':
-    case 'parent':
+    case 'Student':
+    case 'Parent':
       return <StudentResultsPage />;
-    case 'teacher':
+    case 'Teacher':
       return <TeacherResultsDashboard />;
-    case 'admin':
-    case 'superadmin':
-    case 'branchadmin':
+    case 'Admin':
+    case 'Super Admin':
+    case 'Branch Admin':
       return <AdminResultsDashboard />;
     default:
         return (
