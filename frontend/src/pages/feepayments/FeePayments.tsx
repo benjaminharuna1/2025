@@ -26,15 +26,17 @@ import {
 } from '@ionic/react';
 import { documentText, add } from 'ionicons/icons';
 import api from '../../services/api';
-import { FeePayment, Student, Invoice } from '../../types';
+import { FeePayment, Student, Invoice, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [studentInvoices, setStudentInvoices] = useState<Invoice[]>([]);
   const [filterStudent, setFilterStudent] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     studentId: '',
@@ -50,7 +52,8 @@ const FeePayments: React.FC = () => {
   useEffect(() => {
     fetchFeePayments();
     fetchStudents();
-  }, [filterStudent, page]);
+    fetchBranches();
+  }, [filterStudent, filterBranch, page]);
 
   useEffect(() => {
     if (addFormData.studentId) {
@@ -80,7 +83,7 @@ const FeePayments: React.FC = () => {
   const fetchFeePayments = async () => {
     try {
       const { data } = await api.get('/feepayments', {
-        params: { studentId: filterStudent, page },
+        params: { studentId: filterStudent, branchId: filterBranch, page },
       });
       setFeePayments(data.feePayments || []);
       setTotalPages(data.pages || 1);
@@ -101,6 +104,17 @@ const FeePayments: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      if (data && Array.isArray(data.branches)) {
+        setBranches(data.branches);
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
     }
   };
 
@@ -178,6 +192,19 @@ const FeePayments: React.FC = () => {
                   </IonSelect>
                 </IonItem>
               </IonCol>
+              <IonCol>
+                <IonItem>
+                  <IonLabel>Filter by Branch</IonLabel>
+                  <IonSelect value={filterBranch} onIonChange={(e) => setFilterBranch(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {branches.map((branch) => (
+                      <IonSelectOption key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
             </IonRow>
             <IonRow>
               <IonCol>
@@ -186,6 +213,7 @@ const FeePayments: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Student</th>
+                        <th>Admission No.</th>
                         <th>Invoice ID</th>
                         <th>Amount Paid</th>
                         <th>Payment Date</th>
@@ -198,9 +226,10 @@ const FeePayments: React.FC = () => {
                       {feePayments.map((fp) => (
                         <tr key={fp._id}>
                           <td data-label="Student">{fp.studentId?.name}</td>
+                          <td data-label="Admission No.">{fp.studentId?.admissionNumber}</td>
                           <td data-label="Invoice ID">{fp.invoiceId?._id}</td>
                           <td data-label="Amount Paid">{fp.amountPaid}</td>
-                          <td data-label="Payment Date">{new Date(fp.paymentDate).toLocaleDate-String()}</td>
+                          <td data-label="Payment Date">{new Date(fp.paymentDate).toLocaleDateString()}</td>
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
                           <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">

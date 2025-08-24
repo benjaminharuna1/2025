@@ -98,7 +98,7 @@ export interface Invoice {
 
 export interface FeePayment {
   _id: string;
-  studentId: { _id: string; name: string };
+  studentId: { _id: string; name: string; admissionNumber?: string; userId?: { name: string } };
   invoiceId: { _id: string; session: string; term: string };
   amountPaid: number;
   paymentDate: string;
