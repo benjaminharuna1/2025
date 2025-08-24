@@ -99,7 +99,8 @@ const Invoices: React.FC = () => {
     try {
       const { data } = await api.get('/users', { params: { role: 'Student' } });
       if (data && Array.isArray(data.users)) {
-        setStudents(data.users);
+        const sortedStudents = data.users.sort((a: User, b: User) => a.name.localeCompare(b.name));
+        setStudents(sortedStudents);
       }
     } catch (error) {
       console.error('Error fetching students:', error);

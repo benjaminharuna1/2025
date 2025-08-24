@@ -95,7 +95,10 @@ const FeePayments: React.FC = () => {
       const { data } = await api.get('/users', {
         params: { role: 'Student' },
       });
-      setStudents(data.users || []);
+      if (data && Array.isArray(data.users)) {
+        const sortedStudents = data.users.sort((a: User, b: User) => a.name.localeCompare(b.name));
+        setStudents(sortedStudents);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
     }
