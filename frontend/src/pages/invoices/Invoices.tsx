@@ -27,14 +27,14 @@ import {
 } from '@ionic/react';
 import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
 import api from '../../services/api';
-import { Invoice, Branch, User } from '../../types';
+import { Invoice, Branch, Student } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Invoices.css';
 
 const Invoices: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [students, setStudents] = useState<User[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showFinancialsModal, setShowFinancialsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -97,9 +97,11 @@ const Invoices: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await api.get('/users', { params: { role: 'Student' } });
-      if (data && Array.isArray(data.users)) {
-        const sortedStudents = data.users.sort((a: User, b: User) => a.name.localeCompare(b.name));
+      const { data } = await api.get('/students');
+      if (data && Array.isArray(data.students)) {
+        const sortedStudents = data.students.sort((a: Student, b: Student) =>
+          a.userId.name.localeCompare(b.userId.name)
+        );
         setStudents(sortedStudents);
       }
     } catch (error) {
@@ -266,7 +268,7 @@ const Invoices: React.FC = () => {
                     <IonSelectOption value="">All</IonSelectOption>
                     {students.map((student) => (
                       <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
+                        {student.userId.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>

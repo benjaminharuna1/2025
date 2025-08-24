@@ -26,13 +26,13 @@ import {
 } from '@ionic/react';
 import { documentText, add } from 'ionicons/icons';
 import api from '../../services/api';
-import { FeePayment, User, Invoice } from '../../types';
+import { FeePayment, Student, Invoice } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
-  const [students, setStudents] = useState<User[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [studentInvoices, setStudentInvoices] = useState<Invoice[]>([]);
   const [filterStudent, setFilterStudent] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -92,11 +92,11 @@ const FeePayments: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await api.get('/users', {
-        params: { role: 'Student' },
-      });
-      if (data && Array.isArray(data.users)) {
-        const sortedStudents = data.users.sort((a: User, b: User) => a.name.localeCompare(b.name));
+      const { data } = await api.get('/students');
+      if (data && Array.isArray(data.students)) {
+        const sortedStudents = data.students.sort((a: Student, b: Student) =>
+          a.userId.name.localeCompare(b.userId.name)
+        );
         setStudents(sortedStudents);
       }
     } catch (error) {
@@ -172,7 +172,7 @@ const FeePayments: React.FC = () => {
                     <IonSelectOption value="">All</IonSelectOption>
                     {students.map((student) => (
                       <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
+                        {student.userId.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
@@ -231,7 +231,7 @@ const FeePayments: React.FC = () => {
                   >
                     {students.map((student) => (
                       <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
+                        {student.userId.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
