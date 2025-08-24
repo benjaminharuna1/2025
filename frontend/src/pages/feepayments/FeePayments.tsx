@@ -16,8 +16,15 @@ import {
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonModal,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonInput,
+  IonToast,
 } from '@ionic/react';
-import { documentText } from 'ionicons/icons';
+import { documentText, add } from 'ionicons/icons';
 import api from '../../services/api';
 import { FeePayment, User } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
@@ -27,6 +34,14 @@ const FeePayments: React.FC = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [filterStudent, setFilterStudent] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    invoiceId: '',
+    amountPaid: '',
+    paymentMethod: 'Cash',
+  });
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -63,6 +78,37 @@ const FeePayments: React.FC = () => {
     window.open(`${api.defaults.baseURL}/feepayments/${id}/receipt`, '_blank');
   };
 
+  const openAddModal = () => {
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setAddFormData({ invoiceId: '', amountPaid: '', paymentMethod: 'Cash' });
+  };
+
+  const handleAddFormChange = (e: any) => {
+    const { name, value } = e.target;
+    setAddFormData({ ...addFormData, [name]: value });
+  };
+
+  const handleAddPayment = async () => {
+    try {
+      await api.post('/feepayments', {
+        ...addFormData,
+        amountPaid: Number(addFormData.amountPaid),
+      });
+      closeAddModal();
+      fetchFeePayments(); // Refresh the list
+      setToastMessage('Fee payment recorded successfully.');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error recording fee payment:', error);
+      setToastMessage('Failed to record fee payment.');
+      setShowToast(true);
+    }
+  };
+
   return (
     <>
       <SidebarMenu />
@@ -77,6 +123,14 @@ const FeePayments: React.FC = () => {
         </IonHeader>
         <IonContent>
           <IonGrid>
+            <IonRow>
+              <IonCol>
+                <IonButton onClick={openAddModal}>
+                  <IonIcon slot="start" icon={add} />
+                  Add Fee Payment
+                </IonButton>
+              </IonCol>
+            </IonRow>
             <IonRow>
               <IonCol>
                 <IonItem>
@@ -129,6 +183,58 @@ const FeePayments: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
+          <IonModal isOpen={showAddModal} onDidDismiss={closeAddModal}>
+            <IonCard>
+              <IonCardHeader>
+                <IonCardTitle>Add Fee Payment</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonItem>
+                  <IonLabel position="floating">Invoice ID</IonLabel>
+                  <IonInput
+                    name="invoiceId"
+                    value={addFormData.invoiceId}
+                    onIonChange={handleAddFormChange}
+                    required
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Amount Paid</IonLabel>
+                  <IonInput
+                    name="amountPaid"
+                    type="number"
+                    value={addFormData.amountPaid}
+                    onIonChange={handleAddFormChange}
+                    required
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Payment Method</IonLabel>
+                  <IonSelect
+                    name="paymentMethod"
+                    value={addFormData.paymentMethod}
+                    onIonChange={handleAddFormChange}
+                  >
+                    <IonSelectOption value="Cash">Cash</IonSelectOption>
+                    <IonSelectOption value="Bank Transfer">Bank Transfer</IonSelectOption>
+                    <IonSelectOption value="Online">Online</IonSelectOption>
+                  </IonSelect>
+                </IonItem>
+                <IonButton expand="full" onClick={handleAddPayment} className="ion-margin-top">
+                  Save Payment
+                </IonButton>
+                <IonButton expand="full" color="light" onClick={closeAddModal}>
+                  Cancel
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </IonModal>
+          <IonToast
+            isOpen={showToast}
+            onDidDismiss={() => setShowToast(false)}
+            message={toastMessage}
+            duration={2000}
+          />
         </IonContent>
       </IonPage>
     </>
