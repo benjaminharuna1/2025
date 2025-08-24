@@ -61,12 +61,18 @@ export interface ParentProfile {
     students?: string[];
 }
 
+export interface Fee {
+  feeType: string;
+  amount: number;
+}
+
 export interface FeeStructure {
   _id: string;
-  name: string;
-  amount: number;
-  classLevelId: string | { _id: string; name: string };
   branchId: string | { _id: string; name: string };
+  classLevel: string | { _id: string; name: string };
+  session: string;
+  term: string;
+  fees: Fee[];
 }
 
 export interface Invoice {
