@@ -61,28 +61,43 @@ export interface ParentProfile {
     students?: string[];
 }
 
-export interface Fee {
-  feeType: string;
-  amount: number;
-}
-
 export interface FeeStructure {
   _id: string;
+  name: string;
+  amount: number;
+  classLevelId: string | { _id: string; name: string };
   branchId: string | { _id: string; name: string };
-  classLevel: string | { _id: string; name: string };
+}
+
+export interface Invoice {
+  _id: string;
+  studentId: { _id: string; name: string };
+  branchId: { _id: string; name: string };
   session: string;
   term: string;
-  fees: Fee[];
+  status: 'Unpaid' | 'Paid' | 'Partially Paid';
+  totalPayable: number;
+  totalPaid: number;
+  balance: number;
+  dueDate: string;
+  feeStructureId: {
+    _id: string;
+    fees: { feeType: string; amount: number }[];
+  };
+  amount: number;
+  discount: number;
+  scholarship: number;
+  lateFee: number;
 }
 
 export interface FeePayment {
   _id: string;
-  studentId: string | { _id: string; userId: { name: string } };
-  feeStructureId: string | { _id: string; session: string; term: string };
+  studentId: { _id: string; name: string };
+  invoiceId: { _id: string; session: string; term: string };
   amountPaid: number;
   paymentDate: string;
   paymentMethod: string;
-  status: 'Paid' | 'Pending' | 'Failed';
+  receivedBy: { _id: string; name: string };
 }
 
 export interface AttendanceRecord {

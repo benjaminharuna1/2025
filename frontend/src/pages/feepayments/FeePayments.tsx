@@ -10,49 +10,38 @@ import {
   IonCol,
   IonButton,
   IonIcon,
-  IonModal,
-  IonInput,
   IonItem,
   IonLabel,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonSelect,
   IonSelectOption,
   IonButtons,
   IonMenuButton,
-  IonToast,
 } from '@ionic/react';
-import { add, create, trash } from 'ionicons/icons';
+import { documentText } from 'ionicons/icons';
 import api from '../../services/api';
-import { FeePayment, User, FeeStructure } from '../../types';
+import { FeePayment, User } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [students, setStudents] = useState<User[]>([]);
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedFeePayment, setSelectedFeePayment] = useState<FeePayment | null>(null);
-  const [formData, setFormData] = useState<Partial<FeePayment>>({});
   const [filterStudent, setFilterStudent] = useState('');
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchFeePayments();
     fetchStudents();
-    fetchFeeStructures();
-  }, [filterStudent]);
+  }, [filterStudent, page]);
 
   const fetchFeePayments = async () => {
     try {
       const { data } = await api.get('/feepayments', {
-        params: { studentId: filterStudent },
+        params: { studentId: filterStudent, page },
       });
       setFeePayments(data.feePayments || []);
+      setTotalPages(data.pages || 1);
     } catch (error) {
       console.error('Error fetching fee payments:', error);
       setFeePayments([]);
@@ -70,56 +59,8 @@ const FeePayments: React.FC = () => {
     }
   };
 
-  const fetchFeeStructures = async () => {
-    try {
-      const { data } = await api.get('/feestructures');
-      setFeeStructures(data.feeStructures || []);
-    } catch (error) {
-      console.error('Error fetching fee structures:', error);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      if (selectedFeePayment) {
-        await api.put(`/feepayments/${selectedFeePayment._id}`, formData);
-      } else {
-        await api.post('/feepayments', formData);
-      }
-      fetchFeePayments();
-      closeModal();
-    } catch (error) {
-      console.error('Error saving fee payment:', error);
-      setToastMessage('Failed to save fee payment.');
-      setShowToast(true);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await api.delete(`/feepayments/${id}`);
-      fetchFeePayments();
-    } catch (error) {
-      console.error('Error deleting fee payment:', error);
-      setToastMessage('Failed to delete fee payment.');
-      setShowToast(true);
-    }
-  };
-
-  const openModal = (feePayment: FeePayment | null = null) => {
-    setSelectedFeePayment(feePayment);
-    setFormData(feePayment ? { ...feePayment } : {});
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedFeePayment(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.detail.value });
+  const downloadReceipt = (id: string) => {
+    window.open(`${api.defaults.baseURL}/feepayments/${id}/receipt`, '_blank');
   };
 
   return (
@@ -136,14 +77,6 @@ const FeePayments: React.FC = () => {
         </IonHeader>
         <IonContent>
           <IonGrid>
-            <IonRow>
-              <IonCol>
-                <IonButton onClick={() => openModal()}>
-                  <IonIcon slot="start" icon={add} />
-                  Add Fee Payment
-                </IonButton>
-              </IonCol>
-            </IonRow>
             <IonRow>
               <IonCol>
                 <IonItem>
@@ -166,10 +99,11 @@ const FeePayments: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Student</th>
-                        <th>Fee Structure</th>
+                        <th>Invoice ID</th>
                         <th>Amount Paid</th>
+                        <th>Payment Date</th>
                         <th>Payment Method</th>
-                        <th>Status</th>
+                        <th>Recorded By</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -177,16 +111,14 @@ const FeePayments: React.FC = () => {
                       {feePayments.map((fp) => (
                         <tr key={fp._id}>
                           <td data-label="Student">{fp.studentId?.name}</td>
-                          <td data-label="Fee Structure">{fp.feeStructureId?.session} - {fp.feeStructureId?.term}</td>
+                          <td data-label="Invoice ID">{fp.invoiceId?._id}</td>
                           <td data-label="Amount Paid">{fp.amountPaid}</td>
+                          <td data-label="Payment Date">{new Date(fp.paymentDate).toLocaleDate-String()}</td>
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
-                          <td data-label="Status">{fp.status}</td>
+                          <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">
-                            <IonButton onClick={() => openModal(fp)}>
-                              <IonIcon slot="icon-only" icon={create} />
-                            </IonButton>
-                            <IonButton color="danger" onClick={() => handleDelete(fp._id)}>
-                              <IonIcon slot="icon-only" icon={trash} />
+                            <IonButton onClick={() => downloadReceipt(fp._id)}>
+                              <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                           </td>
                         </tr>
@@ -197,63 +129,6 @@ const FeePayments: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-          <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>{selectedFeePayment ? 'Edit' : 'Add'} Fee Payment</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonItem>
-                  <IonLabel>Student</IonLabel>
-                  <IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>
-                    {students.map((student) => (
-                      <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Fee Structure</IonLabel>
-                  <IonSelect name="feeStructureId" value={formData.feeStructureId} onIonChange={handleInputChange}>
-                    {feeStructures.map((fs) => (
-                      <IonSelectOption key={fs._id} value={fs._id}>
-                        {fs.session} - {fs.term}
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Amount Paid</IonLabel>
-                  <IonInput name="amountPaid" type="number" value={formData.amountPaid} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Payment Method</IonLabel>
-                  <IonInput name="paymentMethod" value={formData.paymentMethod} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Status</IonLabel>
-                  <IonSelect name="status" value={formData.status} onIonChange={handleInputChange}>
-                    <IonSelectOption value="Paid">Paid</IonSelectOption>
-                    <IonSelectOption value="Pending">Pending</IonSelectOption>
-                    <IonSelectOption value="Failed">Failed</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                  Save
-                </IonButton>
-                <IonButton expand="full" color="light" onClick={closeModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
-          </IonModal>
-          <IonToast
-            isOpen={showToast}
-            onDidDismiss={() => setShowToast(false)}
-            message={toastMessage}
-            duration={2000}
-          />
         </IonContent>
       </IonPage>
     </>
