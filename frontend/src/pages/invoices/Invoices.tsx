@@ -25,7 +25,7 @@ import {
   IonToast,
   IonList,
 } from '@ionic/react';
-import { eye, documentText, cash, wallet } from 'ionicons/icons';
+import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
 import api from '../../services/api';
 import { Invoice, Branch, User } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
@@ -38,8 +38,15 @@ const Invoices: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showFinancialsModal, setShowFinancialsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [financialsData, setFinancialsData] = useState({ amount: 0, type: 'discount' });
+  const [generateFormData, setGenerateFormData] = useState({
+    branchId: '',
+    session: '',
+    term: '',
+    dueDate: '',
+  });
   const [paymentData, setPaymentData] = useState({ amountPaid: 0, paymentMethod: 'Bank Transfer' });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -132,6 +139,37 @@ const Invoices: React.FC = () => {
     }
   };
 
+  const handleGenerateInvoices = async () => {
+    try {
+      const { data } = await api.post('/invoices/generate', generateFormData);
+      closeGenerateModal();
+      fetchInvoices(); // Refresh the list
+      setToastMessage(
+        `Invoice generation complete. Generated: ${data.generatedCount}, Skipped: ${data.skippedCount}.`
+      );
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error generating invoices:', error);
+      setToastMessage('Failed to generate invoices.');
+      setShowToast(true);
+    }
+  };
+
+  const handleInitiateOnlinePayment = async (invoiceId: string) => {
+    try {
+      const { data } = await api.post(`/invoices/${invoiceId}/initiate-payment`);
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, '_blank');
+      }
+      setToastMessage('Redirecting to payment gateway...');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error initiating online payment:', error);
+      setToastMessage('Failed to initiate online payment.');
+      setShowToast(true);
+    }
+  };
+
   const openDetailModal = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setShowDetailModal(true);
@@ -172,6 +210,20 @@ const Invoices: React.FC = () => {
   const handlePaymentChange = (e: any) => {
     const { name, value } = e.target;
     setPaymentData({ ...paymentData, [name]: value });
+  };
+
+  const handleGenerateFormChange = (e: any) => {
+    const { name, value } = e.target;
+    setGenerateFormData({ ...generateFormData, [name]: value });
+  };
+
+  const openGenerateModal = () => {
+    setShowGenerateModal(true);
+  };
+
+  const closeGenerateModal = () => {
+    setShowGenerateModal(false);
+    setGenerateFormData({ branchId: '', session: '', term: '', dueDate: '' });
   };
 
   const downloadPDF = (id: string) => {
@@ -230,6 +282,12 @@ const Invoices: React.FC = () => {
                   </IonSelect>
                 </IonItem>
               </IonCol>
+              <IonCol size="auto">
+                <IonButton onClick={openGenerateModal}>
+                  <IonIcon slot="start" icon={add} />
+                  Generate Invoices
+                </IonButton>
+              </IonCol>
             </IonRow>
             <IonRow>
               <IonCol>
@@ -273,6 +331,9 @@ const Invoices: React.FC = () => {
                             </IonButton>
                             <IonButton onClick={() => openPaymentModal(invoice)}>
                               <IonIcon slot="icon-only" icon={cash} />
+                            </IonButton>
+                            <IonButton color="secondary" onClick={() => handleInitiateOnlinePayment(invoice._id)}>
+                              <IonIcon slot="icon-only" icon={card} />
                             </IonButton>
                           </td>
                         </tr>
@@ -393,6 +454,62 @@ const Invoices: React.FC = () => {
                   Record Payment
                 </IonButton>
                 <IonButton expand="full" color="light" onClick={closePaymentModal}>
+                  Cancel
+                </IonButton>
+              </IonCardContent>
+            </IonCard>
+          </IonModal>
+
+          {/* Generate Invoices Modal */}
+          <IonModal isOpen={showGenerateModal} onDidDismiss={closeGenerateModal}>
+            <IonCard>
+              <IonCardHeader>
+                <IonCardTitle>Generate Invoices in Bulk</IonCardTitle>
+              </IonCardHeader>
+              <IonCardContent>
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect
+                    name="branchId"
+                    value={generateFormData.branchId}
+                    onIonChange={handleGenerateFormChange}
+                  >
+                    {branches.map((branch) => (
+                      <IonSelectOption key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Session (e.g., 2023/2024)</IonLabel>
+                  <IonInput
+                    name="session"
+                    value={generateFormData.session}
+                    onIonChange={handleGenerateFormChange}
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Term</IonLabel>
+                  <IonSelect name="term" value={generateFormData.term} onIonChange={handleGenerateFormChange}>
+                    <IonSelectOption value="First Term">First Term</IonSelectOption>
+                    <IonSelectOption value="Second Term">Second Term</IonSelectOption>
+                    <IonSelectOption value="Third Term">Third Term</IonSelectOption>
+                  </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Due Date</IonLabel>
+                  <IonInput
+                    name="dueDate"
+                    type="date"
+                    value={generateFormData.dueDate}
+                    onIonChange={handleGenerateFormChange}
+                  />
+                </IonItem>
+                <IonButton expand="full" onClick={handleGenerateInvoices} className="ion-margin-top">
+                  Generate
+                </IonButton>
+                <IonButton expand="full" color="light" onClick={closeGenerateModal}>
                   Cancel
                 </IonButton>
               </IonCardContent>
