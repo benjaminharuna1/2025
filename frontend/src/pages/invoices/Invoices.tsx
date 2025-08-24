@@ -26,6 +26,10 @@ import {
   IonList,
 } from '@ionic/react';
 import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
+import {
+  IonLoading,
+  IonListHeader,
+} from '@ionic/react';
 import api from '../../services/api';
 import { Invoice, Branch, Student } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
@@ -40,6 +44,7 @@ const Invoices: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [financialsData, setFinancialsData] = useState({ amount: 0, type: 'discount' });
   const [generateFormData, setGenerateFormData] = useState({
     branchId: '',
@@ -173,9 +178,20 @@ const Invoices: React.FC = () => {
     }
   };
 
-  const openDetailModal = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
+  const openDetailModal = async (invoiceId: string) => {
+    setIsDetailLoading(true);
     setShowDetailModal(true);
+    try {
+      const { data } = await api.get(`/invoices/${invoiceId}`);
+      setSelectedInvoice(data);
+    } catch (error) {
+      console.error('Error fetching invoice details:', error);
+      setToastMessage('Could not load invoice details.');
+      setShowToast(true);
+      setShowDetailModal(false); // Close modal on error
+    } finally {
+      setIsDetailLoading(false);
+    }
   };
 
   const closeDetailModal = () => {
@@ -323,7 +339,7 @@ const Invoices: React.FC = () => {
                           <td data-label="Balance">{invoice.balance}</td>
                           <td data-label="Due Date">{new Date(invoice.dueDate).toLocaleDateString()}</td>
                           <td data-label="Actions">
-                            <IonButton onClick={() => openDetailModal(invoice)}>
+                            <IonButton onClick={() => openDetailModal(invoice._id)}>
                               <IonIcon slot="icon-only" icon={eye} />
                             </IonButton>
                             <IonButton onClick={() => openFinancialsModal(invoice)}>
@@ -355,7 +371,8 @@ const Invoices: React.FC = () => {
                 <IonCardTitle>Invoice Details</IonCardTitle>
               </IonCardHeader>
               <IonCardContent>
-                {selectedInvoice && (
+                <IonLoading isOpen={isDetailLoading} message={'Loading details...'} />
+                {!isDetailLoading && selectedInvoice && (
                   <IonList>
                     <IonItem>
                       <IonLabel>Student:</IonLabel>
@@ -389,16 +406,27 @@ const Invoices: React.FC = () => {
                       <IonLabel>Due Date:</IonLabel>
                       <p>{new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
                     </IonItem>
-                    <IonCardTitle>Fee Breakdown</IonCardTitle>
-                    {selectedInvoice.feeStructureId.fees.map((fee, index) => (
-                      <IonItem key={index}>
-                        <IonLabel>{fee.feeType}:</IonLabel>
-                        <p>{fee.amount}</p>
+
+                    {selectedInvoice.feeStructureId && selectedInvoice.feeStructureId.fees ? (
+                      <>
+                        <IonListHeader>
+                          <IonLabel>Fee Breakdown</IonLabel>
+                        </IonListHeader>
+                        {selectedInvoice.feeStructureId.fees.map((fee: any, index: number) => (
+                          <IonItem key={index}>
+                            <IonLabel>{fee.feeType}:</IonLabel>
+                            <p>{fee.amount}</p>
+                          </IonItem>
+                        ))}
+                      </>
+                    ) : (
+                      <IonItem>
+                        <IonLabel>No fee breakdown available.</IonLabel>
                       </IonItem>
-                    ))}
+                    )}
                   </IonList>
                 )}
-                <IonButton expand="full" color="light" onClick={closeDetailModal}>
+                <IonButton expand="full" color="light" onClick={closeDetailModal} disabled={isDetailLoading}>
                   Close
                 </IonButton>
               </IonCardContent>
