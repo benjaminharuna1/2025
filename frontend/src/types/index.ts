@@ -104,6 +104,7 @@ export interface FeePayment {
   paymentDate: string;
   paymentMethod: string;
   receivedBy: { _id: string; name: string };
+  payerDetails?: string;
 }
 
 export interface AttendanceRecord {

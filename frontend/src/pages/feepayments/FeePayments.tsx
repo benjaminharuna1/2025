@@ -43,6 +43,7 @@ const FeePayments: React.FC = () => {
     invoiceId: '',
     amountPaid: '',
     paymentMethod: 'Cash',
+    payerDetails: '',
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -128,7 +129,13 @@ const FeePayments: React.FC = () => {
 
   const closeAddModal = () => {
     setShowAddModal(false);
-    setAddFormData({ studentId: '', invoiceId: '', amountPaid: '', paymentMethod: 'Cash' });
+    setAddFormData({
+      studentId: '',
+      invoiceId: '',
+      amountPaid: '',
+      paymentMethod: 'Cash',
+      payerDetails: '',
+    });
     setStudentInvoices([]);
   };
 
@@ -143,6 +150,7 @@ const FeePayments: React.FC = () => {
         invoiceId: addFormData.invoiceId,
         amountPaid: Number(addFormData.amountPaid),
         paymentMethod: addFormData.paymentMethod,
+        payerDetails: addFormData.payerDetails,
       };
       await api.post('/feepayments', paymentData);
       closeAddModal();
@@ -301,6 +309,14 @@ const FeePayments: React.FC = () => {
                     <IonSelectOption value="Bank Transfer">Bank Transfer</IonSelectOption>
                     <IonSelectOption value="Online">Online</IonSelectOption>
                   </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Payer Details (Optional)</IonLabel>
+                  <IonInput
+                    name="payerDetails"
+                    value={addFormData.payerDetails}
+                    onIonChange={handleAddFormChange}
+                  />
                 </IonItem>
                 <IonButton expand="full" onClick={handleAddPayment} className="ion-margin-top">
                   Save Payment

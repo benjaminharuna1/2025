@@ -52,7 +52,11 @@ const Invoices: React.FC = () => {
     term: '',
     dueDate: '',
   });
-  const [paymentData, setPaymentData] = useState({ amountPaid: 0, paymentMethod: 'Bank Transfer' });
+  const [paymentData, setPaymentData] = useState({
+    amountPaid: 0,
+    paymentMethod: 'Bank Transfer',
+    payerDetails: '',
+  });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
@@ -218,7 +222,7 @@ const Invoices: React.FC = () => {
   const closePaymentModal = () => {
     setShowPaymentModal(false);
     setSelectedInvoice(null);
-    setPaymentData({ amountPaid: 0, paymentMethod: 'Bank Transfer' });
+    setPaymentData({ amountPaid: 0, paymentMethod: 'Bank Transfer', payerDetails: '' });
   };
 
   const handleFinancialsChange = (e: any) => {
@@ -480,6 +484,10 @@ const Invoices: React.FC = () => {
                     <IonSelectOption value="Cash">Cash</IonSelectOption>
                     <IonSelectOption value="Online">Online</IonSelectOption>
                   </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Payer Details (Optional)</IonLabel>
+                  <IonInput name="payerDetails" value={paymentData.payerDetails} onIonChange={handlePaymentChange} />
                 </IonItem>
                 <IonButton expand="full" onClick={handleMakePayment} className="ion-margin-top">
                   Record Payment
