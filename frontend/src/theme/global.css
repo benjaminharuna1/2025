@@ -1,0 +1,71 @@
+
+/* Table wrapper for scrollable on desktop */
+.responsive-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Normal table styling */
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responsive-table th,
+.responsive-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+/* Hide table headers on mobile and convert rows to cards */
+@media screen and (max-width: 768px) {
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.5rem;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  .responsive-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  .responsive-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .responsive-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    flex-basis: 40%;
+  }
+
+  .responsive-table tbody td span {
+    flex-basis: 60%;
+    text-align: right;
+  }
+}
+
+/* Modal scrollable content */
+.modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modal-buttons {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  padding-top: 0.5rem;
+}

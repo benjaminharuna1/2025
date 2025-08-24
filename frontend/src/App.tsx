@@ -13,6 +13,7 @@ import FeeStructures from './pages/feestructures/FeeStructures';
 import FeePayments from './pages/feepayments/FeePayments';
 import Attendance from './pages/attendance/Attendance';
 import Results from './pages/results/Results';
+import BulkAddResultsPage from './pages/results/BulkAddResultsPage';
 import Announcements from './pages/announcements/Announcements';
 import Reports from './pages/reports/Reports';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -61,6 +62,7 @@ const App: React.FC = () => {
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
             <ProtectedRoute path="/dashboard/reports" component={Reports} />
+            <ProtectedRoute path="/results/bulk-add" component={BulkAddResultsPage} />
             <ProtectedRoute path="/dashboard/results" component={Results} />
             <ProtectedRoute path="/dashboard/announcements" component={Announcements} />
             <ProtectedRoute path="/dashboard/attendance" component={Attendance} />

@@ -100,16 +100,25 @@ export interface Attendance {
 
 export interface Result {
   _id: string;
-  studentId: string | { _id: string; name: string };
-  subjectId: string | { _id: string; name: string };
-  classId: string | { _id: string; name: string };
-  branchId: string | { _id: string; name: string };
+  studentId: string | Student;
+  subjectId: string | Subject;
+  classId: string | Class;
+  branchId: string | Branch;
   session: string;
-  term: string;
-  marks: number;
+  term: 'First' | 'Second' | 'Third';
+  marks: number; // This will be the total marks calculated by the backend
+  firstCA?: number;
+  secondCA?: number;
+  thirdCA?: number;
+  exam?: number;
   grade: string;
   remarks?: string;
-  recordedBy: string | { _id: string; name: string };
+  teacherComment?: string;
+  status: 'Draft' | 'Approved';
+  totalMarks?: number;
+  average?: number;
+  position?: number;
+  recordedBy: string | User;
 }
 
 export interface Announcement {
