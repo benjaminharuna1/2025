@@ -15,12 +15,11 @@ def run(playwright):
     # Navigate to Fee Payments page
     page.goto("http://localhost:5173/dashboard/feepayments")
     expect(page).to_have_url("http://localhost:5173/dashboard/feepayments")
-    page.screenshot(path="jules-scratch/verification/fee_payments_page.png")
 
     # Open the Add Fee Payment modal and take a screenshot
     page.get_by_role("button", name="Add Fee Payment").click()
     expect(page.get_by_text("Add Fee Payment")).to_be_visible()
-    page.screenshot(path="jules-scratch/verification/add_fee_payment_modal.png")
+    page.screenshot(path="jules-scratch/verification/enhanced_add_fee_payment_modal.png")
 
     context.close()
     browser.close()
