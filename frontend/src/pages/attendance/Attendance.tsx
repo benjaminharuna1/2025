@@ -76,14 +76,15 @@ const Attendance: React.FC = () => {
     fetchClassLevels();
   }, [user]);
 
-  // fetch classes when branch & classLevel selected
+  // fetch classes when branch selected
   useEffect(() => {
     const fetchClasses = async () => {
-      if (selectedBranch && selectedClassLevel) {
+      if (selectedBranch) {
         setLoading(true);
         try {
+          // The backend getClasses controller doesn't filter by classLevel, only branch
           const { data } = await api.get(
-            `/classes?branchId=${selectedBranch}&classLevelId=${selectedClassLevel}`
+            `/classes?branchId=${selectedBranch}`
           );
           setClasses(data.classes || []);
         } catch (error) {
@@ -96,7 +97,7 @@ const Attendance: React.FC = () => {
       }
     };
     fetchClasses();
-  }, [selectedBranch, selectedClassLevel]);
+  }, [selectedBranch]);
 
   // fetch subjects when class selected
   useEffect(() => {

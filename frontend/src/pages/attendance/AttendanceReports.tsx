@@ -28,10 +28,14 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Branch, Class, Student, Subject, Attendance } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 
+import { Branch, Class, Student, Subject, Attendance, ClassLevel } from '../../types';
+
 const AttendanceReports: React.FC = () => {
   const { user } = useAuth();
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState('');
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
+  const [selectedClassLevel, setSelectedClassLevel] = useState('');
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [students, setStudents] = useState<Student[]>([]);
@@ -53,13 +57,15 @@ const AttendanceReports: React.FC = () => {
     const fetchInitialData = async () => {
       try {
         if (user?.role === 'Super Admin') {
-          const { data } = await api.get('/branches');
-          setBranches(data.branches || []);
+          const branchesRes = await api.get('/branches');
+          setBranches(branchesRes.data.branches || []);
         } else if (user?.branchId) {
           setSelectedBranch(user.branchId);
         }
+        const classLevelsRes = await api.get('/classlevels');
+        setClassLevels(classLevelsRes.data.classLevels || []);
       } catch (error) {
-        console.error('Error fetching branches', error);
+        console.error('Error fetching initial data', error);
       }
     };
     fetchInitialData();
@@ -104,6 +110,7 @@ const AttendanceReports: React.FC = () => {
     try {
       const params = new URLSearchParams();
       if (selectedBranch) params.append('branchId', selectedBranch);
+      if (selectedClassLevel) params.append('classLevelId', selectedClassLevel);
       if (selectedClass) params.append('classId', selectedClass);
       if (selectedStudent) params.append('studentId', selectedStudent);
       if (selectedSubject) params.append('subjectId', selectedSubject);
@@ -159,6 +166,13 @@ const AttendanceReports: React.FC = () => {
                     </IonSelect>
                 </IonItem>
             )}
+            <IonItem>
+                <IonLabel>Class Level</IonLabel>
+                <IonSelect value={selectedClassLevel} onIonChange={e => setSelectedClassLevel(e.detail.value)}>
+                    <IonSelectOption value="">All Levels</IonSelectOption>
+                    {classLevels.map(cl => <IonSelectOption key={cl._id} value={cl._id}>{cl.name}</IonSelectOption>)}
+                </IonSelect>
+            </IonItem>
             <IonItem>
                 <IonLabel>Class</IonLabel>
                 <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value)}>
