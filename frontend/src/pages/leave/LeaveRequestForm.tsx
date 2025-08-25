@@ -37,11 +37,12 @@ const LeaveRequestForm: React.FC = () => {
 
   useEffect(() => {
     const fetchMyStudents = async () => {
-      if (user?.role === 'Parent') {
+      // Assumes the user object from useAuth contains parentProfileId
+      if (user?.role === 'Parent' && user.parentProfileId) {
         setLoading(true);
         try {
-          // The backend should handle filtering students for the logged-in parent
-          const { data } = await api.get('/students');
+          const { data } = await api.get(`/api/parents/${user.parentProfileId}`);
+          // The parent object contains a 'students' array
           setStudents(data.students || []);
         } catch (error) {
           setToastMessage('Error fetching your children');

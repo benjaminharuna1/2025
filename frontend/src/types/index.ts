@@ -6,6 +6,7 @@ export interface User {
   branchId?: string;
   classId?: string;
   profilePicture?: string;
+  parentProfileId?: string;
 }
 
 export interface Branch {
