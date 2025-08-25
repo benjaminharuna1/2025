@@ -26,7 +26,7 @@ import {
 import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
 import api from '../../services/api';
 import { Invoice, Branch, Student } from '../../types';
-import { TERMS } from '../../constants';
+import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Invoices.css';
 
@@ -520,12 +520,12 @@ const Invoices: React.FC = () => {
                 </IonSelect>
               </IonItem>
               <IonItem>
-                <IonLabel position="floating">Session (e.g., 2023/2024)</IonLabel>
-                <IonInput
-                  name="session"
-                  value={generateFormData.session}
-                  onIonChange={handleGenerateFormChange}
-                />
+                <IonLabel>Session</IonLabel>
+                <IonSelect name="session" value={generateFormData.session} onIonChange={handleGenerateFormChange}>
+                  {SESSIONS.map(session => (
+                    <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
+                  ))}
+                </IonSelect>
               </IonItem>
               <IonItem>
                 <IonLabel>Term</IonLabel>

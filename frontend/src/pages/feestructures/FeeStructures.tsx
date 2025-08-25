@@ -23,7 +23,7 @@ import {
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { FeeStructure, Branch, ClassLevel } from '../../types';
-import { TERMS } from '../../constants';
+import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeeStructures.css';
 
@@ -202,7 +202,12 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Session</IonLabel>
-                <IonInput value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value!)} />
+                <IonSelect value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value)}>
+                  <IonSelectOption value="">All</IonSelectOption>
+                  {SESSIONS.map(session => (
+                    <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
+                  ))}
+                </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol>
@@ -284,8 +289,12 @@ const FeeStructures: React.FC = () => {
               </IonSelect>
             </IonItem>
             <IonItem>
-              <IonLabel position="floating">Session</IonLabel>
-              <IonInput name="session" value={formData.session} onIonChange={handleInputChange} />
+              <IonLabel>Session</IonLabel>
+              <IonSelect name="session" value={formData.session} onIonChange={handleInputChange}>
+                {SESSIONS.map(session => (
+                  <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
+                ))}
+              </IonSelect>
             </IonItem>
             <IonItem>
               <IonLabel>Term</IonLabel>
