@@ -23,6 +23,7 @@ import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
 import { Student, Subject, Class, Branch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { SESSIONS, TERMS } from '../../constants';
 
 interface MarkEntry {
   studentId: string;
@@ -58,9 +59,8 @@ const BulkAddResultsPage: React.FC = () => {
     }
 
     // Auto-select current session
-    const sessions = generateSessions();
-    if (sessions.length > 0) {
-      setSelectedSession(sessions[0]);
+    if (SESSIONS.length > 0) {
+      setSelectedSession(SESSIONS[0]);
     }
   }, [user]);
 
@@ -167,80 +167,71 @@ const BulkAddResultsPage: React.FC = () => {
     );
   };
 
-  const generateSessions = () => {
-    const currentYear = new Date().getFullYear();
-    const sessions: string[] = [];
-    for (let i = currentYear - 1; i <= currentYear + 5; i++) {
-      sessions.push(`${i}/${i + 1}`);
+  const handleSubmitAll = async () => {
+    if (
+      !selectedClass ||
+      !selectedSubject ||
+      !selectedSession ||
+      !selectedTerm ||
+      (!selectedBranch && user?.role === 'Super Admin')
+    ) {
+      alert('Please select class, subject, session (and branch if Super Admin)');
+      return;
     }
-    return sessions;
-  };
 
-const handleSubmitAll = async () => {
-  if (
-    !selectedClass ||
-    !selectedSubject ||
-    !selectedSession ||
-    !selectedTerm ||
-    (!selectedBranch && user?.role === 'Super Admin')
-  ) {
-    alert('Please select class, subject, session (and branch if Super Admin)');
-    return;
-  }
+    setLoading(true);
 
-  setLoading(true);
-
-  try {
-    // 1️⃣ Submit bulk results (backend will upsert)
-    await api.post('/results/bulk', {
-      classId: selectedClass,
-      subjectId: selectedSubject,
-      session: selectedSession,
-      term: selectedTerm,
-      branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
-      results: marks.map((mark) => ({
-        studentId: mark.studentId,
-        firstCA: Number(mark.firstCA) || 0,
-        secondCA: Number(mark.secondCA) || 0,
-        thirdCA: Number(mark.thirdCA) || 0,
-        exam: Number(mark.exam) || 0,
-      })),
-    });
-
-    // 2️⃣ Refetch results for current filters
-    const { data } = await api.get('/results', {
-      params: {
+    try {
+      // 1️⃣ Submit bulk results (backend will upsert)
+      await api.post('/results/bulk', {
         classId: selectedClass,
         subjectId: selectedSubject,
         session: selectedSession,
         term: selectedTerm,
-      },
-    });
+        branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
+        results: marks.map((mark) => ({
+          studentId: mark.studentId,
+          firstCA: Number(mark.firstCA) || 0,
+          secondCA: Number(mark.secondCA) || 0,
+          thirdCA: Number(mark.thirdCA) || 0,
+          exam: Number(mark.exam) || 0,
+        })),
+      });
 
-    // 3️⃣ Update marks array with returned data
-    const updatedMarks = students.map((student) => {
-      const existingResult = data.find(
-        (r: any) => r.studentId._id === student._id
-      );
-      return {
-        studentId: student._id,
-        firstCA: existingResult?.firstCA ?? '',
-        secondCA: existingResult?.secondCA ?? '',
-        thirdCA: existingResult?.thirdCA ?? '',
-        exam: existingResult?.exam ?? '',
-      };
-    });
+      // 2️⃣ Refetch results for current filters
+      const { data } = await api.get('/results', {
+        params: {
+          classId: selectedClass,
+          subjectId: selectedSubject,
+          session: selectedSession,
+          term: selectedTerm,
+        },
+      });
 
-    setMarks(updatedMarks);
+      // 3️⃣ Update marks array with returned data
+      const updatedMarks = students.map((student) => {
+        const existingResult = data.find(
+          (r: any) => r.studentId._id === student._id
+        );
+        return {
+          studentId: student._id,
+          firstCA: existingResult?.firstCA ?? '',
+          secondCA: existingResult?.secondCA ?? '',
+          thirdCA: existingResult?.thirdCA ?? '',
+          exam: existingResult?.exam ?? '',
+        };
+      });
 
-    alert('Results submitted and updated successfully!');
-  } catch (err: any) {
-    console.error('Bulk add failed:', err.response?.data || err.message);
-    alert(err.response?.data?.message || 'Failed to submit results.');
-  } finally {
-    setLoading(false);
-  }
-};
+      setMarks(updatedMarks);
+
+      alert('Results submitted and updated successfully!');
+    } catch (err: any) {
+      console.error('Bulk add failed:', err.response?.data || err.message);
+      alert(err.response?.data?.message || 'Failed to submit results.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const canSubmit =
     (user?.role !== 'Super Admin' || selectedBranch) &&
@@ -318,7 +309,7 @@ const handleSubmitAll = async () => {
                   value={selectedSession}
                   onIonChange={(e) => setSelectedSession(e.detail.value)}
                 >
-                  {generateSessions().map((session) => (
+                  {SESSIONS.map((session) => (
                     <IonSelectOption key={session} value={session}>
                       {session}
                     </IonSelectOption>
@@ -333,9 +324,11 @@ const handleSubmitAll = async () => {
                   value={selectedTerm}
                   onIonChange={(e) => setSelectedTerm(e.detail.value)}
                 >
-                  <IonSelectOption value="First">First</IonSelectOption>
-                  <IonSelectOption value="Second">Second</IonSelectOption>
-                  <IonSelectOption value="Third">Third</IonSelectOption>
+                  {TERMS.map((term) => (
+                    <IonSelectOption key={term} value={term}>
+                      {term}
+                    </IonSelectOption>
+                  ))}
                 </IonSelect>
               </IonItem>
             </IonCol>

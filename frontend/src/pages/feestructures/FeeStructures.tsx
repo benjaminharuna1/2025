@@ -14,10 +14,6 @@ import {
   IonInput,
   IonItem,
   IonLabel,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonSelect,
   IonSelectOption,
   IonButtons,
@@ -27,6 +23,7 @@ import {
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { FeeStructure, Branch, ClassLevel } from '../../types';
+import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeeStructures.css';
 
@@ -95,7 +92,6 @@ const FeeStructures: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      console.log('Saving fee structure:', formData);
       if (selectedFeeStructure) {
         await api.put(`/feestructures/${selectedFeeStructure._id}`, formData);
       } else {
@@ -134,21 +130,22 @@ const FeeStructures: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.detail.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleFeeChange = (index: number, e: any) => {
-    const newFees = [...formData.fees];
-    newFees[index][e.target.name] = e.target.name === 'amount' ? parseInt(e.detail.value, 10) : e.detail.value;
+    const newFees = [...(formData.fees || [])];
+    newFees[index] = { ...newFees[index], [e.target.name]: e.target.name === 'amount' ? parseInt(e.detail.value, 10) : e.detail.value };
     setFormData({ ...formData, fees: newFees });
   };
 
   const addFee = () => {
-    setFormData({ ...formData, fees: [...formData.fees, { type: '', amount: 0 }] });
+    setFormData({ ...formData, fees: [...(formData.fees || []), { feeType: '', amount: 0 }] });
   };
 
   const removeFee = (index: number) => {
-    const newFees = [...formData.fees];
+    const newFees = [...(formData.fees || [])];
     newFees.splice(index, 1);
     setFormData({ ...formData, fees: newFees });
   };
@@ -205,13 +202,23 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Session</IonLabel>
-                <IonInput value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value!)} />
+                <IonSelect value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value)}>
+                  <IonSelectOption value="">All</IonSelectOption>
+                  {SESSIONS.map(session => (
+                    <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
+                  ))}
+                </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Term</IonLabel>
-                <IonInput value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value!)} />
+                <IonSelect value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value)}>
+                  <IonSelectOption value="">All</IonSelectOption>
+                  {TERMS.map(term => (
+                    <IonSelectOption key={term} value={term}>{term}</IonSelectOption>
+                  ))}
+                </IonSelect>
               </IonItem>
             </IonCol>
           </IonRow>
@@ -231,8 +238,8 @@ const FeeStructures: React.FC = () => {
                   <tbody>
                     {feeStructures.map((fs) => (
                       <tr key={fs._id}>
-                        <td data-label="Branch">{fs.branchId?.name}</td>
-                        <td data-label="Class Level">{fs.classLevel?.name}</td>
+                        <td data-label="Branch">{(fs.branchId as any)?.name}</td>
+                        <td data-label="Class Level">{(fs.classLevel as any)?.name}</td>
                         <td data-label="Session">{fs.session}</td>
                         <td data-label="Term">{fs.term}</td>
                         <td data-label="Actions">
@@ -252,72 +259,81 @@ const FeeStructures: React.FC = () => {
           </IonRow>
         </IonGrid>
         <IonModal isOpen={showModal} onDidDismiss={closeModal}>
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>{selectedFeeStructure ? 'Edit' : 'Add'} Fee Structure</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <IonItem>
-                <IonLabel>Branch</IonLabel>
-                <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
-                  {branches.map((branch) => (
-                    <IonSelectOption key={branch._id} value={branch._id}>
-                      {branch.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel>Class Level</IonLabel>
-                <IonSelect name="classLevel" value={formData.classLevel} onIonChange={handleInputChange}>
-                  {classLevels.map((level) => (
-                    <IonSelectOption key={level._id} value={level._id}>
-                      {level.name}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Session</IonLabel>
-                <IonInput name="session" value={formData.session} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Term</IonLabel>
-                <IonInput name="term" value={formData.term} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonCardTitle>Fees</IonCardTitle>
-              {formData.fees.map((fee: any, index: number) => (
-                <IonRow key={index}>
-                  <IonCol>
-                    <IonItem>
-                      <IonLabel position="floating">Type</IonLabel>
-                      <IonInput name="feeType" value={fee.feeType} onIonChange={(e) => handleFeeChange(index, e)} />
-                    </IonItem>
-                  </IonCol>
-                  <IonCol>
-                    <IonItem>
-                      <IonLabel position="floating">Amount</IonLabel>
-                      <IonInput name="amount" type="number" value={fee.amount} onIonChange={(e) => handleFeeChange(index, e)} />
-                    </IonItem>
-                  </IonCol>
-                  <IonCol>
-                    <IonButton color="danger" onClick={() => removeFee(index)}>
-                      <IonIcon slot="icon-only" icon={trash} />
-                    </IonButton>
-                  </IonCol>
-                </IonRow>
-              ))}
-              <IonButton onClick={addFee} className="ion-margin-top">
-                Add Fee
-              </IonButton>
-              <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                Save
-              </IonButton>
-              <IonButton expand="full" color="light" onClick={closeModal}>
-                Cancel
-              </IonButton>
-            </IonCardContent>
-          </IonCard>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>{selectedFeeStructure ? 'Edit' : 'Add'} Fee Structure</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={closeModal}>Close</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+            <IonItem>
+              <IonLabel>Branch</IonLabel>
+              <IonSelect name="branchId" value={(formData.branchId as any)?._id || formData.branchId} onIonChange={handleInputChange}>
+                {branches.map((branch) => (
+                  <IonSelectOption key={branch._id} value={branch._id}>
+                    {branch.name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Class Level</IonLabel>
+              <IonSelect name="classLevel" value={(formData.classLevel as any)?._id || formData.classLevel} onIonChange={handleInputChange}>
+                {classLevels.map((level) => (
+                  <IonSelectOption key={level._id} value={level._id}>
+                    {level.name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Session</IonLabel>
+              <IonSelect name="session" value={formData.session} onIonChange={handleInputChange}>
+                {SESSIONS.map(session => (
+                  <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonLabel>Term</IonLabel>
+              <IonSelect name="term" value={formData.term} onIonChange={handleInputChange}>
+                {TERMS.map(term => (
+                  <IonSelectOption key={term} value={term}>{term}</IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+            <IonTitle>Fees</IonTitle>
+            {(formData.fees || []).map((fee: any, index: number) => (
+              <IonRow key={index} className="ion-align-items-center">
+                <IonCol>
+                  <IonItem>
+                    <IonLabel position="floating">Fee Type</IonLabel>
+                    <IonInput name="feeType" value={fee.feeType} onIonChange={(e) => handleFeeChange(index, e)} />
+                  </IonItem>
+                </IonCol>
+                <IonCol>
+                  <IonItem>
+                    <IonLabel position="floating">Amount</IonLabel>
+                    <IonInput name="amount" type="number" value={fee.amount} onIonChange={(e) => handleFeeChange(index, e)} />
+                  </IonItem>
+                </IonCol>
+                <IonCol size="auto">
+                  <IonButton color="danger" onClick={() => removeFee(index)}>
+                    <IonIcon slot="icon-only" icon={trash} />
+                  </IonButton>
+                </IonCol>
+              </IonRow>
+            ))}
+            <IonButton onClick={addFee} className="ion-margin-top">
+              <IonIcon slot="start" icon={add} />
+              Add Fee
+            </IonButton>
+            <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
+              Save
+            </IonButton>
+          </IonContent>
         </IonModal>
         <IonToast
           isOpen={showToast}

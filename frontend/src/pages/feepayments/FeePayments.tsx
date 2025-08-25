@@ -254,14 +254,18 @@ const FeePayments: React.FC = () => {
             </IonRow>
           </IonGrid>
           <IonModal isOpen={showAddModal} onDidDismiss={closeAddModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Add Fee Payment</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonItem>
-                  <IonLabel>Student</IonLabel>
-                  <IonSelect
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Add Fee Payment</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={closeAddModal}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <IonItem>
+                <IonLabel>Student</IonLabel>
+                <IonSelect
                     name="studentId"
                     value={addFormData.studentId}
                     onIonChange={handleAddFormChange}
@@ -321,11 +325,7 @@ const FeePayments: React.FC = () => {
                 <IonButton expand="full" onClick={handleAddPayment} className="ion-margin-top">
                   Save Payment
                 </IonButton>
-                <IonButton expand="full" color="light" onClick={closeAddModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+            </IonContent>
           </IonModal>
           <IonToast
             isOpen={showToast}
