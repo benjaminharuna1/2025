@@ -93,36 +93,23 @@ const Announcements: React.FC = () => {
   };
 
   const handleSave = async () => {
-    const data = new FormData();
-    // Append all form data fields
-    Object.keys(formData).forEach(key => {
-      if (key === 'attachments' && formData.attachments) {
-        formData.attachments.forEach(file => {
-          data.append('attachments', file);
-        });
-      } else if (formData[key as keyof Announcement]) {
-        data.append(key, formData[key as keyof Announcement] as string);
-      }
-    });
+    // Using a plain object for now to avoid FormData issues with arrays.
+    // File upload will need to be handled separately if required.
+    const payload: Partial<Announcement> = { ...formData };
+    delete payload.attachments; // Temporarily remove attachments
 
     try {
       if (selectedAnnouncement) {
-        // Note: FormData with PUT requires a POST override or specific backend handling.
-        // Assuming backend handles FormData on PUT, or we can use a POST request with a method override.
-        // For simplicity, we'll use a POST-like approach for the update.
-        await api.put(`/announcements/${selectedAnnouncement._id}`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.put(`/announcements/${selectedAnnouncement._id}`, payload);
       } else {
-        await api.post('/announcements', data, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        await api.post('/announcements', payload);
       }
       fetchAnnouncements();
       closeModal();
     } catch (error) {
       console.error('Error saving announcement:', error);
-      setToastMessage('Failed to save announcement.');
+      const errorMsg = (error as any).response?.data?.message || 'Failed to save announcement.';
+      setToastMessage(errorMsg);
       setShowToast(true);
     }
   };
