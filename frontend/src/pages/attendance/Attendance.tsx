@@ -13,6 +13,8 @@ import {
   IonDatetime,
   IonToast,
   IonGrid,
+  IonModal,
+  IonDatetimeButton,
   IonRow,
   IonCol,
   IonLoading,
@@ -286,11 +288,15 @@ const Attendance: React.FC = () => {
 
           <IonItem>
             <IonLabel>Date</IonLabel>
-            <IonDatetime
-              displayFormat="YYYY-MM-DD"
-              value={date}
-              onIonChange={e => setDate(e.detail.value!)}
-            />
+            <IonDatetimeButton datetime="date"></IonDatetimeButton>
+            <IonModal keepContentsMounted={true}>
+              <IonDatetime
+                id="date"
+                displayFormat="YYYY-MM-DD"
+                value={date}
+                onIonChange={e => setDate(e.detail.value!)}
+              ></IonDatetime>
+            </IonModal>
           </IonItem>
 
           <IonGrid>

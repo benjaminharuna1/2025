@@ -14,6 +14,7 @@ import {
   IonInput,
   IonModal,
   IonDatetime,
+  IonDatetimeButton,
   IonLoading,
   IonToast,
   IonSearchbar,
@@ -493,12 +494,16 @@ const UsersPage: React.FC = () => {
 
                   <IonItem>
                     <IonLabel position="stacked">Date of Birth</IonLabel>
-                    <IonDatetime
-                      name="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      presentation="date"
-                      onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}
-                    />
+                    <IonDatetimeButton datetime="dateOfBirth"></IonDatetimeButton>
+                    <IonModal keepContentsMounted={true}>
+                      <IonDatetime
+                        id="dateOfBirth"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        presentation="date"
+                        onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}
+                      ></IonDatetime>
+                    </IonModal>
                   </IonItem>
 
                   <IonItem>

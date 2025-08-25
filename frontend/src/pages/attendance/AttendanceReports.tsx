@@ -13,6 +13,8 @@ import {
   IonDatetime,
   IonGrid,
   IonRow,
+  IonModal,
+  IonDatetimeButton,
   IonCol,
   IonLoading,
   IonToast,
@@ -193,11 +195,27 @@ const AttendanceReports: React.FC = () => {
             </IonItem>
             <IonItem>
                 <IonLabel>From Date</IonLabel>
-                <IonDatetime displayFormat="YYYY-MM-DD" value={fromDate} onIonChange={e => setFromDate(e.detail.value!)} />
+                <IonDatetimeButton datetime="fromDate"></IonDatetimeButton>
+                <IonModal keepContentsMounted={true}>
+                  <IonDatetime
+                    id="fromDate"
+                    displayFormat="YYYY-MM-DD"
+                    value={fromDate}
+                    onIonChange={e => setFromDate(e.detail.value!)}
+                  ></IonDatetime>
+                </IonModal>
             </IonItem>
             <IonItem>
                 <IonLabel>To Date</IonLabel>
-                <IonDatetime displayFormat="YYYY-MM-DD" value={toDate} onIonChange={e => setToDate(e.detail.value!)} />
+                <IonDatetimeButton datetime="toDate"></IonDatetimeButton>
+                <IonModal keepContentsMounted={true}>
+                  <IonDatetime
+                    id="toDate"
+                    displayFormat="YYYY-MM-DD"
+                    value={toDate}
+                    onIonChange={e => setToDate(e.detail.value!)}
+                  ></IonDatetime>
+                </IonModal>
             </IonItem>
             <IonButton expand="full" onClick={handleFetchReports}>Fetch Reports</IonButton>
           </div>

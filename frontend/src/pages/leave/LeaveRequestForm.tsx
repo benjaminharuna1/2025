@@ -13,6 +13,8 @@ import {
   IonDatetime,
   IonTextarea,
   IonLoading,
+  IonModal,
+  IonDatetimeButton,
   IonToast,
   IonButtons,
   IonMenuButton,
@@ -117,11 +119,27 @@ const LeaveRequestForm: React.FC = () => {
           </IonItem>
           <IonItem>
             <IonLabel>Start Date</IonLabel>
-            <IonDatetime displayFormat="YYYY-MM-DD" value={startDate} onIonChange={e => setStartDate(e.detail.value!)} />
+            <IonDatetimeButton datetime="startDate"></IonDatetimeButton>
+            <IonModal keepContentsMounted={true}>
+              <IonDatetime
+                id="startDate"
+                displayFormat="YYYY-MM-DD"
+                value={startDate}
+                onIonChange={e => setStartDate(e.detail.value!)}
+              ></IonDatetime>
+            </IonModal>
           </IonItem>
           <IonItem>
             <IonLabel>End Date</IonLabel>
-            <IonDatetime displayFormat="YYYY-MM-DD" value={endDate} onIonChange={e => setEndDate(e.detail.value!)} />
+            <IonDatetimeButton datetime="endDate"></IonDatetimeButton>
+            <IonModal keepContentsMounted={true}>
+              <IonDatetime
+                id="endDate"
+                displayFormat="YYYY-MM-DD"
+                value={endDate}
+                onIonChange={e => setEndDate(e.detail.value!)}
+              ></IonDatetime>
+            </IonModal>
           </IonItem>
           <IonItem>
             <IonLabel position="stacked">Reason</IonLabel>
