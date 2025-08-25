@@ -14,24 +14,19 @@ import {
   IonInput,
   IonItem,
   IonLabel,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonSelect,
   IonSelectOption,
   IonButtons,
   IonMenuButton,
   IonToast,
   IonList,
+  IonListHeader,
+  IonLoading,
 } from '@ionic/react';
 import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
-import {
-  IonLoading,
-  IonListHeader,
-} from '@ionic/react';
 import api from '../../services/api';
 import { Invoice, Branch, Student } from '../../types';
+import { TERMS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Invoices.css';
 
@@ -370,189 +365,189 @@ const Invoices: React.FC = () => {
 
           {/* Invoice Detail Modal */}
           <IonModal isOpen={showDetailModal} onDidDismiss={closeDetailModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Invoice Details</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonLoading isOpen={isDetailLoading} message={'Loading details...'} />
-                {!isDetailLoading && selectedInvoice && (
-                  <IonList>
-                    <IonItem>
-                      <IonLabel>Student:</IonLabel>
-                      <p>{selectedInvoice.studentId.name}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Branch:</IonLabel>
-                      <p>{selectedInvoice.branchId.name}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Session:</IonLabel>
-                      <p>{selectedInvoice.session} - {selectedInvoice.term}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Status:</IonLabel>
-                      <p>{selectedInvoice.status}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Total Payable:</IonLabel>
-                      <p>{selectedInvoice.totalPayable}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Total Paid:</IonLabel>
-                      <p>{selectedInvoice.totalPaid}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Balance:</IonLabel>
-                      <p>{selectedInvoice.balance}</p>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Due Date:</IonLabel>
-                      <p>{new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
-                    </IonItem>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Invoice Details</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={closeDetailModal}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <IonLoading isOpen={isDetailLoading} message={'Loading details...'} />
+              {!isDetailLoading && selectedInvoice && (
+                <IonList>
+                  <IonItem>
+                    <IonLabel>Student:</IonLabel>
+                    <p>{selectedInvoice.studentId.name}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Branch:</IonLabel>
+                    <p>{selectedInvoice.branchId.name}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Session:</IonLabel>
+                    <p>{selectedInvoice.session} - {selectedInvoice.term}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Status:</IonLabel>
+                    <p>{selectedInvoice.status}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Total Payable:</IonLabel>
+                    <p>{selectedInvoice.totalPayable}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Total Paid:</IonLabel>
+                    <p>{selectedInvoice.totalPaid}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Balance:</IonLabel>
+                    <p>{selectedInvoice.balance}</p>
+                  </IonItem>
+                  <IonItem>
+                    <IonLabel>Due Date:</IonLabel>
+                    <p>{new Date(selectedInvoice.dueDate).toLocaleDateString()}</p>
+                  </IonItem>
 
-                    {selectedInvoice.feeStructureId && selectedInvoice.feeStructureId.fees ? (
-                      <>
-                        <IonListHeader>
-                          <IonLabel>Fee Breakdown</IonLabel>
-                        </IonListHeader>
-                        {selectedInvoice.feeStructureId.fees.map((fee: any, index: number) => (
-                          <IonItem key={index}>
-                            <IonLabel>{fee.feeType}:</IonLabel>
-                            <p>{fee.amount}</p>
-                          </IonItem>
-                        ))}
-                      </>
-                    ) : (
-                      <IonItem>
-                        <IonLabel>No fee breakdown available.</IonLabel>
-                      </IonItem>
-                    )}
-                  </IonList>
-                )}
-                <IonButton expand="full" color="light" onClick={closeDetailModal} disabled={isDetailLoading}>
-                  Close
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+                  {selectedInvoice.feeStructureId && selectedInvoice.feeStructureId.fees ? (
+                    <>
+                      <IonListHeader>
+                        <IonLabel>Fee Breakdown</IonLabel>
+                      </IonListHeader>
+                      {selectedInvoice.feeStructureId.fees.map((fee: any, index: number) => (
+                        <IonItem key={index}>
+                          <IonLabel>{fee.feeType}:</IonLabel>
+                          <p>{fee.amount}</p>
+                        </IonItem>
+                      ))}
+                    </>
+                  ) : (
+                    <IonItem>
+                      <IonLabel>No fee breakdown available.</IonLabel>
+                    </IonItem>
+                  )}
+                </IonList>
+              )}
+            </IonContent>
           </IonModal>
 
           {/* Apply Financials Modal */}
           <IonModal isOpen={showFinancialsModal} onDidDismiss={closeFinancialsModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Apply Discount/Scholarship/Late Fee</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonItem>
-                  <IonLabel>Type</IonLabel>
-                  <IonSelect name="type" value={financialsData.type} onIonChange={handleFinancialsChange}>
-                    <IonSelectOption value="discount">Discount</IonSelectOption>
-                    <IonSelectOption value="scholarship">Scholarship</IonSelectOption>
-                    <IonSelectOption value="latefee">Late Fee</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Amount</IonLabel>
-                  <IonInput name="amount" type="number" value={financialsData.amount} onIonChange={handleFinancialsChange} />
-                </IonItem>
-                <IonButton expand="full" onClick={handleApplyFinancials} className="ion-margin-top">
-                  Apply
-                </IonButton>
-                <IonButton expand="full" color="light" onClick={closeFinancialsModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Apply Financials</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={closeFinancialsModal}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <IonItem>
+                <IonLabel>Type</IonLabel>
+                <IonSelect name="type" value={financialsData.type} onIonChange={handleFinancialsChange}>
+                  <IonSelectOption value="discount">Discount</IonSelectOption>
+                  <IonSelectOption value="scholarship">Scholarship</IonSelectOption>
+                  <IonSelectOption value="latefee">Late Fee</IonSelectOption>
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Amount</IonLabel>
+                <IonInput name="amount" type="number" value={financialsData.amount} onIonChange={handleFinancialsChange} />
+              </IonItem>
+              <IonButton expand="full" onClick={handleApplyFinancials} className="ion-margin-top">
+                Apply
+              </IonButton>
+            </IonContent>
           </IonModal>
 
           {/* Payment Modal */}
           <IonModal isOpen={showPaymentModal} onDidDismiss={closePaymentModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Record Payment</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonItem>
-                  <IonLabel position="floating">Amount Paid</IonLabel>
-                  <IonInput name="amountPaid" type="number" value={paymentData.amountPaid} onIonChange={handlePaymentChange} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Payment Method</IonLabel>
-                  <IonSelect name="paymentMethod" value={paymentData.paymentMethod} onIonChange={handlePaymentChange}>
-                    <IonSelectOption value="Bank Transfer">Bank Transfer</IonSelectOption>
-                    <IonSelectOption value="Cash">Cash</IonSelectOption>
-                    <IonSelectOption value="Online">Online</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Payer Details (Optional)</IonLabel>
-                  <IonInput name="payerDetails" value={paymentData.payerDetails} onIonChange={handlePaymentChange} />
-                </IonItem>
-                <IonButton expand="full" onClick={handleMakePayment} className="ion-margin-top">
-                  Record Payment
-                </IonButton>
-                <IonButton expand="full" color="light" onClick={closePaymentModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Record Payment</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={closePaymentModal}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <IonItem>
+                <IonLabel position="floating">Amount Paid</IonLabel>
+                <IonInput name="amountPaid" type="number" value={paymentData.amountPaid} onIonChange={handlePaymentChange} />
+              </IonItem>
+              <IonItem>
+                <IonLabel>Payment Method</IonLabel>
+                <IonSelect name="paymentMethod" value={paymentData.paymentMethod} onIonChange={handlePaymentChange}>
+                  <IonSelectOption value="Bank Transfer">Bank Transfer</IonSelectOption>
+                  <IonSelectOption value="Cash">Cash</IonSelectOption>
+                  <IonSelectOption value="Online">Online</IonSelectOption>
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Payer Details (Optional)</IonLabel>
+                <IonInput name="payerDetails" value={paymentData.payerDetails} onIonChange={handlePaymentChange} />
+              </IonItem>
+              <IonButton expand="full" onClick={handleMakePayment} className="ion-margin-top">
+                Record Payment
+              </IonButton>
+            </IonContent>
           </IonModal>
 
           {/* Generate Invoices Modal */}
           <IonModal isOpen={showGenerateModal} onDidDismiss={closeGenerateModal}>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Generate Invoices in Bulk</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonItem>
-                  <IonLabel>Branch</IonLabel>
-                  <IonSelect
-                    name="branchId"
-                    value={generateFormData.branchId}
-                    onIonChange={handleGenerateFormChange}
-                  >
-                    {branches.map((branch) => (
-                      <IonSelectOption key={branch._id} value={branch._id}>
-                        {branch.name}
-                      </IonSelectOption>
-                    ))}
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Session (e.g., 2023/2024)</IonLabel>
-                  <IonInput
-                    name="session"
-                    value={generateFormData.session}
-                    onIonChange={handleGenerateFormChange}
-                  />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Term</IonLabel>
-                  <IonSelect name="term" value={generateFormData.term} onIonChange={handleGenerateFormChange}>
-                    <IonSelectOption value="First Term">First Term</IonSelectOption>
-                    <IonSelectOption value="Second Term">Second Term</IonSelectOption>
-                    <IonSelectOption value="Third Term">Third Term</IonSelectOption>
-                  </IonSelect>
-                </IonItem>
-                <IonItem>
-                  <IonLabel position="floating">Due Date</IonLabel>
-                  <IonInput
-                    name="dueDate"
-                    type="date"
-                    value={generateFormData.dueDate}
-                    onIonChange={handleGenerateFormChange}
-                  />
-                </IonItem>
-                <IonButton expand="full" onClick={handleGenerateInvoices} className="ion-margin-top">
-                  Generate
-                </IonButton>
-                <IonButton expand="full" color="light" onClick={closeGenerateModal}>
-                  Cancel
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
+            <IonHeader>
+              <IonToolbar>
+                <IonTitle>Generate Invoices</IonTitle>
+                <IonButtons slot="end">
+                  <IonButton onClick={closeGenerateModal}>Close</IonButton>
+                </IonButtons>
+              </IonToolbar>
+            </IonHeader>
+            <IonContent className="ion-padding">
+              <IonItem>
+                <IonLabel>Branch</IonLabel>
+                <IonSelect
+                  name="branchId"
+                  value={generateFormData.branchId}
+                  onIonChange={handleGenerateFormChange}
+                >
+                  {branches.map((branch) => (
+                    <IonSelectOption key={branch._id} value={branch._id}>
+                      {branch.name}
+                    </IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Session (e.g., 2023/2024)</IonLabel>
+                <IonInput
+                  name="session"
+                  value={generateFormData.session}
+                  onIonChange={handleGenerateFormChange}
+                />
+              </IonItem>
+              <IonItem>
+                <IonLabel>Term</IonLabel>
+                <IonSelect name="term" value={generateFormData.term} onIonChange={handleGenerateFormChange}>
+                  {TERMS.map(term => (
+                    <IonSelectOption key={term} value={term}>{term}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </IonItem>
+              <IonItem>
+                <IonLabel position="floating">Due Date</IonLabel>
+                <IonInput
+                  name="dueDate"
+                  type="date"
+                  value={generateFormData.dueDate}
+                  onIonChange={handleGenerateFormChange}
+                />
+              </IonItem>
+              <IonButton expand="full" onClick={handleGenerateInvoices} className="ion-margin-top">
+                Generate
+              </IonButton>
+            </IonContent>
           </IonModal>
 
           <IonToast
