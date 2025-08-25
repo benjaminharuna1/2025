@@ -1,0 +1,34 @@
+/* Invoices.css */
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responsive-table th,
+.responsive-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+@media screen and (max-width: 600px) {
+  .responsive-table thead {
+    display: none;
+  }
+  .responsive-table tr {
+    display: block;
+    margin-bottom: 0.625em;
+    border: 1px solid #ccc;
+  }
+  .responsive-table td {
+    display: block;
+    text-align: right;
+    border-bottom: 1px dotted #ccc;
+  }
+  .responsive-table td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+}

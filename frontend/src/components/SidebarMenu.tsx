@@ -48,6 +48,7 @@ const SidebarMenu: React.FC = () => {
       { text: 'Classes', icon: schoolOutline, path: '/dashboard/classes', roles: ['Super Admin', 'Branch Admin'] },
       { text: 'Subjects', icon: bookOutline, path: '/dashboard/subjects', roles: ['Super Admin', 'Branch Admin'] },
       { text: 'Fee Structures', icon: cashOutline, path: '/dashboard/feestructures', roles: ['Super Admin', 'Branch Admin', 'Accountant'] },
+      { text: 'Invoices', icon: cashOutline, path: '/dashboard/invoices', roles: ['Super Admin', 'Branch Admin', 'Accountant'] },
       { text: 'Fee Payments', icon: cashOutline, path: '/dashboard/feepayments', roles: ['Super Admin', 'Branch Admin', 'Accountant'] },
       { text: 'Attendance', icon: calendarOutline, path: '/dashboard/attendance', roles: ['Super Admin', 'Branch Admin', 'Teacher'] },
       { text: 'Results', icon: documentTextOutline, path: '/dashboard/results', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Student', 'Parent'] },

@@ -10,6 +10,7 @@ import ClassLevels from './pages/classlevels/ClassLevels';
 import Classes from './pages/classes/Classes';
 import Subjects from './pages/subjects/Subjects';
 import FeeStructures from './pages/feestructures/FeeStructures';
+import Invoices from './pages/invoices/Invoices';
 import FeePayments from './pages/feepayments/FeePayments';
 import Attendance from './pages/attendance/Attendance';
 import Results from './pages/results/Results';
@@ -67,6 +68,7 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/announcements" component={Announcements} />
             <ProtectedRoute path="/dashboard/attendance" component={Attendance} />
             <ProtectedRoute path="/dashboard/feepayments" component={FeePayments} />
+            <ProtectedRoute path="/dashboard/invoices" component={Invoices} />
             <ProtectedRoute path="/dashboard/feestructures" component={FeeStructures} />
             <ProtectedRoute path="/dashboard/subjects" component={Subjects} />
             <ProtectedRoute path="/dashboard/classes" component={Classes} />

@@ -10,49 +10,84 @@ import {
   IonCol,
   IonButton,
   IonIcon,
-  IonModal,
-  IonInput,
   IonItem,
   IonLabel,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonSelect,
   IonSelectOption,
   IonButtons,
   IonMenuButton,
+  IonModal,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonInput,
   IonToast,
 } from '@ionic/react';
-import { add, create, trash } from 'ionicons/icons';
+import { documentText, add } from 'ionicons/icons';
 import api from '../../services/api';
-import { FeePayment, User, FeeStructure } from '../../types';
+import { FeePayment, Student, Invoice, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
-  const [students, setStudents] = useState<User[]>([]);
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedFeePayment, setSelectedFeePayment] = useState<FeePayment | null>(null);
-  const [formData, setFormData] = useState<Partial<FeePayment>>({});
+  const [students, setStudents] = useState<Student[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [studentInvoices, setStudentInvoices] = useState<Invoice[]>([]);
   const [filterStudent, setFilterStudent] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    studentId: '',
+    invoiceId: '',
+    amountPaid: '',
+    paymentMethod: 'Cash',
+    payerDetails: '',
+  });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchFeePayments();
     fetchStudents();
-    fetchFeeStructures();
-  }, [filterStudent]);
+    fetchBranches();
+  }, [filterStudent, filterBranch, page]);
+
+  useEffect(() => {
+    if (addFormData.studentId) {
+      const fetchStudentInvoices = async () => {
+        try {
+          // Fetch unpaid and partially paid invoices for the selected student
+          const [unpaidRes, partiallyPaidRes] = await Promise.all([
+            api.get('/invoices', { params: { studentId: addFormData.studentId, status: 'Unpaid' } }),
+            api.get('/invoices', { params: { studentId: addFormData.studentId, status: 'Partially Paid' } }),
+          ]);
+
+          const unpaidInvoices = unpaidRes.data.invoices || [];
+          const partiallyPaidInvoices = partiallyPaidRes.data.invoices || [];
+
+          setStudentInvoices([...unpaidInvoices, ...partiallyPaidInvoices]);
+        } catch (error) {
+          console.error('Error fetching student invoices:', error);
+          setStudentInvoices([]);
+        }
+      };
+      fetchStudentInvoices();
+    } else {
+      setStudentInvoices([]);
+    }
+  }, [addFormData.studentId]);
 
   const fetchFeePayments = async () => {
     try {
       const { data } = await api.get('/feepayments', {
-        params: { studentId: filterStudent },
+        params: { studentId: filterStudent, branchId: filterBranch, page },
       });
       setFeePayments(data.feePayments || []);
+      setTotalPages(data.pages || 1);
     } catch (error) {
       console.error('Error fetching fee payments:', error);
       setFeePayments([]);
@@ -61,65 +96,72 @@ const FeePayments: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data } = await api.get('/users', {
-        params: { role: 'Student' },
-      });
-      setStudents(data.users || []);
+      const { data } = await api.get('/students');
+      if (data && Array.isArray(data.students)) {
+        const sortedStudents = data.students.sort((a: Student, b: Student) =>
+          a.userId.name.localeCompare(b.userId.name)
+        );
+        setStudents(sortedStudents);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
     }
   };
 
-  const fetchFeeStructures = async () => {
+  const fetchBranches = async () => {
     try {
-      const { data } = await api.get('/feestructures');
-      setFeeStructures(data.feeStructures || []);
-    } catch (error) {
-      console.error('Error fetching fee structures:', error);
-    }
-  };
-
-  const handleSave = async () => {
-    try {
-      if (selectedFeePayment) {
-        await api.put(`/feepayments/${selectedFeePayment._id}`, formData);
-      } else {
-        await api.post('/feepayments', formData);
+      const { data } = await api.get('/branches');
+      if (data && Array.isArray(data.branches)) {
+        setBranches(data.branches);
       }
-      fetchFeePayments();
-      closeModal();
     } catch (error) {
-      console.error('Error saving fee payment:', error);
-      setToastMessage('Failed to save fee payment.');
-      setShowToast(true);
+      console.error('Error fetching branches:', error);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const downloadReceipt = (id: string) => {
+    window.open(`${api.defaults.baseURL}/feepayments/${id}/receipt`, '_blank');
+  };
+
+  const openAddModal = () => {
+    setShowAddModal(true);
+  };
+
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setAddFormData({
+      studentId: '',
+      invoiceId: '',
+      amountPaid: '',
+      paymentMethod: 'Cash',
+      payerDetails: '',
+    });
+    setStudentInvoices([]);
+  };
+
+  const handleAddFormChange = (e: any) => {
+    const { name, value } = e.target;
+    setAddFormData({ ...addFormData, [name]: value });
+  };
+
+  const handleAddPayment = async () => {
     try {
-      await api.delete(`/feepayments/${id}`);
-      fetchFeePayments();
+      const paymentData = {
+        invoiceId: addFormData.invoiceId,
+        amountPaid: Number(addFormData.amountPaid),
+        paymentMethod: addFormData.paymentMethod,
+        payerDetails: addFormData.payerDetails,
+      };
+      await api.post('/feepayments', paymentData);
+      closeAddModal();
+      fetchFeePayments(); // Refresh the list
+      setToastMessage('Fee payment recorded successfully.');
+      setShowToast(true);
     } catch (error) {
-      console.error('Error deleting fee payment:', error);
-      setToastMessage('Failed to delete fee payment.');
+      console.error('Error recording fee payment:', error);
+      setToastMessage('Failed to record fee payment.');
       setShowToast(true);
     }
-  };
-
-  const openModal = (feePayment: FeePayment | null = null) => {
-    setSelectedFeePayment(feePayment);
-    setFormData(feePayment ? { ...feePayment } : {});
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedFeePayment(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.detail.value });
   };
 
   return (
@@ -138,7 +180,7 @@ const FeePayments: React.FC = () => {
           <IonGrid>
             <IonRow>
               <IonCol>
-                <IonButton onClick={() => openModal()}>
+                <IonButton onClick={openAddModal}>
                   <IonIcon slot="start" icon={add} />
                   Add Fee Payment
                 </IonButton>
@@ -152,7 +194,20 @@ const FeePayments: React.FC = () => {
                     <IonSelectOption value="">All</IonSelectOption>
                     {students.map((student) => (
                       <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
+                        {student.userId.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
+              <IonCol>
+                <IonItem>
+                  <IonLabel>Filter by Branch</IonLabel>
+                  <IonSelect value={filterBranch} onIonChange={(e) => setFilterBranch(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {branches.map((branch) => (
+                      <IonSelectOption key={branch._id} value={branch._id}>
+                        {branch.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
@@ -166,10 +221,12 @@ const FeePayments: React.FC = () => {
                     <thead>
                       <tr>
                         <th>Student</th>
-                        <th>Fee Structure</th>
+                        <th>Admission No.</th>
+                        <th>Invoice ID</th>
                         <th>Amount Paid</th>
+                        <th>Payment Date</th>
                         <th>Payment Method</th>
-                        <th>Status</th>
+                        <th>Recorded By</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -177,16 +234,15 @@ const FeePayments: React.FC = () => {
                       {feePayments.map((fp) => (
                         <tr key={fp._id}>
                           <td data-label="Student">{fp.studentId?.name}</td>
-                          <td data-label="Fee Structure">{fp.feeStructureId?.session} - {fp.feeStructureId?.term}</td>
+                          <td data-label="Admission No.">{fp.studentId?.admissionNumber}</td>
+                          <td data-label="Invoice ID">{fp.invoiceId?._id}</td>
                           <td data-label="Amount Paid">{fp.amountPaid}</td>
+                          <td data-label="Payment Date">{new Date(fp.paymentDate).toLocaleDateString()}</td>
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
-                          <td data-label="Status">{fp.status}</td>
+                          <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">
-                            <IonButton onClick={() => openModal(fp)}>
-                              <IonIcon slot="icon-only" icon={create} />
-                            </IonButton>
-                            <IonButton color="danger" onClick={() => handleDelete(fp._id)}>
-                              <IonIcon slot="icon-only" icon={trash} />
+                            <IonButton onClick={() => downloadReceipt(fp._id)}>
+                              <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                           </td>
                         </tr>
@@ -197,52 +253,75 @@ const FeePayments: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-          <IonModal isOpen={showModal} onDidDismiss={closeModal}>
+          <IonModal isOpen={showAddModal} onDidDismiss={closeAddModal}>
             <IonCard>
               <IonCardHeader>
-                <IonCardTitle>{selectedFeePayment ? 'Edit' : 'Add'} Fee Payment</IonCardTitle>
+                <IonCardTitle>Add Fee Payment</IonCardTitle>
               </IonCardHeader>
               <IonCardContent>
                 <IonItem>
                   <IonLabel>Student</IonLabel>
-                  <IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>
+                  <IonSelect
+                    name="studentId"
+                    value={addFormData.studentId}
+                    onIonChange={handleAddFormChange}
+                  >
                     {students.map((student) => (
                       <IonSelectOption key={student._id} value={student._id}>
-                        {student.name}
+                        {student.userId.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
                 </IonItem>
                 <IonItem>
-                  <IonLabel>Fee Structure</IonLabel>
-                  <IonSelect name="feeStructureId" value={formData.feeStructureId} onIonChange={handleInputChange}>
-                    {feeStructures.map((fs) => (
-                      <IonSelectOption key={fs._id} value={fs._id}>
-                        {fs.session} - {fs.term}
+                  <IonLabel>Invoice</IonLabel>
+                  <IonSelect
+                    name="invoiceId"
+                    value={addFormData.invoiceId}
+                    onIonChange={handleAddFormChange}
+                    disabled={!addFormData.studentId}
+                  >
+                    {studentInvoices.map((invoice) => (
+                      <IonSelectOption key={invoice._id} value={invoice._id}>
+                        {`ID: ${invoice._id} - Due: ${new Date(invoice.dueDate).toLocaleDateString()} - Balance: ${invoice.balance}`}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
                 </IonItem>
                 <IonItem>
                   <IonLabel position="floating">Amount Paid</IonLabel>
-                  <IonInput name="amountPaid" type="number" value={formData.amountPaid} onIonChange={handleInputChange} />
+                  <IonInput
+                    name="amountPaid"
+                    type="number"
+                    value={addFormData.amountPaid}
+                    onIonChange={handleAddFormChange}
+                    required
+                  />
                 </IonItem>
                 <IonItem>
-                  <IonLabel position="floating">Payment Method</IonLabel>
-                  <IonInput name="paymentMethod" value={formData.paymentMethod} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                  <IonLabel>Status</IonLabel>
-                  <IonSelect name="status" value={formData.status} onIonChange={handleInputChange}>
-                    <IonSelectOption value="Paid">Paid</IonSelectOption>
-                    <IonSelectOption value="Pending">Pending</IonSelectOption>
-                    <IonSelectOption value="Failed">Failed</IonSelectOption>
+                  <IonLabel>Payment Method</IonLabel>
+                  <IonSelect
+                    name="paymentMethod"
+                    value={addFormData.paymentMethod}
+                    onIonChange={handleAddFormChange}
+                  >
+                    <IonSelectOption value="Cash">Cash</IonSelectOption>
+                    <IonSelectOption value="Bank Transfer">Bank Transfer</IonSelectOption>
+                    <IonSelectOption value="Online">Online</IonSelectOption>
                   </IonSelect>
                 </IonItem>
-                <IonButton expand="full" onClick={handleSave} className="ion-margin-top">
-                  Save
+                <IonItem>
+                  <IonLabel position="floating">Payer Details (Optional)</IonLabel>
+                  <IonInput
+                    name="payerDetails"
+                    value={addFormData.payerDetails}
+                    onIonChange={handleAddFormChange}
+                  />
+                </IonItem>
+                <IonButton expand="full" onClick={handleAddPayment} className="ion-margin-top">
+                  Save Payment
                 </IonButton>
-                <IonButton expand="full" color="light" onClick={closeModal}>
+                <IonButton expand="full" color="light" onClick={closeAddModal}>
                   Cancel
                 </IonButton>
               </IonCardContent>
