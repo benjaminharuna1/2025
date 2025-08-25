@@ -40,8 +40,8 @@ const LeaveRequestForm: React.FC = () => {
       if (user?.role === 'Parent') {
         setLoading(true);
         try {
-          // Assuming an endpoint to get students linked to the parent
-          const { data } = await api.get('/students/my-children');
+          // The backend should handle filtering students for the logged-in parent
+          const { data } = await api.get('/students');
           setStudents(data.students || []);
         } catch (error) {
           setToastMessage('Error fetching your children');
