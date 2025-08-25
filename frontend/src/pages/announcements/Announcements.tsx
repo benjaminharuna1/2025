@@ -25,6 +25,7 @@ import {
   IonMenuButton,
   IonToast,
   IonDatetime,
+  IonDatetimeButton,
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import { useAuth } from '../../contexts/AuthContext';
@@ -305,11 +306,27 @@ const Announcements: React.FC = () => {
             </IonItem>
             <IonItem>
               <IonLabel>Publish Date</IonLabel>
-              <IonDatetime name="publishDate" value={formData.publishDate} onIonChange={e => handleInputChange('publishDate', e.detail.value!)}></IonDatetime>
+              <IonDatetimeButton datetime="publishDate"></IonDatetimeButton>
+              <IonModal keepContentsMounted={true}>
+                <IonDatetime
+                  id="publishDate"
+                  name="publishDate"
+                  value={formData.publishDate}
+                  onIonChange={e => handleInputChange('publishDate', e.detail.value!)}
+                ></IonDatetime>
+              </IonModal>
             </IonItem>
             <IonItem>
               <IonLabel>Expiry Date (optional)</IonLabel>
-              <IonDatetime name="expiryDate" value={formData.expiryDate} onIonChange={e => handleInputChange('expiryDate', e.detail.value!)}></IonDatetime>
+              <IonDatetimeButton datetime="expiryDate"></IonDatetimeButton>
+              <IonModal keepContentsMounted={true}>
+                <IonDatetime
+                  id="expiryDate"
+                  name="expiryDate"
+                  value={formData.expiryDate}
+                  onIonChange={e => handleInputChange('expiryDate', e.detail.value!)}
+                ></IonDatetime>
+              </IonModal>
             </IonItem>
             <IonItem>
               <IonLabel>Attachments</IonLabel>
