@@ -160,5 +160,14 @@ export interface Announcement {
   _id: string;
   title: string;
   content: string;
-  branchId?: string | { _id: string; name: string };
+  type?: 'General' | 'Event' | 'Urgent';
+  branchId?: string | Branch;
+  classId?: string | Class;
+  recipients?: (string | User)[];
+  audienceRole?: 'All' | 'Teachers' | 'Students' | 'Parents';
+  publishDate?: string;
+  expiryDate?: string;
+  createdBy?: string | User;
+  attachments?: { name: string; url: string }[];
+  isRead?: boolean;
 }

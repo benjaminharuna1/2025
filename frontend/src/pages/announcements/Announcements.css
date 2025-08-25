@@ -1,0 +1,15 @@
+.unread-row {
+  background-color: #ffffde; /* A light yellow to indicate unread */
+}
+
+.responsive-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.responsive-table th,
+.responsive-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
