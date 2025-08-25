@@ -36,8 +36,13 @@ export interface Subject {
   teacherId: string;
 }
 
-export interface Student extends User {
-    userId: any;
+export interface Student {
+    _id: string;
+    userId: {
+        _id: string;
+        name: string;
+        email: string;
+    };
     admissionNumber?: string;
     dateOfBirth?: string;
     gender?: string;

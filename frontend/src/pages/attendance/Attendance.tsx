@@ -130,7 +130,7 @@ const Attendance: React.FC = () => {
 
           // initialize attendance with "Present"
           const initialAttendance: { [key: string]: { status: string; remarks: string } } = {};
-          data.students.forEach((s: Student) => {
+          (data.students || []).forEach((s: Student) => {
             initialAttendance[s._id] = { status: 'Present', remarks: '' };
           });
           setAttendance(initialAttendance);
@@ -301,33 +301,46 @@ const Attendance: React.FC = () => {
               </IonCol>
             </IonRow>
             <IonRow>
+              <IonCol size="0.5"><strong>S/N</strong></IonCol>
               <IonCol><strong>Student</strong></IonCol>
+              <IonCol><strong>Admission #</strong></IonCol>
+              <IonCol><strong>Class</strong></IonCol>
+              <IonCol><strong>Branch</strong></IonCol>
               <IonCol><strong>Status</strong></IonCol>
               <IonCol><strong>Remarks</strong></IonCol>
             </IonRow>
-            {students.map(student => (
-              <IonRow key={student._id} className="ion-align-items-center">
-                <IonCol>{student.name}</IonCol>
-                <IonCol>
-                  <IonSelect
-                    value={attendance[student._id]?.status || 'Present'}
-                    onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
-                  >
-                    <IonSelectOption value="Present">Present</IonSelectOption>
-                    <IonSelectOption value="Absent">Absent</IonSelectOption>
-                    <IonSelectOption value="Late">Late</IonSelectOption>
-                    <IonSelectOption value="Excused">Excused</IonSelectOption>
-                  </IonSelect>
-                </IonCol>
-                <IonCol>
-                  <IonInput
-                    value={attendance[student._id]?.remarks || ''}
-                    onIonChange={e => handleRemarkChange(student._id, e.detail.value!)}
-                    placeholder="Optional"
-                  />
-                </IonCol>
-              </IonRow>
-            ))}
+            {students.map((student: Student, index) => {
+              const branchName = branches.find(b => b._id === selectedBranch)?.name || '';
+              const className = classes.find(c => c._id === selectedClass)?.name || '';
+
+              return (
+                <IonRow key={student._id} className="ion-align-items-center">
+                  <IonCol size="0.5">{index + 1}</IonCol>
+                  <IonCol>{student.userId.name}</IonCol>
+                  <IonCol>{student.admissionNumber}</IonCol>
+                  <IonCol>{className}</IonCol>
+                  <IonCol>{branchName}</IonCol>
+                  <IonCol>
+                    <IonSelect
+                      value={attendance[student._id]?.status || 'Present'}
+                      onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
+                    >
+                      <IonSelectOption value="Present">Present</IonSelectOption>
+                      <IonSelectOption value="Absent">Absent</IonSelectOption>
+                      <IonSelectOption value="Late">Late</IonSelectOption>
+                      <IonSelectOption value="Excused">Excused</IonSelectOption>
+                    </IonSelect>
+                  </IonCol>
+                  <IonCol>
+                    <IonInput
+                      value={attendance[student._id]?.remarks || ''}
+                      onIonChange={e => handleRemarkChange(student._id, e.detail.value!)}
+                      placeholder="Optional"
+                    />
+                  </IonCol>
+                </IonRow>
+              );
+            })}
           </IonGrid>
 
           <IonButton expand="full" onClick={submitAttendance} disabled={!selectedClass || students.length === 0}>
