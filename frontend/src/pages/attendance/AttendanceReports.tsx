@@ -25,10 +25,8 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Branch, Class, Student, Subject, Attendance } from '../../types';
-import SidebarMenu from '../../components/SidebarMenu';
-
 import { Branch, Class, Student, Subject, Attendance, ClassLevel } from '../../types';
+import SidebarMenu from '../../components/SidebarMenu';
 
 const AttendanceReports: React.FC = () => {
   const { user } = useAuth();
