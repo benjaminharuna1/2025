@@ -13,10 +13,13 @@ import FeeStructures from './pages/feestructures/FeeStructures';
 import Invoices from './pages/invoices/Invoices';
 import FeePayments from './pages/feepayments/FeePayments';
 import Attendance from './pages/attendance/Attendance';
+import AttendanceReports from './pages/attendance/AttendanceReports';
 import Results from './pages/results/Results';
 import BulkAddResultsPage from './pages/results/BulkAddResultsPage';
 import Announcements from './pages/announcements/Announcements';
 import Reports from './pages/reports/Reports';
+import LeaveRequestManagement from './pages/leave/LeaveRequests';
+import LeaveRequestForm from './pages/leave/LeaveRequestForm';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -66,6 +69,9 @@ const App: React.FC = () => {
             <ProtectedRoute path="/results/bulk-add" component={BulkAddResultsPage} />
             <ProtectedRoute path="/dashboard/results" component={Results} />
             <ProtectedRoute path="/dashboard/announcements" component={Announcements} />
+            <ProtectedRoute path="/dashboard/attendance/reports" component={AttendanceReports} />
+            <ProtectedRoute path="/dashboard/leave-request/new" component={LeaveRequestForm} />
+            <ProtectedRoute path="/dashboard/leave-requests" component={LeaveRequestManagement} />
             <ProtectedRoute path="/dashboard/attendance" component={Attendance} />
             <ProtectedRoute path="/dashboard/feepayments" component={FeePayments} />
             <ProtectedRoute path="/dashboard/invoices" component={Invoices} />

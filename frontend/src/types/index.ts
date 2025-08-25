@@ -107,17 +107,24 @@ export interface FeePayment {
   payerDetails?: string;
 }
 
-export interface AttendanceRecord {
-  studentId: string;
-  status: 'Present' | 'Absent' | 'Late';
-}
-
 export interface Attendance {
   _id: string;
-  classId: string;
-  branchId: string;
+  studentId: string | Student;
+  classId: string | Class;
+  branchId: string | Branch;
   date: string;
-  records: AttendanceRecord[];
+  status: 'Present' | 'Absent' | 'Late' | 'Excused';
+  subjectId?: string | Subject;
+  remarks?: string;
+}
+
+export interface LeaveRequest {
+  _id: string;
+  studentId: string | Student;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface Result {
