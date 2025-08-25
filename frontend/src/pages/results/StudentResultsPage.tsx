@@ -18,6 +18,7 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import { Result } from '../../types';
+import { TERMS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 
 const StudentResultsPage: React.FC = () => {
@@ -109,9 +110,11 @@ const StudentResultsPage: React.FC = () => {
                     onIonChange={(e) => setSelectedTerm(e.detail.value)}
                   >
                     <IonSelectOption value="">All Terms</IonSelectOption>
-                    <IonSelectOption value="First">First</IonSelectOption>
-                    <IonSelectOption value="Second">Second</IonSelectOption>
-                    <IonSelectOption value="Third">Third</IonSelectOption>
+                    {TERMS.map((term) => (
+                      <IonSelectOption key={term} value={term}>
+                        {term}
+                      </IonSelectOption>
+                    ))}
                   </IonSelect>
                 </IonItem>
               </IonCol>

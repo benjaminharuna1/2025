@@ -19,11 +19,11 @@ import {
   IonCardContent,
   IonButtons,
   IonMenuButton,
-  IonInput,
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
 import { Student, Class, Branch } from '../../types';
+import { SESSIONS, TERMS } from '../../constants';
 
 const Reports: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -41,8 +41,13 @@ const Reports: React.FC = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const { data } = await api.get('/users?role=Student');
-        setStudents(data.users || []);
+        const { data } = await api.get('/students');
+        if (data && Array.isArray(data.students)) {
+          const sortedStudents = data.students.sort((a: Student, b: Student) =>
+            a.userId.name.localeCompare(b.userId.name)
+          );
+          setStudents(sortedStudents);
+        }
       } catch (error) {
         console.error('Error fetching students:', error);
       }
@@ -177,7 +182,7 @@ const Reports: React.FC = () => {
                         <IonSelectOption value="">All</IonSelectOption>
                         {students.map((student) => (
                           <IonSelectOption key={student._id} value={student._id}>
-                            {student.name}
+                            {student.userId.name}
                           </IonSelectOption>
                         ))}
                       </IonSelect>
@@ -195,11 +200,25 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Session</IonLabel>
-                      <IonInput value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value!)} />
+                      <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
+                        <IonSelectOption value="">All</IonSelectOption>
+                        {SESSIONS.map((session) => (
+                          <IonSelectOption key={session} value={session}>
+                            {session}
+                          </IonSelectOption>
+                        ))}
+                      </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Term</IonLabel>
-                      <IonInput value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value!)} />
+                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)}>
+                        <IonSelectOption value="">All</IonSelectOption>
+                        {TERMS.map((term) => (
+                          <IonSelectOption key={term} value={term}>
+                            {term}
+                          </IonSelectOption>
+                        ))}
+                      </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Format</IonLabel>

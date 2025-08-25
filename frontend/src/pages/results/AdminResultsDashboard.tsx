@@ -39,6 +39,7 @@ import api from '../../services/api';
 import { Result, Student, Subject, Class, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { useAuth } from '../../contexts/AuthContext';
+import { SESSIONS, TERMS } from '../../constants';
 import '../../theme/global.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -63,7 +64,7 @@ const AdminResultsDashboard: React.FC = () => {
   // Filters
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
-  const [selectedTerm, setSelectedTerm] = useState<'' | 'First' | 'Second' | 'Third'>('');
+  const [selectedTerm, setSelectedTerm] = useState<string>('');
 
   useEffect(() => {
     if (user?.role === 'Super Admin') fetchBranches();
@@ -260,7 +261,7 @@ const AdminResultsDashboard: React.FC = () => {
             classId: selectedClass,
             branchId: (selectedClassObj?.branchId as string) || '',
             session: selectedSession,
-            term: selectedTerm || 'First',
+            term: selectedTerm || 'First Term',
           }
     );
     setShowModal(true);
@@ -372,16 +373,24 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonInput value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value!)} placeholder="e.g. 2024/2025" />
+                  <IonSelect value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value)}>
+                    {SESSIONS.map((session) => (
+                      <IonSelectOption key={session} value={session}>
+                        {session}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
                 </IonItem>
               </IonCol>
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value as 'First' | 'Second' | 'Third')}>
-                    <IonSelectOption value="First">First</IonSelectOption>
-                    <IonSelectOption value="Second">Second</IonSelectOption>
-                    <IonSelectOption value="Third">Third</IonSelectOption>
+                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}>
+                    {TERMS.map((term) => (
+                      <IonSelectOption key={term} value={term}>
+                        {term}
+                      </IonSelectOption>
+                    ))}
                   </IonSelect>
                 </IonItem>
               </IonCol>
