@@ -292,10 +292,14 @@ const Attendance: React.FC = () => {
             <IonModal keepContentsMounted={true}>
               <IonDatetime
                 id="date"
-                displayFormat="YYYY-MM-DD"
+                presentation="date"
                 value={date}
-                onIonChange={e => setDate(e.detail.value!)}
-              ></IonDatetime>
+                onIonChange={e => {
+                  if (typeof e.detail.value === 'string') {
+                    setDate(e.detail.value);
+                  }
+                }}
+              />
             </IonModal>
           </IonItem>
 

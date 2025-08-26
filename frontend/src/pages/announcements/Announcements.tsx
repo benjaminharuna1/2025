@@ -92,27 +92,39 @@ const Announcements: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    // Using a plain object for now to avoid FormData issues with arrays.
-    // File upload will need to be handled separately if required.
-    const payload: Partial<Announcement> = { ...formData };
-    delete payload.attachments; // Temporarily remove attachments
+  // --- inside handleSave ---
+const handleSave = async () => {
+  try {
+    const payload: any = { ...formData };
 
-    try {
-      if (selectedAnnouncement) {
-        await api.put(`/announcements/${selectedAnnouncement._id}`, payload);
-      } else {
-        await api.post('/announcements', payload);
-      }
-      fetchAnnouncements();
-      closeModal();
-    } catch (error) {
-      console.error('Error saving announcement:', error);
-      const errorMsg = (error as any).response?.data?.message || 'Failed to save announcement.';
-      setToastMessage(errorMsg);
-      setShowToast(true);
+    // Normalize values
+    if (!payload.branchId) delete payload.branchId;   // remove "" or undefined
+    if (!payload.classId) delete payload.classId;
+    if (!payload.recipients) payload.recipients = [];
+    else if (!Array.isArray(payload.recipients)) payload.recipients = [payload.recipients];
+
+    // Dates: make sure they are ISO strings
+    if (payload.publishDate) payload.publishDate = new Date(payload.publishDate).toISOString();
+    if (payload.expiryDate) payload.expiryDate = new Date(payload.expiryDate).toISOString();
+
+    // Remove attachments for now
+    delete payload.attachments;
+
+    if (selectedAnnouncement) {
+      await api.put(`/announcements/${selectedAnnouncement._id}`, payload);
+    } else {
+      await api.post('/announcements', payload);
     }
-  };
+
+    fetchAnnouncements();
+    closeModal();
+  } catch (error) {
+    console.error('Error saving announcement:', error);
+    const errorMsg = (error as any).response?.data?.message || 'Failed to save announcement.';
+    setToastMessage(errorMsg);
+    setShowToast(true);
+  }
+};
 
   const handleDelete = async (id: string) => {
     try {
@@ -266,23 +278,39 @@ const Announcements: React.FC = () => {
               </IonSelect>
             </IonItem>
             <IonItem>
-              <IonLabel>Branch (optional)</IonLabel>
-              <IonSelect name="branchId" value={formData.branchId} onIonChange={e => handleInputChange('branchId', e.detail.value)}>
-                <IonSelectOption value="">All Branches</IonSelectOption>
-                {branches.map((branch) => (
-                  <IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>
-                ))}
-              </IonSelect>
-            </IonItem>
-            <IonItem>
-              <IonLabel>Class (optional)</IonLabel>
-              <IonSelect name="classId" value={formData.classId} onIonChange={e => handleInputChange('classId', e.detail.value)}>
-                <IonSelectOption value="">All Classes</IonSelectOption>
-                {classes.map((c) => (
-                  <IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>
-                ))}
-              </IonSelect>
-            </IonItem>
+          <IonLabel>Branch (optional)</IonLabel>
+          <IonSelect
+            name="branchId"
+            value={formData.branchId ?? null}
+            onIonChange={e => handleInputChange('branchId', e.detail.value || null)}
+          >
+            <IonSelectOption value={null}>All Branches</IonSelectOption>
+            {branches.map((branch) => (
+              <IonSelectOption key={branch._id} value={branch._id}>
+                {branch.name}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+                    
+                    
+                    {/* --- Class Select --- */}
+        <IonItem>
+          <IonLabel>Class (optional)</IonLabel>
+          <IonSelect
+            name="classId"
+            value={formData.classId ?? null}
+            onIonChange={e => handleInputChange('classId', e.detail.value || null)}
+          >
+            <IonSelectOption value={null}>All Classes</IonSelectOption>
+            {classes.map((c) => (
+              <IonSelectOption key={c._id} value={c._id}>
+                {c.name}
+              </IonSelectOption>
+            ))}
+          </IonSelect>
+        </IonItem>
+
             <IonItem>
               <IonLabel>Specific Recipients (optional)</IonLabel>
               <IonSelect name="recipients" value={formData.recipients} multiple={true} onIonChange={e => handleInputChange('recipients', e.detail.value)}>
