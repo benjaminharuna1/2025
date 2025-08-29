@@ -129,7 +129,15 @@ const Classes: React.FC = () => {
 
   const openModal = (klass: Class | null = null) => {
     setSelectedClass(klass);
-    setFormData(klass ? { ...klass } : {});
+    if (klass) {
+      setFormData({
+        ...klass,
+        classLevel: typeof klass.classLevel === 'object' ? klass.classLevel._id : klass.classLevel,
+        teacher: typeof klass.teacher === 'object' ? klass.teacher._id : klass.teacher,
+      });
+    } else {
+      setFormData({});
+    }
     setShowModal(true);
   };
 
@@ -196,8 +204,8 @@ const Classes: React.FC = () => {
                     {classes.map((klass) => (
                       <tr key={klass._id}>
                         <td data-label="Name">{klass.name}</td>
-                        <td data-label="Class Level">{klass.classLevel?.name}</td>
-                        <td data-label="Teacher">{klass.teacher?.name}</td>
+                        <td data-label="Class Level">{typeof klass.classLevel === 'object' ? klass.classLevel.name : 'N/A'}</td>
+                        <td data-label="Teacher">{typeof klass.teacher === 'object' ? klass.teacher.name : 'N/A'}</td>
                         <td data-label="Actions">
                           <IonButton onClick={() => openModal(klass)}>
                             <IonIcon slot="icon-only" icon={create} />

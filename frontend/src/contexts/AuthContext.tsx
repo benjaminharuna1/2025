@@ -1,15 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { User } from '../types';
 
 const API_URL = 'http://localhost:3000/api';
-
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  branchId?: string;
-}
 
 interface AuthContextType {
   user: User | null;

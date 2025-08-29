@@ -113,8 +113,8 @@ const LeaveRequestForm: React.FC = () => {
 
           <IonItem>
             <IonLabel>Child</IonLabel>
-            <IonSelect value={selectedStudent} onIonChange={e => setSelectedStudent(e.detail.value)}>
-              {students.map(s => <IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>)}
+            <IonSelect value={selectedStudent} onIonChange={e => setSelectedStudent(e.detail.value as string)}>
+              {students.map(s => <IonSelectOption key={s._id} value={s._id}>{s.userId.name}</IonSelectOption>)}
             </IonSelect>
           </IonItem>
           <IonItem>
@@ -123,7 +123,7 @@ const LeaveRequestForm: React.FC = () => {
             <IonModal keepContentsMounted={true}>
               <IonDatetime
                 id="startDate"
-                displayFormat="YYYY-MM-DD"
+                presentation="date"
                 value={startDate}
                 onIonChange={e => setStartDate(e.detail.value!)}
               ></IonDatetime>
@@ -135,7 +135,7 @@ const LeaveRequestForm: React.FC = () => {
             <IonModal keepContentsMounted={true}>
               <IonDatetime
                 id="endDate"
-                displayFormat="YYYY-MM-DD"
+                presentation="date"
                 value={endDate}
                 onIonChange={e => setEndDate(e.detail.value!)}
               ></IonDatetime>

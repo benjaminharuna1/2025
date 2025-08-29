@@ -25,7 +25,7 @@ const ParentDashboard: React.FC = () => {
 
         if (parentProfile.students) {
           const childrenPromises = parentProfile.students.map(async (student) => {
-            const studentId = typeof student === 'string' ? student : student._id;
+            const studentId = typeof student === 'string' ? student : (student as Student)._id;
             const studentRes = await api.get(`/students/${studentId}`);
             const resultsRes = await api.get(`/results?studentId=${studentId}`);
             const attendanceRes = await api.get(`/attendance?studentId=${studentId}`);
@@ -49,10 +49,10 @@ const ParentDashboard: React.FC = () => {
   }, [user]);
 
   const getAttendanceSummary = (attendance: Attendance[]) => {
-    if (attendance.length === 0) return 'No attendance records';
+    if (!attendance || attendance.length === 0) return 'No attendance records';
     const totalDays = attendance.length;
-    const presentDays = attendance.filter(a => a.records.some(r => r.status === 'Present')).length;
-    const percentage = (presentDays / totalDays) * 100;
+    const presentDays = attendance.filter(a => a.status === 'Present').length;
+    const percentage = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
     return `${percentage.toFixed(2)}% (${presentDays}/${totalDays} days)`;
   };
 
@@ -69,7 +69,7 @@ const ParentDashboard: React.FC = () => {
               <IonAccordion key={child.student._id} value={child.student._id}>
                 <IonItem slot="header" color="light">
                   <IonIcon icon={personOutline} slot="start" />
-                  <IonLabel>{child.student.name}</IonLabel>
+                  <IonLabel>{child.student.userId.name}</IonLabel>
                 </IonItem>
                 <div className="ion-padding" slot="content">
                   <IonCard>

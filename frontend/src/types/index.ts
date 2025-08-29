@@ -32,8 +32,8 @@ export interface Class {
 export interface Subject {
   _id: string;
   name: string;
-  classId: string;
-  teacherId: string;
+  classId: string | { _id: string; name: string };
+  teacherId: string | { _id: string; name: string };
 }
 
 export interface Student {
@@ -149,6 +149,7 @@ export interface Result {
   grade: string;
   remarks?: string;
   teacherComment?: string;
+  principalComment?: string;
   status: 'Draft' | 'Approved';
   totalMarks?: number;
   average?: number;
