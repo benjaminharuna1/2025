@@ -28,6 +28,7 @@ import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Subject, Class, User as Teacher } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
+import './Subjects.css';
 
 const Subjects: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);

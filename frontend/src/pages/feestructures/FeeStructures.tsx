@@ -22,16 +22,15 @@ import {
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
-import { FeeStructure, Branch, ClassLevel, Session } from '../../types';
-import { TERMS } from '../../constants';
+import { FeeStructure, Branch, ClassLevel } from '../../types';
+import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
-import { getSessions } from '../../services/sessionsApi';
+import './FeeStructures.css';
 
 const FeeStructures: React.FC = () => {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedFeeStructure, setSelectedFeeStructure] = useState<FeeStructure | null>(null);
   const [formData, setFormData] = useState<Partial<FeeStructure>>({ fees: [] });
@@ -44,26 +43,9 @@ const FeeStructures: React.FC = () => {
 
   useEffect(() => {
     fetchFeeStructures();
+    fetchBranches();
+    fetchClassLevels();
   }, [filterBranch, filterClassLevel, filterSession, filterTerm]);
-
-  useEffect(() => {
-    // Fetch non-filter-dependent data once
-    const fetchInitialData = async () => {
-      try {
-        const [branchesData, classLevelsData, sessionsData] = await Promise.all([
-          api.get('/branches'),
-          api.get('/classlevels'),
-          getSessions(),
-        ]);
-        setBranches(branchesData.data.branches || []);
-        setClassLevels(classLevelsData.data || []);
-        setSessions(sessionsData);
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      }
-    };
-    fetchInitialData();
-  }, []);
 
   const fetchFeeStructures = async () => {
     try {
@@ -83,6 +65,28 @@ const FeeStructures: React.FC = () => {
     } catch (error) {
       console.error('Error fetching fee structures:', error);
       setFeeStructures([]);
+    }
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      if (data && Array.isArray(data.branches)) {
+        setBranches(data.branches);
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
+  const fetchClassLevels = async () => {
+    try {
+      const { data } = await api.get('/classlevels');
+      if (Array.isArray(data)) {
+        setClassLevels(data);
+      }
+    } catch (error) {
+      console.error('Error fetching class levels:', error);
     }
   };
 
@@ -146,14 +150,6 @@ const FeeStructures: React.FC = () => {
     setFormData({ ...formData, fees: newFees });
   };
 
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = filterSession ? [...new Set(sessions.filter(s => s.academicYear === filterSession).map(s => s.term))] : [];
-
-  const handleSessionChange = (e: any) => {
-    setFilterSession(e.detail.value);
-    setFilterTerm(''); // Reset term when session changes
-  };
-
   return (
     <>
       <SidebarMenu />
@@ -206,9 +202,9 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Session</IonLabel>
-                <IonSelect value={filterSession} onIonChange={handleSessionChange}>
+                <IonSelect value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value)}>
                   <IonSelectOption value="">All</IonSelectOption>
-                  {academicYears.map(session => (
+                  {SESSIONS.map(session => (
                     <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
                   ))}
                 </IonSelect>
@@ -217,9 +213,9 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Term</IonLabel>
-                <IonSelect value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value)} disabled={!filterSession}>
+                <IonSelect value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value)}>
                   <IonSelectOption value="">All</IonSelectOption>
-                  {availableTerms.map(term => (
+                  {TERMS.map(term => (
                     <IonSelectOption key={term} value={term}>{term}</IonSelectOption>
                   ))}
                 </IonSelect>
@@ -295,7 +291,7 @@ const FeeStructures: React.FC = () => {
             <IonItem>
               <IonLabel>Session</IonLabel>
               <IonSelect name="session" value={formData.session} onIonChange={handleInputChange}>
-                {academicYears.map(session => (
+                {SESSIONS.map(session => (
                   <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
                 ))}
               </IonSelect>

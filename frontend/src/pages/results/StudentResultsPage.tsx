@@ -15,88 +15,61 @@ import {
   IonLoading,
   IonButtons,
   IonMenuButton,
-  IonToast,
 } from '@ionic/react';
 import api from '../../services/api';
-import { Result, Session } from '../../types';
+import { Result } from '../../types';
+import { TERMS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
-import { getSessions } from '../../services/sessionsApi';
 
 const StudentResultsPage: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [allResults, setAllResults] = useState<Result[]>([]);
+  const [sessions, setSessions] = useState<string[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchAllResults = async () => {
       setLoading(true);
       try {
-        const sessionsData = await getSessions();
-        setSessions(sessionsData);
-        if (sessionsData.length > 0) {
-          // Auto-select the most recent session
-          const academicYears = [...new Set(sessionsData.map(s => s.academicYear))].sort().reverse();
-          setSelectedSession(academicYears[0]);
+        const { data } = await api.get('/results');
+        const fetchedResults = data.results || data || [];
+        setAllResults(fetchedResults);
+        // Extract unique sessions from all results
+        const uniqueSessions = [...new Set(fetchedResults.map((r: Result) => r.session))];
+        setSessions(uniqueSessions);
+        // Set initial filter to the most recent session
+        if (uniqueSessions.length > 0) {
+          setSelectedSession(uniqueSessions[0]);
         }
       } catch (error) {
-        console.error('Error fetching sessions:', error);
-        setShowToast({ show: true, message: 'Could not fetch available sessions.', color: 'danger' });
+        console.error('Error fetching results:', error);
       } finally {
         setLoading(false);
-        setInitialLoad(false);
       }
     };
-    fetchInitialData();
+    fetchAllResults();
   }, []);
 
   useEffect(() => {
-    const fetchResults = async () => {
-      if (!selectedSession || !selectedTerm) {
-        setResults([]);
-        return;
-      }
-      setLoading(true);
-      try {
-        const { data } = await api.get('/results', {
-          params: { session: selectedSession, term: selectedTerm },
-        });
-        setResults(data.results || data || []);
-      } catch (error) {
-        console.error('Error fetching results:', error);
-        setShowToast({ show: true, message: 'Could not fetch results.', color: 'danger' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!initialLoad) {
-      fetchResults();
+    // Filter results whenever the selected session or term changes
+    let filtered = allResults;
+    if (selectedSession) {
+      filtered = filtered.filter(r => r.session === selectedSession);
     }
-  }, [selectedSession, selectedTerm, initialLoad]);
+    if (selectedTerm) {
+      filtered = filtered.filter(r => r.term === selectedTerm);
+    }
+    setResults(filtered);
+  }, [selectedSession, selectedTerm, allResults]);
 
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) {
       return result.subjectId.name;
     }
     return 'N/A';
-  };
-
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
-
-  const noResultsMessage =
-    !selectedSession || !selectedTerm
-      ? 'Please select a session and term to view results.'
-      : 'Results for this term are not yet available.';
-
-  const handleSessionChange = (e: any) => {
-    setSelectedSession(e.detail.value);
-    setSelectedTerm(''); // Reset term when session changes
-  };
+  }
 
   return (
     <>
@@ -119,9 +92,9 @@ const StudentResultsPage: React.FC = () => {
                   <IonLabel>Session</IonLabel>
                   <IonSelect
                     value={selectedSession}
-                    onIonChange={handleSessionChange}
+                    onIonChange={(e) => setSelectedSession(e.detail.value)}
                   >
-                    {academicYears.map((session) => (
+                    {sessions.map((session) => (
                       <IonSelectOption key={session} value={session}>
                         {session}
                       </IonSelectOption>
@@ -135,10 +108,9 @@ const StudentResultsPage: React.FC = () => {
                   <IonSelect
                     value={selectedTerm}
                     onIonChange={(e) => setSelectedTerm(e.detail.value)}
-                    disabled={!selectedSession}
                   >
-                    <IonSelectOption value="">Select Term</IonSelectOption>
-                    {availableTerms.map((term) => (
+                    <IonSelectOption value="">All Terms</IonSelectOption>
+                    {TERMS.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>
@@ -180,7 +152,7 @@ const StudentResultsPage: React.FC = () => {
                       ) : (
                         <tr>
                           <td colSpan={8} className="ion-text-center">
-                            {noResultsMessage}
+                            No results found for the selected filters.
                           </td>
                         </tr>
                       )}
@@ -190,13 +162,6 @@ const StudentResultsPage: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-          <IonToast
-            isOpen={showToast.show}
-            onDidDismiss={() => setShowToast({ show: false, message: '', color: '' })}
-            message={showToast.message}
-            duration={3000}
-            color={showToast.color}
-          />
         </IonContent>
       </IonPage>
     </>

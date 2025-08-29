@@ -171,12 +171,3 @@ export interface Announcement {
   attachments?: { name: string; url: string }[];
   isRead?: boolean;
 }
-
-export interface Session {
-  _id: string;
-  academicYear: string;
-  term: 'First' | 'Second' | 'Third';
-  isResultEntryOpen: boolean;
-  resultPublicationStatus: 'Not Ready' | 'Published';
-  branchId?: { _id: string; name: string } | string | null;
-}

@@ -26,6 +26,7 @@ import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { ClassLevel } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
+import './ClassLevels.css';
 
 const ClassLevels: React.FC = () => {
   const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);

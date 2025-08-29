@@ -161,34 +161,34 @@ const AttendanceReports: React.FC = () => {
             {user?.role === 'Super Admin' && (
                 <IonItem>
                     <IonLabel>Branch</IonLabel>
-                    <IonSelect value={selectedBranch} onIonChange={e => setSelectedBranch(e.detail.value as string)}>
+                    <IonSelect value={selectedBranch} onIonChange={e => setSelectedBranch(e.detail.value)}>
                         {branches.map(b => <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>)}
                     </IonSelect>
                 </IonItem>
             )}
             <IonItem>
                 <IonLabel>Class Level</IonLabel>
-                <IonSelect value={selectedClassLevel} onIonChange={e => setSelectedClassLevel(e.detail.value as string)}>
+                <IonSelect value={selectedClassLevel} onIonChange={e => setSelectedClassLevel(e.detail.value)}>
                     <IonSelectOption value="">All Levels</IonSelectOption>
                     {classLevels.map(cl => <IonSelectOption key={cl._id} value={cl._id}>{cl.name}</IonSelectOption>)}
                 </IonSelect>
             </IonItem>
             <IonItem>
                 <IonLabel>Class</IonLabel>
-                <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value as string)}>
+                <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value)}>
                     {classes.map(c => <IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>)}
                 </IonSelect>
             </IonItem>
             <IonItem>
                 <IonLabel>Student</IonLabel>
-                <IonSelect value={selectedStudent} onIonChange={e => setSelectedStudent(e.detail.value as string)}>
+                <IonSelect value={selectedStudent} onIonChange={e => setSelectedStudent(e.detail.value)}>
                      <IonSelectOption value="">All Students</IonSelectOption>
-                    {students.map(s => <IonSelectOption key={s._id} value={s._id}>{s.userId.name}</IonSelectOption>)}
+                    {students.map(s => <IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>)}
                 </IonSelect>
             </IonItem>
              <IonItem>
                 <IonLabel>Subject</IonLabel>
-                <IonSelect value={selectedSubject} onIonChange={e => setSelectedSubject(e.detail.value as string)}>
+                <IonSelect value={selectedSubject} onIonChange={e => setSelectedSubject(e.detail.value)}>
                     <IonSelectOption value="">All Subjects</IonSelectOption>
                     {subjects.map(s => <IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>)}
                 </IonSelect>
@@ -199,7 +199,7 @@ const AttendanceReports: React.FC = () => {
                 <IonModal keepContentsMounted={true}>
                   <IonDatetime
                     id="fromDate"
-                    presentation="date"
+                    displayFormat="YYYY-MM-DD"
                     value={fromDate}
                     onIonChange={e => setFromDate(e.detail.value!)}
                   ></IonDatetime>
@@ -211,7 +211,7 @@ const AttendanceReports: React.FC = () => {
                 <IonModal keepContentsMounted={true}>
                   <IonDatetime
                     id="toDate"
-                    presentation="date"
+                    displayFormat="YYYY-MM-DD"
                     value={toDate}
                     onIonChange={e => setToDate(e.detail.value!)}
                   ></IonDatetime>

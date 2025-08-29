@@ -34,12 +34,13 @@ import {
   ribbonOutline,
   downloadOutline,
   documentTextOutline,
+  refreshOutline,
 } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject, Class, Branch, Session } from '../../types';
+import { Result, Student, Subject, Class, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { useAuth } from '../../contexts/AuthContext';
-import { getSessions } from '../../services/sessionsApi';
+import { SESSIONS, TERMS } from '../../constants';
 import '../../theme/global.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -48,7 +49,6 @@ const AdminResultsDashboard: React.FC = () => {
   const { user } = useAuth();
 
   const [results, setResults] = useState<Result[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -61,6 +61,7 @@ const AdminResultsDashboard: React.FC = () => {
 
   const [formData, setFormData] = useState<Partial<Result>>({});
   const [loading, setLoading] = useState(false);
+  const [toastInfo, setToastInfo] = useState<{ show: boolean, message: string, color: string }>({ show: false, message: '', color: '' });
 
   // Filters
   const [selectedClass, setSelectedClass] = useState('');
@@ -68,32 +69,9 @@ const AdminResultsDashboard: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState<string>('');
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true);
-      try {
-        const promises = [
-          getSessions(),
-          api.get('/classes'),
-          api.get('/subjects'),
-        ];
-        if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
-        }
-        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
-
-        setSessions(sessionsData);
-        setClasses(classesData.data.classes || []);
-        setSubjects(subjectsData.data.subjects || []);
-        if (branchesData) {
-          setBranches(branchesData.data.branches || []);
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInitialData();
+    if (user?.role === 'Super Admin') fetchBranches();
+    fetchClasses();
+    fetchSubjects();
   }, [user]);
 
   useEffect(() => {
@@ -104,6 +82,15 @@ const AdminResultsDashboard: React.FC = () => {
     if (selectedClass && selectedSession && selectedTerm) fetchResults();
     else setResults([]);
   }, [selectedClass, selectedSession, selectedTerm, formData.branchId, user]);
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      setBranches(data.branches || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
 
   const fetchResults = async () => {
     setLoading(true);
@@ -133,6 +120,24 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
+  const fetchSubjects = async () => {
+    try {
+      const { data } = await api.get('/subjects');
+      setSubjects(data.subjects || []);
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const { data } = await api.get('/classes');
+      setClasses(data.classes || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       const payload = {
@@ -147,9 +152,10 @@ const AdminResultsDashboard: React.FC = () => {
       else await api.post('/results', payload);
       fetchResults();
       closeModal();
+      setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Save failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to save result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to save result', color: 'danger' });
     }
   };
 
@@ -158,9 +164,10 @@ const AdminResultsDashboard: React.FC = () => {
     try {
       await api.delete(`/results/${id}`);
       fetchResults();
+      setToastInfo({ show: true, message: 'Result deleted successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Delete failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to delete result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to delete result', color: 'danger' });
     }
   };
 
@@ -168,9 +175,22 @@ const AdminResultsDashboard: React.FC = () => {
     try {
       await api.put(`/results/${id}/approve`);
       fetchResults();
+      setToastInfo({ show: true, message: 'Result approved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Approval failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to approve result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to approve result', color: 'danger' });
+    }
+  };
+
+  const handleRevertToDraft = async (id: string) => {
+    if (!window.confirm('Are you sure you want to revert this result to Draft? This will hide it from students and parents.')) return;
+    try {
+      await api.put(`/results/${id}/revert-to-draft`);
+      fetchResults();
+      setToastInfo({ show: true, message: 'Result reverted to draft.', color: 'success' });
+    } catch (err: any) {
+      console.error('Revert failed:', err.response?.data || err.message);
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to revert result', color: 'danger' });
     }
   };
 
@@ -184,69 +204,61 @@ const AdminResultsDashboard: React.FC = () => {
         term: selectedTerm,
         branchId,
       });
-      alert('Results ranked successfully!');
+      setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
       fetchResults();
     } catch (err: any) {
       console.error('Ranking failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to rank results');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to rank results', color: 'danger' });
     } finally {
       setLoading(false);
     }
   };
 
   const handleExport = async () => {
-  if (!selectedClass || !selectedSession || !selectedTerm) {
-    alert('Please select class, session, and term before exporting.');
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    // Prepare request payload
-    const payload: any = {
-      classId: selectedClass,
-      session: selectedSession,
-      term: selectedTerm,
-    };
-
-    if (user?.role === 'Super Admin') {
-      payload.branchId = formData.branchId;
+    if (!selectedClass || !selectedSession || !selectedTerm) {
+      setToastInfo({ show: true, message: 'Please select class, session, and term before exporting.', color: 'warning' });
+      return;
     }
 
-    // Make POST request to export endpoint
-    const response = await api.post('/results/export', payload, {
-      responseType: 'blob', // Important to handle file download
-    });
+    try {
+      setLoading(true);
 
-    // Create a URL for the blob
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = window.URL.createObjectURL(blob);
+      const payload: any = {
+        classId: selectedClass,
+        session: selectedSession,
+        term: selectedTerm,
+      };
 
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute(
-      'download',
-      `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
-    );
-    document.body.appendChild(link);
-    link.click();
+      if (user?.role === 'Super Admin') {
+        payload.branchId = formData.branchId;
+      }
 
-    // Clean up
-    link.parentNode?.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      const response = await api.post('/results/export', payload, {
+        responseType: 'blob',
+      });
 
-  } catch (err: any) {
-    console.error('Export failed:', err.response?.data || err.message);
-    alert('Failed to export results.');
-  } finally {
-    setLoading(false);
-  }
-};
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
 
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Export failed:', err.response?.data || err.message);
+      setToastInfo({ show: true, message: 'Failed to export results.', color: 'danger' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openModal = (result: Result | null = null) => {
     const selectedClassObj = classes.find((c) => c._id === selectedClass);
@@ -295,8 +307,10 @@ const AdminResultsDashboard: React.FC = () => {
       fetchResults();
       setShowImportModal(false);
       setSelectedFile(null);
+      setToastInfo({ show: true, message: 'Results imported successfully.', color: 'success' });
     } catch (error) {
       console.error('Error importing results:', error);
+      setToastInfo({ show: true, message: 'Failed to import results.', color: 'danger' });
     }
   };
 
@@ -318,14 +332,6 @@ const AdminResultsDashboard: React.FC = () => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) return result.subjectId.name;
     const subject = subjects.find((s) => s._id === result.subjectId);
     return subject ? subject.name : 'N/A';
-  };
-
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
-
-  const handleSessionChange = (e: any) => {
-    setSelectedSession(e.detail.value);
-    setSelectedTerm(''); // Reset term when session changes
   };
 
   return (
@@ -378,8 +384,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
-                    {academicYears.map((session) => (
+                  <IonSelect value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value)}>
+                    {SESSIONS.map((session) => (
                       <IonSelectOption key={session} value={session}>
                         {session}
                       </IonSelectOption>
@@ -390,8 +396,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)} disabled={!selectedSession}>
-                    {availableTerms.map((term) => (
+                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}>
+                    {TERMS.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>
@@ -474,6 +480,11 @@ const AdminResultsDashboard: React.FC = () => {
                                     <IonIcon slot="icon-only" icon={trash} />
                                   </IonButton>
                                 </>
+                              )}
+                              {result.status === 'Approved' && (
+                                <IonButton size="small" color="warning" onClick={() => handleRevertToDraft(result._id)}>
+                                  <IonIcon slot="icon-only" icon={refreshOutline} />
+                                </IonButton>
                               )}
                             </span>
                           </td>
@@ -609,6 +620,13 @@ const AdminResultsDashboard: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </IonModal>
+          <IonToast
+            isOpen={toastInfo.show}
+            onDidDismiss={() => setToastInfo({ ...toastInfo, show: false })}
+            message={toastInfo.message}
+            duration={3000}
+            color={toastInfo.color}
+          />
         </IonContent>
       </IonPage>
     </>

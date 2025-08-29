@@ -22,14 +22,13 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Student, Class, Branch, Session } from '../../types';
-import { getSessions } from '../../services/sessionsApi';
+import { Student, Class, Branch } from '../../types';
+import { SESSIONS, TERMS } from '../../constants';
 
 const Reports: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
   const [feeReportFormat, setFeeReportFormat] = useState('pdf');
   const [feeReportBranch, setFeeReportBranch] = useState('');
   const [resultReportFormat, setResultReportFormat] = useState('pdf');
@@ -72,28 +71,10 @@ const Reports: React.FC = () => {
       }
     };
 
-    const fetchSessions = async () => {
-      try {
-        const sessionsData = await getSessions();
-        setSessions(sessionsData);
-      } catch (error) {
-        console.error('Error fetching sessions:', error);
-      }
-    };
-
     fetchStudents();
     fetchClasses();
     fetchBranches();
-    fetchSessions();
   }, []);
-
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = resultReportSession ? [...new Set(sessions.filter(s => s.academicYear === resultReportSession).map(s => s.term))] : [];
-
-  const handleSessionChange = (e: any) => {
-    setResultReportSession(e.detail.value);
-    setResultReportTerm(''); // Reset term when session changes
-  };
 
   const generateReport = async (reportType: 'fees' | 'results') => {
     let params = {};
@@ -219,9 +200,9 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Session</IonLabel>
-                      <IonSelect value={resultReportSession} onIonChange={handleSessionChange}>
+                      <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {academicYears.map((session) => (
+                        {SESSIONS.map((session) => (
                           <IonSelectOption key={session} value={session}>
                             {session}
                           </IonSelectOption>
@@ -230,9 +211,9 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Term</IonLabel>
-                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)} disabled={!resultReportSession}>
+                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {availableTerms.map((term) => (
+                        {TERMS.map((term) => (
                           <IonSelectOption key={term} value={term}>
                             {term}
                           </IonSelectOption>
