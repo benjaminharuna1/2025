@@ -13,15 +13,18 @@ import {
   IonDatetime,
   IonToast,
   IonGrid,
+  IonModal,
+  IonDatetimeButton,
   IonRow,
   IonCol,
   IonLoading,
   IonButtons,
   IonMenuButton,
+  IonInput,
 } from '@ionic/react';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
-import { Branch, ClassLevel, Class, Student } from '../../types';
+import { Branch, ClassLevel, Class, Student, Subject } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Attendance.css';
 
@@ -33,9 +36,11 @@ const Attendance: React.FC = () => {
   const [selectedClassLevel, setSelectedClassLevel] = useState('');
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [students, setStudents] = useState<Student[]>([]);
-  const [date, setDate] = useState<string>(new Date().toISOString());
-  const [attendance, setAttendance] = useState<{ [key: string]: string }>({});
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [attendance, setAttendance] = useState<{ [key: string]: { status: string; remarks: string } }>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('');
@@ -67,20 +72,21 @@ const Attendance: React.FC = () => {
 
     if (user?.role === 'Super Admin') {
       fetchBranches();
-    } else {
-      setSelectedBranch(user?.branchId || '');
+    } else if (user?.branchId) {
+      setSelectedBranch(user.branchId);
     }
     fetchClassLevels();
   }, [user]);
 
-  // fetch classes when branch & classLevel selected
+  // fetch classes when branch selected
   useEffect(() => {
     const fetchClasses = async () => {
-      if (selectedBranch && selectedClassLevel) {
+      if (selectedBranch) {
         setLoading(true);
         try {
+          // The backend getClasses controller doesn't filter by classLevel, only branch
           const { data } = await api.get(
-            `/classes?branchId=${selectedBranch}&classLevel=${selectedClassLevel}`
+            `/classes?branchId=${selectedBranch}`
           );
           setClasses(data.classes || []);
         } catch (error) {
@@ -93,7 +99,27 @@ const Attendance: React.FC = () => {
       }
     };
     fetchClasses();
-  }, [selectedBranch, selectedClassLevel]);
+  }, [selectedBranch]);
+
+  // fetch subjects when class selected
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (selectedClass) {
+        setLoading(true);
+        try {
+          const { data } = await api.get(`/subjects?classId=${selectedClass}`);
+          setSubjects(data.subjects || []);
+        } catch (error) {
+          setToastMessage('Error fetching subjects');
+          setToastColor('danger');
+          setShowToast(true);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchSubjects();
+  }, [selectedClass]);
 
   // fetch students when class selected
   useEffect(() => {
@@ -105,9 +131,9 @@ const Attendance: React.FC = () => {
           setStudents(data.students || []);
 
           // initialize attendance with "Present"
-          const initialAttendance: { [key: string]: string } = {};
-          data.students.forEach((s: Student) => {
-            initialAttendance[s._id] = 'Present';
+          const initialAttendance: { [key: string]: { status: string; remarks: string } } = {};
+          (data.students || []).forEach((s: Student) => {
+            initialAttendance[s._id] = { status: 'Present', remarks: '' };
           });
           setAttendance(initialAttendance);
         } catch (error) {
@@ -123,8 +149,20 @@ const Attendance: React.FC = () => {
   }, [selectedClass]);
 
   const handleAttendanceChange = useCallback((studentId: string, status: string) => {
-    setAttendance(prev => ({ ...prev, [studentId]: status }));
+    setAttendance(prev => ({ ...prev, [studentId]: { ...prev[studentId], status } }));
   }, []);
+
+  const handleRemarkChange = useCallback((studentId: string, remarks: string) => {
+    setAttendance(prev => ({ ...prev, [studentId]: { ...prev[studentId], remarks } }));
+  }, []);
+
+  const markAll = (status: 'Present' | 'Absent') => {
+    const newAttendance: { [key: string]: { status: string; remarks: string } } = {};
+    students.forEach(s => {
+      newAttendance[s._id] = { ...attendance[s._id], status };
+    });
+    setAttendance(newAttendance);
+  };
 
   const submitAttendance = async () => {
     if (!selectedBranch || !selectedClass) {
@@ -139,8 +177,10 @@ const Attendance: React.FC = () => {
         studentId: student._id,
         classId: selectedClass,
         branchId: selectedBranch,
-        date,
-        status: attendance[student._id] || 'Present',
+        date: date.split('T')[0], // Ensure YYYY-MM-DD
+        status: attendance[student._id]?.status || 'Present',
+        remarks: attendance[student._id]?.remarks || '',
+        ...(selectedSubject && { subjectId: selectedSubject }),
       }));
       await api.post('/attendance', attendanceData);
       setToastMessage('Attendance submitted successfully');
@@ -177,115 +217,157 @@ const Attendance: React.FC = () => {
             <IonButtons slot="start">
               <IonMenuButton />
             </IonButtons>
-            <IonTitle>Attendance</IonTitle>
+            <IonTitle>Take Attendance</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent fullscreen>
           <IonHeader collapse="condense">
-          <IonToolbar>
-            <IonTitle size="large">Attendance</IonTitle>
-          </IonToolbar>
-        </IonHeader>
+            <IonToolbar>
+              <IonTitle size="large">Take Attendance</IonTitle>
+            </IonToolbar>
+          </IonHeader>
 
-        <IonItem>
-          <IonLabel>Branch</IonLabel>
-          <IonSelect
-            value={selectedBranch}
-            onIonChange={e => setSelectedBranch(e.detail.value)}
-            disabled={user?.role !== 'Super Admin'}
-          >
-            {branches.map(b => (
-              <IonSelectOption key={b._id} value={b._id}>
-                {b.name}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-        </IonItem>
+          {user?.role === 'Super Admin' && (
+            <IonItem>
+              <IonLabel>Branch</IonLabel>
+              <IonSelect
+                value={selectedBranch}
+                onIonChange={e => setSelectedBranch(e.detail.value)}
+              >
+                {branches.map(b => (
+                  <IonSelectOption key={b._id} value={b._id}>
+                    {b.name}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
+          )}
 
-        <IonItem>
-          <IonLabel>Class Level</IonLabel>
-          <IonSelect
-            value={selectedClassLevel}
-            onIonChange={e => setSelectedClassLevel(e.detail.value)}
-            disabled={user?.role === 'Teacher'}
-          >
-            {classLevels.map(cl => (
-              <IonSelectOption key={cl._id} value={cl._id}>
-                {cl.name}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-        </IonItem>
+          <IonItem>
+            <IonLabel>Class Level</IonLabel>
+            <IonSelect
+              value={selectedClassLevel}
+              onIonChange={e => setSelectedClassLevel(e.detail.value)}
+            >
+              {classLevels.map(cl => (
+                <IonSelectOption key={cl._id} value={cl._id}>
+                  {cl.name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
 
-        <IonItem>
-          <IonLabel>Class</IonLabel>
-          <IonSelect
-            value={selectedClass}
-            onIonChange={e => setSelectedClass(e.detail.value)}
-            disabled={user?.role === 'Teacher'}
-          >
-            {classes.map(c => (
-              <IonSelectOption key={c._id} value={c._id}>
-                {c.name}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-        </IonItem>
+          <IonItem>
+            <IonLabel>Class</IonLabel>
+            <IonSelect
+              value={selectedClass}
+              onIonChange={e => setSelectedClass(e.detail.value)}
+            >
+              {classes.map(c => (
+                <IonSelectOption key={c._id} value={c._id}>
+                  {c.name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
 
-        <IonItem>
-          <IonLabel>Date</IonLabel>
-          <IonDatetime
-            value={date}
-            onIonChange={e => {
-              const value = e.detail.value;
-              if (typeof value === 'string') {
-                setDate(value);
-              } else {
-                setDate(new Date().toISOString()); // fallback
-              }
-            }}
-          />
-        </IonItem>
+          <IonItem>
+            <IonLabel>Subject</IonLabel>
+            <IonSelect
+              value={selectedSubject}
+              onIonChange={e => setSelectedSubject(e.detail.value)}
+            >
+              <IonSelectOption value="">General</IonSelectOption>
+              {subjects.map(s => (
+                <IonSelectOption key={s._id} value={s._id}>
+                  {s.name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </IonItem>
 
-        <IonGrid>
-          <IonRow>
-            <IonCol><strong>Admission Number</strong></IonCol>
-            <IonCol><strong>Student Name</strong></IonCol>
-            <IonCol><strong>Status</strong></IonCol>
-          </IonRow>
-          {students.map(student => (
-            <IonRow key={student._id}>
-              <IonCol>{student.admissionNumber}</IonCol>
-              <IonCol>{student.name}</IonCol>
-              <IonCol>
-                <IonSelect
-                  value={attendance[student._id] || 'Present'}
-                  onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
-                >
-                  <IonSelectOption value="Present">Present</IonSelectOption>
-                  <IonSelectOption value="Absent">Absent</IonSelectOption>
-                  <IonSelectOption value="Late">Late</IonSelectOption>
-                </IonSelect>
+          <IonItem>
+            <IonLabel>Date</IonLabel>
+            <IonDatetimeButton datetime="date"></IonDatetimeButton>
+            <IonModal keepContentsMounted={true}>
+              <IonDatetime
+                id="date"
+                presentation="date"
+                value={date}
+                onIonChange={e => {
+                  if (typeof e.detail.value === 'string') {
+                    setDate(e.detail.value);
+                  }
+                }}
+              />
+            </IonModal>
+          </IonItem>
+
+          <IonGrid>
+            <IonRow className="ion-align-items-center">
+              <IonCol size="6">
+                <IonButton size="small" onClick={() => markAll('Present')}>Mark All Present</IonButton>
+                <IonButton size="small" color="light" onClick={() => markAll('Absent')}>Mark All Absent</IonButton>
               </IonCol>
             </IonRow>
-          ))}
-        </IonGrid>
+            <IonRow>
+              <IonCol size="0.5"><strong>S/N</strong></IonCol>
+              <IonCol><strong>Student</strong></IonCol>
+              <IonCol><strong>Admission #</strong></IonCol>
+              <IonCol><strong>Class</strong></IonCol>
+              <IonCol><strong>Branch</strong></IonCol>
+              <IonCol><strong>Status</strong></IonCol>
+              <IonCol><strong>Remarks</strong></IonCol>
+            </IonRow>
+            {students.map((student: Student, index) => {
+              const branchName = branches.find(b => b._id === selectedBranch)?.name || '';
+              const className = classes.find(c => c._id === selectedClass)?.name || '';
 
-        <IonButton expand="full" onClick={submitAttendance} disabled={!selectedClass || students.length === 0}>
-          Submit Attendance
-        </IonButton>
+              return (
+                <IonRow key={student._id} className="ion-align-items-center">
+                  <IonCol size="0.5">{index + 1}</IonCol>
+                  <IonCol>{student.userId.name}</IonCol>
+                  <IonCol>{student.admissionNumber}</IonCol>
+                  <IonCol>{className}</IonCol>
+                  <IonCol>{branchName}</IonCol>
+                  <IonCol>
+                    <IonSelect
+                      value={attendance[student._id]?.status || 'Present'}
+                      onIonChange={e => handleAttendanceChange(student._id, e.detail.value)}
+                    >
+                      <IonSelectOption value="Present">Present</IonSelectOption>
+                      <IonSelectOption value="Absent">Absent</IonSelectOption>
+                      <IonSelectOption value="Late">Late</IonSelectOption>
+                      <IonSelectOption value="Excused">Excused</IonSelectOption>
+                    </IonSelect>
+                  </IonCol>
+                  <IonCol>
+                    <IonInput
+                      value={attendance[student._id]?.remarks || ''}
+                      onIonChange={e => handleRemarkChange(student._id, e.detail.value!)}
+                      placeholder="Optional"
+                    />
+                  </IonCol>
+                </IonRow>
+              );
+            })}
+          </IonGrid>
 
-        <IonLoading isOpen={loading} message="Loading..." />
+          <IonButton expand="full" onClick={submitAttendance} disabled={!selectedClass || students.length === 0}>
+            Submit Attendance
+          </IonButton>
 
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={2000}
-          color={toastColor}
-        />
-      </IonContent>
-    </IonPage>
+          <IonLoading isOpen={loading} message="Loading..." />
+
+          <IonToast
+            isOpen={showToast}
+            onDidDismiss={() => setShowToast(false)}
+            message={toastMessage}
+            duration={2000}
+            color={toastColor}
+          />
+        </IonContent>
+      </IonPage>
     </>
   );
 };

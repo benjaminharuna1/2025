@@ -6,6 +6,7 @@ export interface User {
   branchId?: string;
   classId?: string;
   profilePicture?: string;
+  parentProfileId?: string;
 }
 
 export interface Branch {
@@ -35,8 +36,13 @@ export interface Subject {
   teacherId: string;
 }
 
-export interface Student extends User {
-    userId: any;
+export interface Student {
+    _id: string;
+    userId: {
+        _id: string;
+        name: string;
+        email: string;
+    };
     admissionNumber?: string;
     dateOfBirth?: string;
     gender?: string;
@@ -107,17 +113,24 @@ export interface FeePayment {
   payerDetails?: string;
 }
 
-export interface AttendanceRecord {
-  studentId: string;
-  status: 'Present' | 'Absent' | 'Late';
-}
-
 export interface Attendance {
   _id: string;
-  classId: string;
-  branchId: string;
+  studentId: string | Student;
+  classId: string | Class;
+  branchId: string | Branch;
   date: string;
-  records: AttendanceRecord[];
+  status: 'Present' | 'Absent' | 'Late' | 'Excused';
+  subjectId?: string | Subject;
+  remarks?: string;
+}
+
+export interface LeaveRequest {
+  _id: string;
+  studentId: string | Student;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
 }
 
 export interface Result {
@@ -147,5 +160,14 @@ export interface Announcement {
   _id: string;
   title: string;
   content: string;
-  branchId?: string | { _id: string; name: string };
+  type?: 'General' | 'Event' | 'Urgent';
+  branchId?: string | Branch;
+  classId?: string | Class;
+  recipients?: (string | User)[];
+  audienceRole?: 'All' | 'Teachers' | 'Students' | 'Parents';
+  publishDate?: string;
+  expiryDate?: string;
+  createdBy?: string | User;
+  attachments?: { name: string; url: string }[];
+  isRead?: boolean;
 }
