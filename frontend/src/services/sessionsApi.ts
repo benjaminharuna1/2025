@@ -12,7 +12,11 @@ export const getSessions = async (): Promise<Session[]> => {
   }
 };
 
-export const createSession = (data: { academicYear: string; term: 'First' | 'Second' | 'Third' }) => {
+export const createSession = (data: {
+  academicYear: string;
+  term: 'First' | 'Second' | 'Third';
+  branchId?: string | null;
+}) => {
   return api.post('/sessions', data);
 };
 

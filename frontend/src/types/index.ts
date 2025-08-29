@@ -178,4 +178,5 @@ export interface Session {
   term: 'First' | 'Second' | 'Third';
   isResultEntryOpen: boolean;
   resultPublicationStatus: 'Not Ready' | 'Published';
+  branchId?: { _id: string; name: string } | string | null;
 }

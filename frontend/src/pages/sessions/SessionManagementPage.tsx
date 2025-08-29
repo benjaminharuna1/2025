@@ -28,12 +28,16 @@ import {
 } from '@ionic/react';
 import { add, create } from 'ionicons/icons';
 import { getSessions, createSession, updateSession } from '../../services/sessionsApi';
-import { Session } from '../../types';
+import { Session, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { TERMS } from '../../constants';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const SessionManagementPage: React.FC = () => {
+  const { user } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -41,17 +45,25 @@ const SessionManagementPage: React.FC = () => {
   const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
 
   useEffect(() => {
-    fetchSessions();
+    fetchData();
   }, []);
 
-  const fetchSessions = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await getSessions();
-      setSessions(data);
+      const sessionsPromise = getSessions();
+      const branchesPromise = user?.role === 'Super Admin' ? api.get('/branches') : Promise.resolve(null);
+
+      const [sessionsData, branchesResponse] = await Promise.all([sessionsPromise, branchesPromise]);
+
+      setSessions(sessionsData);
+      if (branchesResponse) {
+        setBranches(branchesResponse.data.branches || []);
+      }
+
     } catch (error) {
-      console.error('Error fetching sessions:', error);
-      setShowToast({ show: true, message: 'Could not fetch sessions.', color: 'danger' });
+      console.error('Error fetching data:', error);
+      setShowToast({ show: true, message: 'Could not fetch data.', color: 'danger' });
     } finally {
       setLoading(false);
     }
@@ -62,7 +74,7 @@ const SessionManagementPage: React.FC = () => {
     if (session) {
       setFormData({ ...session });
     } else {
-      setFormData({ academicYear: '', term: 'First', isResultEntryOpen: false, resultPublicationStatus: 'Not Ready' });
+      setFormData({ academicYear: '', term: 'First', isResultEntryOpen: false, resultPublicationStatus: 'Not Ready', branchId: user?.role === 'Branch Admin' ? user.branchId : null });
     }
     setShowModal(true);
   };
@@ -92,13 +104,21 @@ const SessionManagementPage: React.FC = () => {
     setLoading(true);
     try {
       if (selectedSession) {
-        await updateSession(selectedSession._id, formData);
+        // Update logic doesn't need to send branchId as it's not editable
+        await updateSession(selectedSession._id, {
+          isResultEntryOpen: formData.isResultEntryOpen,
+          resultPublicationStatus: formData.resultPublicationStatus
+        });
         setShowToast({ show: true, message: 'Session updated successfully.', color: 'success' });
       } else {
-        await createSession({ academicYear: formData.academicYear, term: formData.term as any });
+        await createSession({
+          academicYear: formData.academicYear,
+          term: formData.term as any,
+          branchId: formData.branchId as string | undefined | null,
+        });
         setShowToast({ show: true, message: 'Session created successfully.', color: 'success' });
       }
-      fetchSessions();
+      fetchData();
       closeModal();
     } catch (err: any) {
       console.error("Save failed:", err.response?.data || err.message);
@@ -139,6 +159,7 @@ const SessionManagementPage: React.FC = () => {
                       <tr>
                         <th>Academic Year</th>
                         <th>Term</th>
+                        <th>Branch</th>
                         <th>Result Entry Open</th>
                         <th>Publication Status</th>
                         <th>Actions</th>
@@ -149,6 +170,7 @@ const SessionManagementPage: React.FC = () => {
                         <tr key={session._id}>
                           <td>{session.academicYear}</td>
                           <td>{session.term}</td>
+                          <td>{session.branchId ? (session.branchId as any).name : 'Global'}</td>
                           <td>
                             <IonToggle
                               checked={session.isResultEntryOpen}
@@ -176,6 +198,19 @@ const SessionManagementPage: React.FC = () => {
                 <IonCardTitle>{selectedSession ? 'Edit' : 'Create'} Session</IonCardTitle>
               </IonCardHeader>
               <IonCardContent>
+                {user?.role === 'Super Admin' && !selectedSession && (
+                  <IonItem>
+                    <IonLabel>Branch</IonLabel>
+                    <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
+                      <IonSelectOption value={null}>Global</IonSelectOption>
+                      {branches.map(branch => (
+                        <IonSelectOption key={branch._id} value={branch._id}>
+                          {branch.name}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+                )}
                 <IonItem>
                   <IonLabel position="floating">Academic Year (e.g., 2024/2025)</IonLabel>
                   <IonInput
