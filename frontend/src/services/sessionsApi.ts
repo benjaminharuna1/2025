@@ -14,7 +14,7 @@ export const getSessions = async (): Promise<Session[]> => {
 
 export const createSession = (data: {
   academicYear: string;
-  term: 'First' | 'Second' | 'Third';
+  term: string;
   branchId?: string | null;
 }) => {
   return api.post('/sessions', data);

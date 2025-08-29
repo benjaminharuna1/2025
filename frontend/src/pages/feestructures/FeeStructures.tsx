@@ -25,7 +25,6 @@ import api from '../../services/api';
 import { FeeStructure, Branch, ClassLevel } from '../../types';
 import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
-import './FeeStructures.css';
 
 const FeeStructures: React.FC = () => {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);

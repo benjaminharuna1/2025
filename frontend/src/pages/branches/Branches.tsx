@@ -26,7 +26,6 @@ import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
-import './Branches.css';
 
 const Branches: React.FC = () => {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -126,7 +125,7 @@ const Branches: React.FC = () => {
           <IonRow>
             <IonCol>
               <div className="ion-padding">
-                <table className="branches-table">
+                <table className="responsive-table">
                   <thead>
                     <tr>
                       <th>Name</th>

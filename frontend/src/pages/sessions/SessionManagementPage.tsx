@@ -113,7 +113,7 @@ const SessionManagementPage: React.FC = () => {
       } else {
         await createSession({
           academicYear: formData.academicYear,
-          term: formData.term as any,
+          term: formData.term,
           branchId: formData.branchId as string | undefined | null,
         });
         setShowToast({ show: true, message: 'Session created successfully.', color: 'success' });

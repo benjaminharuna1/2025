@@ -129,7 +129,15 @@ const Classes: React.FC = () => {
 
   const openModal = (klass: Class | null = null) => {
     setSelectedClass(klass);
-    setFormData(klass ? { ...klass } : {});
+    if (klass) {
+      setFormData({
+        ...klass,
+        classLevel: (klass.classLevel as ClassLevel)?._id,
+        teacher: (klass.teacher as Teacher)?._id,
+      });
+    } else {
+      setFormData({});
+    }
     setShowModal(true);
   };
 
