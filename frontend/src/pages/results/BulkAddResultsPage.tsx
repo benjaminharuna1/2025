@@ -23,7 +23,6 @@ import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
 import { Student, Subject, Class, Branch, Session } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { TERMS } from '../../constants';
 import { getSessions } from '../../services/sessionsApi';
 import { IonToast } from '@ionic/react';
 
@@ -241,6 +240,12 @@ const BulkAddResultsPage: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm(''); // Reset term when session changes
+  };
 
   const canSubmit =
     (user?.role !== 'Super Admin' || selectedBranch) &&
@@ -316,7 +321,7 @@ const BulkAddResultsPage: React.FC = () => {
                 <IonLabel>Session</IonLabel>
                 <IonSelect
                   value={selectedSession}
-                  onIonChange={(e) => setSelectedSession(e.detail.value)}
+                  onIonChange={handleSessionChange}
                 >
                   {academicYears.map((session) => (
                     <IonSelectOption key={session} value={session}>
@@ -332,8 +337,9 @@ const BulkAddResultsPage: React.FC = () => {
                 <IonSelect
                   value={selectedTerm}
                   onIonChange={(e) => setSelectedTerm(e.detail.value)}
+                  disabled={!selectedSession}
                 >
-                  {TERMS.map((term) => (
+                  {availableTerms.map((term) => (
                     <IonSelectOption key={term} value={term}>
                       {term}
                     </IonSelectOption>

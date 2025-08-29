@@ -23,7 +23,6 @@ import {
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
 import { Student, Class, Branch, Session } from '../../types';
-import { TERMS } from '../../constants';
 import { getSessions } from '../../services/sessionsApi';
 
 const Reports: React.FC = () => {
@@ -89,6 +88,12 @@ const Reports: React.FC = () => {
   }, []);
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = resultReportSession ? [...new Set(sessions.filter(s => s.academicYear === resultReportSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setResultReportSession(e.detail.value);
+    setResultReportTerm(''); // Reset term when session changes
+  };
 
   const generateReport = async (reportType: 'fees' | 'results') => {
     let params = {};
@@ -214,7 +219,7 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Session</IonLabel>
-                      <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
+                      <IonSelect value={resultReportSession} onIonChange={handleSessionChange}>
                         <IonSelectOption value="">All</IonSelectOption>
                         {academicYears.map((session) => (
                           <IonSelectOption key={session} value={session}>
@@ -225,9 +230,9 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Term</IonLabel>
-                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)}>
+                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)} disabled={!resultReportSession}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {TERMS.map((term) => (
+                        {availableTerms.map((term) => (
                           <IonSelectOption key={term} value={term}>
                             {term}
                           </IonSelectOption>

@@ -147,6 +147,12 @@ const FeeStructures: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = filterSession ? [...new Set(sessions.filter(s => s.academicYear === filterSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setFilterSession(e.detail.value);
+    setFilterTerm(''); // Reset term when session changes
+  };
 
   return (
     <>
@@ -200,7 +206,7 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Session</IonLabel>
-                <IonSelect value={filterSession} onIonChange={(e) => setFilterSession(e.detail.value)}>
+                <IonSelect value={filterSession} onIonChange={handleSessionChange}>
                   <IonSelectOption value="">All</IonSelectOption>
                   {academicYears.map(session => (
                     <IonSelectOption key={session} value={session}>{session}</IonSelectOption>
@@ -211,9 +217,9 @@ const FeeStructures: React.FC = () => {
             <IonCol>
               <IonItem>
                 <IonLabel>Filter by Term</IonLabel>
-                <IonSelect value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value)}>
+                <IonSelect value={filterTerm} onIonChange={(e) => setFilterTerm(e.detail.value)} disabled={!filterSession}>
                   <IonSelectOption value="">All</IonSelectOption>
-                  {TERMS.map(term => (
+                  {availableTerms.map(term => (
                     <IonSelectOption key={term} value={term}>{term}</IonSelectOption>
                   ))}
                 </IonSelect>

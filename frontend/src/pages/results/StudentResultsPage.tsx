@@ -19,7 +19,6 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import { Result, Session } from '../../types';
-import { TERMS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import { getSessions } from '../../services/sessionsApi';
 
@@ -87,10 +86,17 @@ const StudentResultsPage: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
   const noResultsMessage =
     !selectedSession || !selectedTerm
       ? 'Please select a session and term to view results.'
       : 'Results for this term are not yet available.';
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm(''); // Reset term when session changes
+  };
 
   return (
     <>
@@ -113,7 +119,7 @@ const StudentResultsPage: React.FC = () => {
                   <IonLabel>Session</IonLabel>
                   <IonSelect
                     value={selectedSession}
-                    onIonChange={(e) => setSelectedSession(e.detail.value)}
+                    onIonChange={handleSessionChange}
                   >
                     {academicYears.map((session) => (
                       <IonSelectOption key={session} value={session}>
@@ -129,9 +135,10 @@ const StudentResultsPage: React.FC = () => {
                   <IonSelect
                     value={selectedTerm}
                     onIonChange={(e) => setSelectedTerm(e.detail.value)}
+                    disabled={!selectedSession}
                   >
-                    <IonSelectOption value="">All Terms</IonSelectOption>
-                    {TERMS.map((term) => (
+                    <IonSelectOption value="">Select Term</IonSelectOption>
+                    {availableTerms.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>

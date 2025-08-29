@@ -217,6 +217,12 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm(''); // Reset term when session changes
+  };
 
   return (
     <>
@@ -239,13 +245,18 @@ const TeacherResultsDashboard: React.FC = () => {
               <IonCol size-md="4" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value)}>
+                  <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
                     {academicYears.map(year => <IonSelectOption key={year} value={year}>{year}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>
               </IonCol>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Term</IonLabel><IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}><IonSelectOption value="First">First</IonSelectOption><IonSelectOption value="Second">Second</IonSelectOption><IonSelectOption value="Third">Third</IonSelectOption></IonSelect></IonItem>
+                <IonItem>
+                  <IonLabel>Term</IonLabel>
+                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)} disabled={!selectedSession}>
+                    {availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
             </IonRow>
             <IonRow>
