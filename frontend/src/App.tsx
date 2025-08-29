@@ -20,6 +20,7 @@ import Announcements from './pages/announcements/Announcements';
 import Reports from './pages/reports/Reports';
 import LeaveRequestManagement from './pages/leave/LeaveRequests';
 import LeaveRequestForm from './pages/leave/LeaveRequestForm';
+import SessionManagementPage from './pages/sessions/SessionManagementPage';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -65,6 +66,7 @@ const App: React.FC = () => {
           <Switch>
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
+            <ProtectedRoute path="/dashboard/sessions" component={SessionManagementPage} />
             <ProtectedRoute path="/dashboard/reports" component={Reports} />
             <ProtectedRoute path="/results/bulk-add" component={BulkAddResultsPage} />
             <ProtectedRoute path="/dashboard/results" component={Results} />

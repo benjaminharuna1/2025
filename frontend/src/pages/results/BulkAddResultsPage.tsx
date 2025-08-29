@@ -21,9 +21,11 @@ import {
 } from '@ionic/react';
 import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Student, Subject, Class, Branch } from '../../types';
+import { Student, Subject, Class, Branch, Session } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { SESSIONS, TERMS } from '../../constants';
+import { TERMS } from '../../constants';
+import { getSessions } from '../../services/sessionsApi';
+import { IonToast } from '@ionic/react';
 
 interface MarkEntry {
   studentId: string;
@@ -39,9 +41,11 @@ const BulkAddResultsPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<MarkEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
 
   const [selectedBranch, setSelectedBranch] = useState<string>(
     user?.role === 'Super Admin' ? '' : user?.branchId || ''
@@ -52,16 +56,34 @@ const BulkAddResultsPage: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState('');
 
   useEffect(() => {
-    fetchClasses();
-    fetchSubjects();
-    if (user?.role === 'Super Admin') {
-      fetchBranches();
-    }
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const promises = [
+          api.get('/classes'),
+          api.get('/subjects'),
+          getSessions(),
+        ];
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/branches'));
+        }
+        const [classesData, subjectsData, sessionsData, branchesData] = await Promise.all(promises);
 
-    // Auto-select current session
-    if (SESSIONS.length > 0) {
-      setSelectedSession(SESSIONS[0]);
-    }
+        setClasses(classesData.data.classes || []);
+        setSubjects(subjectsData.data.subjects || []);
+        setSessions(sessionsData);
+        if (branchesData) {
+          setBranches(branchesData.data.branches || []);
+        }
+
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setShowToast({ show: true, message: 'Failed to load initial data.', color: 'danger' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
   }, [user]);
 
   useEffect(() => {
@@ -80,33 +102,6 @@ const BulkAddResultsPage: React.FC = () => {
       fetchExistingResults();
     }
   }, [students, selectedClass, selectedSubject, selectedSession, selectedTerm]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data } = await api.get('/branches');
-      setBranches(data.branches || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await api.get('/subjects');
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
 
   const fetchStudentsInClass = async (classId: string) => {
     setLoading(true);
@@ -224,14 +219,28 @@ const BulkAddResultsPage: React.FC = () => {
 
       setMarks(updatedMarks);
 
-      alert('Results submitted and updated successfully!');
+      setShowToast({ show: true, message: 'Results submitted successfully!', color: 'success' });
     } catch (err: any) {
+      if (err.response && err.response.status === 403) {
+        setShowToast({
+          show: true,
+          message: 'Result entry for this term is not currently open. Please contact an administrator.',
+          color: 'danger',
+        });
+      } else {
+        setShowToast({
+          show: true,
+          message: err.response?.data?.message || 'Failed to submit results.',
+          color: 'danger',
+        });
+      }
       console.error('Bulk add failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to submit results.');
     } finally {
       setLoading(false);
     }
   };
+
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
 
   const canSubmit =
     (user?.role !== 'Super Admin' || selectedBranch) &&
@@ -309,7 +318,7 @@ const BulkAddResultsPage: React.FC = () => {
                   value={selectedSession}
                   onIonChange={(e) => setSelectedSession(e.detail.value)}
                 >
-                  {SESSIONS.map((session) => (
+                  {academicYears.map((session) => (
                     <IonSelectOption key={session} value={session}>
                       {session}
                     </IonSelectOption>
@@ -429,6 +438,13 @@ const BulkAddResultsPage: React.FC = () => {
             </IonRow>
           )}
         </IonGrid>
+        <IonToast
+          isOpen={showToast.show}
+          onDidDismiss={() => setShowToast({ show: false, message: '', color: '' })}
+          message={showToast.message}
+          duration={4000}
+          color={showToast.color}
+        />
       </IonContent>
     </IonPage>
   );
