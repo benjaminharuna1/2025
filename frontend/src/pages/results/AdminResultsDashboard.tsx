@@ -36,10 +36,10 @@ import {
   documentTextOutline,
 } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject, Class, Branch } from '../../types';
+import { Result, Student, Subject, Class, Branch, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { useAuth } from '../../contexts/AuthContext';
-import { SESSIONS, TERMS } from '../../constants';
+import { getSessions } from '../../services/sessionsApi';
 import '../../theme/global.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -48,6 +48,7 @@ const AdminResultsDashboard: React.FC = () => {
   const { user } = useAuth();
 
   const [results, setResults] = useState<Result[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -67,9 +68,32 @@ const AdminResultsDashboard: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState<string>('');
 
   useEffect(() => {
-    if (user?.role === 'Super Admin') fetchBranches();
-    fetchClasses();
-    fetchSubjects();
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        const promises = [
+          getSessions(),
+          api.get('/classes'),
+          api.get('/subjects'),
+        ];
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/branches'));
+        }
+        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
+
+        setSessions(sessionsData);
+        setClasses(classesData.data.classes || []);
+        setSubjects(subjectsData.data.subjects || []);
+        if (branchesData) {
+          setBranches(branchesData.data.branches || []);
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitialData();
   }, [user]);
 
   useEffect(() => {
@@ -80,15 +104,6 @@ const AdminResultsDashboard: React.FC = () => {
     if (selectedClass && selectedSession && selectedTerm) fetchResults();
     else setResults([]);
   }, [selectedClass, selectedSession, selectedTerm, formData.branchId, user]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data } = await api.get('/branches');
-      setBranches(data.branches || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    }
-  };
 
   const fetchResults = async () => {
     setLoading(true);
@@ -115,24 +130,6 @@ const AdminResultsDashboard: React.FC = () => {
       setStudents(data.students || []);
     } catch (error) {
       console.error('Error fetching students:', error);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await api.get('/subjects');
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
     }
   };
 
@@ -323,6 +320,14 @@ const AdminResultsDashboard: React.FC = () => {
     return subject ? subject.name : 'N/A';
   };
 
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm(''); // Reset term when session changes
+  };
+
   return (
     <>
       <SidebarMenu />
@@ -373,8 +378,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value)}>
-                    {SESSIONS.map((session) => (
+                  <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
+                    {academicYears.map((session) => (
                       <IonSelectOption key={session} value={session}>
                         {session}
                       </IonSelectOption>
@@ -385,8 +390,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}>
-                    {TERMS.map((term) => (
+                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)} disabled={!selectedSession}>
+                    {availableTerms.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>

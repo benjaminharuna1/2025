@@ -253,7 +253,8 @@ const TeacherResultsDashboard: React.FC = () => {
               <IonCol size-md="4" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)} disabled={!selectedSession}>
+                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value as string)} disabled={!selectedSession}>
+                    <IonSelectOption value="">Select Term</IonSelectOption>
                     {availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>
