@@ -87,7 +87,7 @@ const PromotionPage: React.FC = () => {
         setLoading(true);
         try {
           const res = await api.get(`/classes?branchId=${selectedBranch}`);
-          setClasses(res.data.classes || []);
+          setClasses(res.data.classes || res.data || []);
         } catch (error) {
           console.error("Failed to fetch classes", error);
           setToastMessage("Could not load classes for the selected branch.");

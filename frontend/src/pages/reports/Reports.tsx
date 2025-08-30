@@ -70,7 +70,7 @@ const Reports: React.FC = () => {
       if (resultReportBranch) {
         try {
           const { data } = await api.get(`/classes?branchId=${resultReportBranch}`);
-          setClasses(data.classes || []);
+          setClasses(data.classes || data || []);
         } catch (error) {
           console.error('Error fetching classes:', error);
         }

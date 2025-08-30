@@ -102,7 +102,7 @@ const AdminResultsDashboard: React.FC = () => {
       if (selectedBranch) {
         try {
           const { data } = await api.get(`/classes?branchId=${selectedBranch}`);
-          setClasses(data.classes || []);
+          setClasses(data.classes || data || []);
         } catch (error) {
           console.error('Error fetching classes:', error);
         }
