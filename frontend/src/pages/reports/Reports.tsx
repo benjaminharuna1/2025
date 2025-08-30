@@ -22,13 +22,15 @@ import {
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Student, Class, Branch } from '../../types';
-import { SESSIONS, TERMS } from '../../constants';
+import { Student, Class, Branch, Session } from '../../types';
+import { TERMS } from '../../constants';
+import { getSessions } from '../../services/sessionsApi';
 
 const Reports: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [feeReportFormat, setFeeReportFormat] = useState('pdf');
   const [feeReportBranch, setFeeReportBranch] = useState('');
   const [resultReportFormat, setResultReportFormat] = useState('pdf');
@@ -39,42 +41,52 @@ const Reports: React.FC = () => {
   const [resultReportTerm, setResultReportTerm] = useState('');
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchInitialData = async () => {
       try {
-        const { data } = await api.get('/students');
-        if (data && Array.isArray(data.students)) {
-          const sortedStudents = data.students.sort((a: Student, b: Student) =>
+        const [studentsRes, branchesRes, sessionsRes] = await Promise.all([
+          api.get('/students'),
+          api.get('/branches'),
+          getSessions(),
+        ]);
+
+        if (studentsRes.data && Array.isArray(studentsRes.data.students)) {
+          const sortedStudents = studentsRes.data.students.sort((a: Student, b: Student) =>
             a.userId.name.localeCompare(b.userId.name)
           );
           setStudents(sortedStudents);
         }
+        setBranches(branchesRes.data.branches || []);
+        setSessions(sessionsRes);
       } catch (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching initial data:', error);
       }
     };
 
-    const fetchClasses = async () => {
-      try {
-        const { data } = await api.get('/classes');
-        setClasses(data.classes || []);
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      }
-    };
-
-    const fetchBranches = async () => {
-      try {
-        const { data } = await api.get('/branches');
-        setBranches(data.branches || []);
-      } catch (error) {
-        console.error('Error fetching branches:', error);
-      }
-    };
-
-    fetchStudents();
-    fetchClasses();
-    fetchBranches();
+    fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (resultReportBranch) {
+        try {
+          const { data } = await api.get(`/classes?branchId=${resultReportBranch}`);
+          setClasses(data.classes || []);
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+        }
+      } else {
+        setClasses([]);
+      }
+    };
+    fetchClasses();
+  }, [resultReportBranch]);
+
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+
+  const handleBranchChange = (branchId: string) => {
+    setResultReportBranch(branchId);
+    setResultReportClass(''); // Reset class
+  };
 
   const generateReport = async (reportType: 'fees' | 'results') => {
     let params = {};
@@ -167,7 +179,7 @@ const Reports: React.FC = () => {
                   <IonCardContent>
                     <IonItem>
                       <IonLabel>Branch</IonLabel>
-                      <IonSelect value={resultReportBranch} onIonChange={(e) => setResultReportBranch(e.detail.value)}>
+                      <IonSelect value={resultReportBranch} onIonChange={(e) => handleBranchChange(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
                         {branches.map((branch) => (
                           <IonSelectOption key={branch._id} value={branch._id}>
@@ -189,7 +201,7 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Class</IonLabel>
-                      <IonSelect value={resultReportClass} onIonChange={(e) => setResultReportClass(e.detail.value)}>
+                      <IonSelect value={resultReportClass} onIonChange={(e) => setResultReportClass(e.detail.value)} disabled={!resultReportBranch}>
                         <IonSelectOption value="">All</IonSelectOption>
                         {classes.map((c) => (
                           <IonSelectOption key={c._id} value={c._id}>
@@ -202,7 +214,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Session</IonLabel>
                       <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {SESSIONS.map((session) => (
+                        {academicYears.map((session) => (
                           <IonSelectOption key={session} value={session}>
                             {session}
                           </IonSelectOption>

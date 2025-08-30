@@ -27,7 +27,7 @@ import {
 } from '@ionic/react';
 import { create } from 'ionicons/icons';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Class, Session } from '../../types';
+import { Branch, Class, Session } from '../../types';
 import api from '../../services/api';
 import { getSessions } from '../../services/sessionsApi';
 
@@ -42,8 +42,10 @@ interface PromotionResult {
 }
 
 const PromotionPage: React.FC = () => {
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [promotionResults, setPromotionResults] = useState<PromotionResult[]>([]);
@@ -62,11 +64,11 @@ const PromotionPage: React.FC = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const [classesRes, sessionsRes] = await Promise.all([
-          api.get('/classes'),
+        const [branchesRes, sessionsRes] = await Promise.all([
+          api.get('/branches'),
           getSessions(),
         ]);
-        setClasses(classesRes.data.classes || []);
+        setBranches(branchesRes.data.branches || []);
         setSessions(sessionsRes);
       } catch (error) {
         console.error("Failed to fetch initial data", error);
@@ -78,6 +80,32 @@ const PromotionPage: React.FC = () => {
     };
     fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (selectedBranch) {
+        setLoading(true);
+        try {
+          const res = await api.get(`/classes?branchId=${selectedBranch}`);
+          setClasses(res.data.classes || []);
+        } catch (error) {
+          console.error("Failed to fetch classes", error);
+          setToastMessage("Could not load classes for the selected branch.");
+          setShowToast(true);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setClasses([]);
+      }
+    };
+    fetchClasses();
+  }, [selectedBranch]);
+
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranch(branchId);
+    setSelectedClass(''); // Reset class selection
+  };
 
   const handleRunPromotion = async () => {
     if (!selectedClass || !selectedSessionId) {
@@ -173,8 +201,16 @@ const PromotionPage: React.FC = () => {
             <IonRow>
               <IonCol size-md="4">
                 <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect value={selectedBranch} onIonChange={e => handleBranchChange(e.detail.value)}>
+                    {branches.map(b => <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
+              <IonCol size-md="4">
+                <IonItem>
                   <IonLabel>Class</IonLabel>
-                  <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value)}>
+                  <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value)} disabled={!selectedBranch}>
                     {classes.map(c => <IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>

@@ -43,6 +43,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getSessions } from '../../services/sessionsApi';
 import { IonToast } from '@ionic/react';
 import '../../theme/global.css';
+import { TERMS } from '../../constants';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -66,10 +67,10 @@ const AdminResultsDashboard: React.FC = () => {
   const [toastInfo, setToastInfo] = useState<{ show: boolean, message: string, color: string }>({ show: false, message: '', color: '' });
 
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState(''); // This is the academic year string
   const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -77,20 +78,14 @@ const AdminResultsDashboard: React.FC = () => {
       try {
         const promises = [
           getSessions(),
-          api.get('/classes'),
           api.get('/subjects'),
+          api.get('/branches'),
         ];
-        if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
-        }
-        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
+        const [sessionsData, subjectsData, branchesData] = await Promise.all(promises);
 
         setSessions(sessionsData);
-        setClasses(classesData.data.classes || classesData.data || []);
         setSubjects(subjectsData.data.subjects || []);
-        if (branchesData) {
-          setBranches(branchesData.data.branches || branchesData.data || []);
-        }
+        setBranches(branchesData.data.branches || branchesData.data || []);
       } catch (error) {
         console.error('Error fetching initial data:', error);
       } finally {
@@ -103,26 +98,42 @@ const AdminResultsDashboard: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
+    const fetchClassesByBranch = async () => {
+      if (selectedBranch) {
+        try {
+          const { data } = await api.get(`/classes?branchId=${selectedBranch}`);
+          setClasses(data.classes || []);
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+        }
+      } else {
+        setClasses([]);
+      }
+    };
+    fetchClassesByBranch();
+  }, [selectedBranch]);
+
+
+  useEffect(() => {
     if (selectedClass) fetchStudentsInClass(selectedClass);
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSessionId) {
+    if (selectedClass && selectedSession && selectedTerm) {
       fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSessionId, formData.branchId, user]);
+  }, [selectedClass, selectedSession, selectedTerm, selectedBranch, user]);
 
   const fetchResults = async () => {
-    if (!selectedSessionId) return;
+    if (!selectedClass || !selectedSession || !selectedTerm) return;
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       const params = new URLSearchParams({
         classId: selectedClass,
-        sessionId: selectedSessionId,
-        branchId,
+        session: selectedSession,
+        term: selectedTerm,
       }).toString();
       const { data } = await api.get(`/results?${params}`);
       setResults(data.results || data || []);
@@ -143,7 +154,8 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedSessionId && !selectedResult?.sessionId) {
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
+    if (!sessionObj && !selectedResult?.sessionId) {
       setToastInfo({ show: true, message: 'A session and term must be selected.', color: 'danger' });
       return;
     }
@@ -163,7 +175,7 @@ const AdminResultsDashboard: React.FC = () => {
       delete payload.term;
 
       if (!selectedResult) {
-        payload.sessionId = selectedSessionId;
+        payload.sessionId = sessionObj?._id;
       }
 
       if (selectedResult) {
@@ -216,13 +228,14 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleRankResults = async () => {
-    if (!selectedSessionId) return;
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
+    if (!sessionObj) return;
     setLoading(true);
     try {
       const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       await api.post('/results/rank', {
         classId: selectedClass,
-        sessionId: selectedSessionId,
+        sessionId: sessionObj._id,
         branchId,
       });
       setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
@@ -236,7 +249,8 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleExport = async () => {
-    if (!selectedClass || !selectedSessionId) {
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
+    if (!selectedClass || !sessionObj) {
       setToastInfo({ show: true, message: 'Please select class, session, and term before exporting.', color: 'warning' });
       return;
     }
@@ -246,7 +260,7 @@ const AdminResultsDashboard: React.FC = () => {
 
       const payload: any = {
         classId: selectedClass,
-        sessionId: selectedSessionId,
+        sessionId: sessionObj._id,
       };
 
       if (user?.role === 'Super Admin') {
@@ -281,6 +295,7 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const openModal = (result: Result | null = null) => {
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
     const selectedClassObj = classes.find((c) => c._id === selectedClass);
     setSelectedResult(result);
     setFormData(
@@ -289,7 +304,7 @@ const AdminResultsDashboard: React.FC = () => {
         : {
             classId: selectedClass,
             branchId: (selectedClassObj?.branchId as string) || '',
-            sessionId: selectedSessionId,
+            sessionId: sessionObj?._id,
           }
     );
     setShowModal(true);
@@ -333,7 +348,7 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const canPerformActions = selectedClass && selectedSessionId;
+  const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
     // Case 1: result.studentId is a populated Student object from the results endpoint
@@ -366,19 +381,19 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranch(branchId);
+    setSelectedClass(''); // Reset class selection
+  };
 
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
-    setSelectedSessionId(''); // Reset term and sessionId when session (year) changes
   };
 
   const handleTermChange = (e: any) => {
-    const term = e.detail.value;
-    setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
-    setSelectedSessionId(sessionObj?._id || '');
+    setSelectedTerm(e.detail.value);
   };
 
   return (
@@ -397,29 +412,25 @@ const AdminResultsDashboard: React.FC = () => {
           <IonGrid>
             {/* Filters Row */}
             <IonRow>
-              {user?.role === 'Super Admin' && (
-                <IonCol size-md="3" size="12">
-                  <IonItem>
-                    <IonLabel>Branch</IonLabel>
-                    <IonSelect
-                      value={formData.branchId as string}
-                      onIonChange={(e) =>
-                        setFormData({ ...formData, branchId: e.detail.value })
-                      }
-                    >
-                      {branches.map((b) => (
-                        <IonSelectOption key={b._id} value={b._id}>
-                          {b.name}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </IonItem>
-                </IonCol>
-              )}
+              <IonCol size-md="3" size="12">
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect
+                    value={selectedBranch}
+                    onIonChange={(e) => handleBranchChange(e.detail.value)}
+                  >
+                    {branches.map((b) => (
+                      <IonSelectOption key={b._id} value={b._id}>
+                        {b.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Class</IonLabel>
-                  <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)}>
+                  <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)} disabled={!selectedBranch}>
                     {classes.map((c) => (
                       <IonSelectOption key={c._id} value={c._id}>
                         {c.name}
@@ -444,7 +455,7 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonItem>
                   <IonLabel>Term</IonLabel>
                   <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>
-                    {availableTerms.map((term) => (
+                    {TERMS.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>
@@ -474,7 +485,7 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={handleExport} color="success" disabled={!canPerformActions}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
-                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
+                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm)?._id || ''}`}>
                   <IonButton color="dark" disabled={!canPerformActions}>
                     <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
                   </IonButton>
