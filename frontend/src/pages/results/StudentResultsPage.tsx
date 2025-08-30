@@ -20,13 +20,10 @@ import {
 import api from '../../services/api';
 import { Result, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
-import { getSessions } from '../../services/sessionsApi';
-import { useAuth } from '../../contexts/AuthContext';
 
 type ToastColor = 'success' | 'danger' | 'warning';
 
 const StudentResultsPage: React.FC = () => {
-  const { user } = useAuth();
   const [results, setResults] = useState<Result[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
@@ -39,21 +36,17 @@ const StudentResultsPage: React.FC = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        // The getSessions endpoint on the backend should be smart enough to only return
-        // sessions relevant to the logged-in student (i.e., their branch + global sessions)
-        const sessionsData = await getSessions();
-        setSessions(sessionsData);
+        const { data } = await api.get('/dropdowns/sessions');
+        // For students, the backend already filters for published sessions
+        setSessions(data || []);
       } catch (error) {
-        console.error('Error fetching sessions:', error);
         setToastInfo({ show: true, message: 'Could not fetch available sessions.', color: 'danger' });
       } finally {
         setLoading(false);
       }
     };
-    if (user) {
-        fetchInitialData();
-    }
-  }, [user]);
+    fetchInitialData();
+  }, []);
 
   const fetchResults = useCallback(async () => {
     if (!selectedAcademicYear || !selectedTerm) {
@@ -61,14 +54,6 @@ const StudentResultsPage: React.FC = () => {
       setMessage('Please select a session and term to view results.');
       return;
     }
-
-    const session = sessions.find(s => s.academicYear === selectedAcademicYear && s.term === selectedTerm);
-    if (!session || session.resultPublicationStatus !== 'Published') {
-      setResults([]);
-      setMessage('Results for this term are not yet available.');
-      return;
-    }
-
     setLoading(true);
     try {
       const { data } = await api.get('/results', {
@@ -77,18 +62,17 @@ const StudentResultsPage: React.FC = () => {
           term: selectedTerm,
         },
       });
-      const fetchedResults = data.results || data || [];
+      const fetchedResults = data || [];
       setResults(fetchedResults);
       if (fetchedResults.length === 0) {
-        setMessage('No results found for this term.');
+        setMessage('No results found for this term, or they may not be published yet.');
       }
     } catch (error) {
-      console.error('Error fetching results:', error);
       setToastInfo({ show: true, message: 'Could not fetch results.', color: 'danger' });
     } finally {
       setLoading(false);
     }
-  }, [selectedAcademicYear, selectedTerm, sessions]);
+  }, [selectedAcademicYear, selectedTerm]);
 
   useEffect(() => {
     fetchResults();

@@ -26,11 +26,10 @@ import {
   IonLoading,
   IonToast,
 } from '@ionic/react';
-import { add, create, trash, cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
+import { add, create, trash, documentTextOutline } from 'ionicons/icons';
 import api from '../../services/api';
 import { Result, Student, Subject, Class, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
-import { getSessions } from '../../services/sessionsApi';
 import { useAuth } from '../../contexts/AuthContext';
 
 type ToastColor = 'success' | 'danger' | 'warning';
@@ -38,21 +37,18 @@ type ToastColor = 'success' | 'danger' | 'warning';
 const TeacherResultsDashboard: React.FC = () => {
   const { user } = useAuth();
 
-  // Raw Data
-  const [allClasses, setAllClasses] = useState<Class[]>([]);
-  const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
-  const [allSessions, setAllSessions] = useState<Session[]>([]);
-
-  // Page-specific state
   const [results, setResults] = useState<Result[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+
   const [showModal, setShowModal] = useState(false);
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [formData, setFormData] = useState<Partial<Result>>({});
   const [loading, setLoading] = useState(false);
   const [toastInfo, setToastInfo] = useState<{ show: boolean; message: string; color: ToastColor }>({ show: false, message: '', color: 'success' });
 
-  // Filters
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
@@ -63,15 +59,14 @@ const TeacherResultsDashboard: React.FC = () => {
       setLoading(true);
       try {
         const [classesData, subjectsData, sessionsData] = await Promise.all([
-          api.get('/classes'),
-          api.get('/subjects'),
-          getSessions(),
+          api.get('/dropdowns/classes'),
+          api.get('/dropdowns/subjects'),
+          api.get('/dropdowns/sessions'),
         ]);
-        setAllClasses(classesData.data.classes || classesData.data || []);
-        setAllSubjects(subjectsData.data.subjects || []);
-        setAllSessions(sessionsData || []);
+        setClasses(classesData.data || []);
+        setSubjects(subjectsData.data || []);
+        setSessions(sessionsData.data || []);
       } catch (error) {
-        console.error('Error fetching initial data:', error);
         setToastInfo({ show: true, message: 'Failed to load initial data.', color: 'danger' });
       } finally {
         setLoading(false);
@@ -82,22 +77,6 @@ const TeacherResultsDashboard: React.FC = () => {
     }
   }, [user]);
 
-  // Client-side filtered data for dropdowns
-  const filteredClasses = useMemo(() => {
-    return user?.classes ? allClasses.filter(c => user.classes.includes(c._id)) : [];
-  }, [user, allClasses]);
-
-  const filteredSubjects = useMemo(() => {
-    return user?.subjects ? allSubjects.filter(s => user.subjects.includes(s._id)) : [];
-  }, [user, allSubjects]);
-
-  const filteredSessions = useMemo(() => {
-    return user?.branchId ? allSessions.filter(s => !s.branchId || s.branchId === user.branchId) : allSessions;
-  }, [user, allSessions]);
-
-  const academicYears = useMemo(() => [...new Set(filteredSessions.map(s => s.academicYear))].sort().reverse(), [filteredSessions]);
-  const availableTerms = useMemo(() => selectedAcademicYear ? [...new Set(filteredSessions.filter(s => s.academicYear === selectedAcademicYear).map(s => s.term))] : [], [filteredSessions, selectedAcademicYear]);
-
   const fetchResults = useCallback(async () => {
     if (!selectedClass || !selectedAcademicYear || !selectedTerm) {
       setResults([]);
@@ -105,15 +84,11 @@ const TeacherResultsDashboard: React.FC = () => {
     }
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        classId: selectedClass,
-        session: selectedAcademicYear,
-        term: selectedTerm,
-      }).toString();
-      const { data } = await api.get(`/results?${params}`);
-      setResults(data.results || data || []);
+      const { data } = await api.get(`/results`, {
+        params: { classId: selectedClass, session: selectedAcademicYear, term: selectedTerm }
+      });
+      setResults(data || []);
     } catch (error) {
-      console.error('Error fetching results:', error);
       setToastInfo({ show: true, message: 'Could not fetch results.', color: 'danger'});
     } finally {
       setLoading(false);
@@ -128,8 +103,8 @@ const TeacherResultsDashboard: React.FC = () => {
     if (selectedClass) {
       const fetchStudentsInClass = async (classId: string) => {
         try {
-          const { data } = await api.get(`/students?classId=${classId}`);
-          setStudents(data.students || []);
+          const { data } = await api.get(`/dropdowns/students?classId=${classId}`);
+          setStudents(data || []);
         } catch (error) {
           console.error('Error fetching students:', error);
         }
@@ -142,7 +117,7 @@ const TeacherResultsDashboard: React.FC = () => {
 
   const handleSave = async () => {
     if (!selectedClass || !selectedSessionId || !formData.studentId || !formData.subjectId) {
-      setToastInfo({ show: true, message: 'All fields are required to add a result.', color: 'danger' });
+      setToastInfo({ show: true, message: 'All fields are required.', color: 'danger' });
       return;
     }
     setLoading(true);
@@ -164,7 +139,6 @@ const TeacherResultsDashboard: React.FC = () => {
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully!', color: 'success' });
     } catch (err: any) {
-      console.error('Save failed:', err.response?.data || err.message);
       setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to save result', color: 'danger' });
     } finally {
         setLoading(false);
@@ -179,7 +153,6 @@ const TeacherResultsDashboard: React.FC = () => {
         await fetchResults();
         setToastInfo({ show: true, message: 'Result deleted.', color: 'success'});
       } catch (err: any) {
-        console.error("Delete failed:", err.response?.data || err.message);
         setToastInfo({ show: true, message: err.response?.data?.message || "Failed to delete result", color: 'danger'});
       } finally {
         setLoading(false);
@@ -206,13 +179,16 @@ const TeacherResultsDashboard: React.FC = () => {
 
   const handleTermChange = (term: string) => {
     setSelectedTerm(term);
-    const sessionObj = filteredSessions.find(s => s.academicYear === selectedAcademicYear && s.term === term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedAcademicYear && s.term === term);
     setSelectedSessionId(sessionObj?._id || '');
   };
 
   const canPerformActions = selectedClass && selectedSessionId;
   const getStudentName = (result: Result) => result.studentId?.userId?.name || 'N/A';
   const getSubjectName = (result: Result) => result.subjectId?.name || 'N/A';
+
+  const academicYears = useMemo(() => [...new Set(sessions.map(s => s.academicYear))].sort().reverse(), [sessions]);
+  const availableTerms = useMemo(() => selectedAcademicYear ? [...new Set(sessions.filter(s => s.academicYear === selectedAcademicYear).map(s => s.term))] : [], [sessions, selectedAcademicYear]);
 
   return (
     <>
@@ -227,15 +203,9 @@ const TeacherResultsDashboard: React.FC = () => {
         <IonContent>
           <IonGrid>
             <IonRow>
-              <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value as string)}>{filteredClasses.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
-              </IonCol>
-              <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Session</IonLabel><IonSelect value={selectedAcademicYear} onIonChange={e => setSelectedAcademicYear(e.detail.value)}>{academicYears.map(year => <IonSelectOption key={year} value={year}>{year}</IonSelectOption>)}</IonSelect></IonItem>
-              </IonCol>
-              <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Term</IonLabel><IonSelect value={selectedTerm} onIonChange={e => handleTermChange(e.detail.value)} disabled={!selectedAcademicYear}>{availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}</IonSelect></IonItem>
-              </IonCol>
+              <IonCol size-md="4" size="12"><IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value as string)}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem></IonCol>
+              <IonCol size-md="4" size="12"><IonItem><IonLabel>Session</IonLabel><IonSelect value={selectedAcademicYear} onIonChange={e => setSelectedAcademicYear(e.detail.value)}>{academicYears.map(year => <IonSelectOption key={year} value={year}>{year}</IonSelectOption>)}</IonSelect></IonItem></IonCol>
+              <IonCol size-md="4" size="12"><IonItem><IonLabel>Term</IonLabel><IonSelect value={selectedTerm} onIonChange={e => handleTermChange(e.detail.value)} disabled={!selectedAcademicYear}>{availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}</IonSelect></IonItem></IonCol>
             </IonRow>
             <IonRow>
                 <IonCol>
@@ -262,13 +232,12 @@ const TeacherResultsDashboard: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-
           <IonModal isOpen={showModal} onDidDismiss={closeModal}>
             <IonCard>
               <IonCardHeader><IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle></IonCardHeader>
               <IonCardContent>
                 <IonItem><IonLabel>Student</IonLabel><IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>{students.map((student) => (<IonSelectOption key={student._id} value={student._id}>{student.userId?.name} ({student.admissionNumber})</IonSelectOption>))}</IonSelect></IonItem>
-                <IonItem><IonLabel>Subject</IonLabel><IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleInputChange}>{filteredSubjects.map((subject) => (<IonSelectOption key={subject._id} value={subject._id}>{subject.name}</IonSelectOption>))}</IonSelect></IonItem>
+                <IonItem><IonLabel>Subject</IonLabel><IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleInputChange}>{subjects.map((subject) => (<IonSelectOption key={subject._id} value={subject._id}>{subject.name}</IonSelectOption>))}</IonSelect></IonItem>
                 <IonItem><IonLabel position="floating">First CA</IonLabel><IonInput name="firstCA" type="number" value={formData.firstCA || ''} onIonChange={handleInputChange} /></IonItem>
                 <IonItem><IonLabel position="floating">Second CA</IonLabel><IonInput name="secondCA" type="number" value={formData.secondCA || ''} onIonChange={handleInputChange} /></IonItem>
                 <IonItem><IonLabel position="floating">Third CA</IonLabel><IonInput name="thirdCA" type="number" value={formData.thirdCA || ''} onIonChange={handleInputChange} /></IonItem>

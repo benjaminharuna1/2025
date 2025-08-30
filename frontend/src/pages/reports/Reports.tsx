@@ -25,22 +25,18 @@ import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
 import { Student, Class, Branch, Session } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { getSessions } from '../../services/sessionsApi';
 
 const Reports: React.FC = () => {
   const { user } = useAuth();
 
-  // Raw Data
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
-  const [allClasses, setAllClasses] = useState<Class[]>([]);
-  const [allBranches, setAllBranches] = useState<Branch[]>([]);
-  const [allSessions, setAllSessions] = useState<Session[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
 
-  // Fee Report Filters
   const [feeReportFormat, setFeeReportFormat] = useState('pdf');
   const [feeReportBranch, setFeeReportBranch] = useState(user?.role === 'Branch Admin' ? user.branchId || '' : '');
 
-  // Result Report Filters
   const [resultReportFormat, setResultReportFormat] = useState('pdf');
   const [resultReportStudent, setResultReportStudent] = useState('');
   const [resultReportClass, setResultReportClass] = useState('');
@@ -55,20 +51,20 @@ const Reports: React.FC = () => {
       setLoading(true);
       try {
         const promises: Promise<any>[] = [
-          api.get('/students'),
-          api.get('/classes'),
-          getSessions(),
+          api.get('/dropdowns/students'),
+          api.get('/dropdowns/classes'),
+          api.get('/dropdowns/sessions'),
         ];
         if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
+          promises.push(api.get('/dropdowns/branches'));
         }
         const [studentsRes, classesRes, sessionsRes, branchesRes] = await Promise.all(promises);
 
-        setAllStudents(studentsRes.data.students || studentsRes.data || []);
-        setAllClasses(classesRes.data.classes || classesRes.data || []);
-        setAllSessions(sessionsRes || []);
+        setStudents(studentsRes.data || []);
+        setClasses(classesRes.data || []);
+        setSessions(sessionsRes.data || []);
         if (branchesRes) {
-          setAllBranches(branchesRes.data.branches || branchesRes.data || []);
+          setBranches(branchesRes.data || []);
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -81,41 +77,19 @@ const Reports: React.FC = () => {
     }
   }, [user]);
 
-  // Memoized lists for Result Report dropdowns
-  const resultFilteredBranches = useMemo(() => {
-      return user?.role === 'Super Admin' ? allBranches : [];
-  }, [user, allBranches]);
-
   const resultFilteredClasses = useMemo(() => {
-    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
-    if (branchId) {
-        return allClasses.filter(c => c.branchId === branchId);
-    }
-    return user?.role === 'Super Admin' ? allClasses : [];
-  }, [user, allClasses, resultReportBranch]);
+    if (resultReportBranch) return classes.filter(c => c.branchId === resultReportBranch);
+    return classes;
+  }, [classes, resultReportBranch]);
 
   const resultFilteredStudents = useMemo(() => {
-    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
-    if (resultReportClass) {
-        return allStudents.filter(s => s.classId === resultReportClass);
-    }
-    if (branchId) {
-        return allStudents.filter(s => s.branchId === branchId);
-    }
-    return allStudents;
-  }, [allStudents, resultReportBranch, resultReportClass, user]);
+    if (resultReportClass) return students.filter(s => s.classId === resultReportClass);
+    if (resultReportBranch) return students.filter(s => s.branchId === resultReportBranch);
+    return students;
+  }, [students, resultReportBranch, resultReportClass]);
 
-  const resultFilteredSessions = useMemo(() => {
-    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
-    if(branchId) {
-        return allSessions.filter(s => !s.branchId || s.branchId === branchId);
-    }
-    return allSessions;
-  }, [allSessions, resultReportBranch, user]);
-
-  const resultAcademicYears = useMemo(() => [...new Set(resultFilteredSessions.map(s => s.academicYear))].sort().reverse(), [resultFilteredSessions]);
-  const resultAvailableTerms = useMemo(() => resultReportSession ? [...new Set(resultFilteredSessions.filter(s => s.academicYear === resultReportSession).map(s => s.term))] : [], [resultFilteredSessions, resultReportSession]);
-
+  const resultAcademicYears = useMemo(() => [...new Set(sessions.map(s => s.academicYear))].sort().reverse(), [sessions]);
+  const resultAvailableTerms = useMemo(() => resultReportSession ? [...new Set(sessions.filter(s => s.academicYear === resultReportSession).map(s => s.term))] : [], [sessions, resultReportSession]);
 
   const generateReport = async (reportType: 'fees' | 'results') => {
     setLoading(true);
@@ -131,8 +105,6 @@ const Reports: React.FC = () => {
         session: resultReportSession,
         term: resultReportTerm,
       };
-      // Note: The backend for result report might not need branchId if classId is provided
-      // and class is unique across branches. Sending it just in case.
       if(resultReportBranch) params.branchId = resultReportBranch;
     }
 
@@ -177,7 +149,7 @@ const Reports: React.FC = () => {
                         <IonLabel>Branch</IonLabel>
                         <IonSelect value={feeReportBranch} onIonChange={(e) => setFeeReportBranch(e.detail.value)}>
                             <IonSelectOption value="">All</IonSelectOption>
-                            {allBranches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
+                            {branches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
                         </IonSelect>
                         </IonItem>
                     )}
@@ -203,7 +175,7 @@ const Reports: React.FC = () => {
                         <IonLabel>Branch</IonLabel>
                         <IonSelect value={resultReportBranch} onIonChange={(e) => {setResultReportBranch(e.detail.value); setResultReportClass(''); setResultReportStudent('');}}>
                             <IonSelectOption value="">All</IonSelectOption>
-                            {resultFilteredBranches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
+                            {branches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
                         </IonSelect>
                         </IonItem>
                     )}
