@@ -43,6 +43,7 @@ const Subjects: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [filterClassLevel, setFilterClassLevel] = useState('');
+  const [filterTeacher, setFilterTeacher] = useState('');
 
   useEffect(() => {
     fetchBranches();
@@ -52,8 +53,11 @@ const Subjects: React.FC = () => {
 
   useEffect(() => {
     fetchSubjects();
+  }, [filterBranch, filterClassLevel, filterTeacher]);
+
+  useEffect(() => {
     fetchClasses();
-  }, [filterBranch, filterClassLevel]);
+  }, []);
 
   const fetchBranches = async () => {
     try {
@@ -78,6 +82,7 @@ const Subjects: React.FC = () => {
       const params: any = {};
       if (filterBranch) params.branchId = filterBranch;
       if (filterClassLevel) params.classLevelId = filterClassLevel;
+      if (filterTeacher) params.teacherId = filterTeacher;
 
       const { data } = await api.get('/subjects', { params });
       if (data && Array.isArray(data.subjects)) {
@@ -93,10 +98,7 @@ const Subjects: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const params: any = {};
-      if (filterBranch) params.branchId = filterBranch;
-      if (filterClassLevel) params.classLevelId = filterClassLevel;
-      const { data } = await api.get('/classes', { params });
+      const { data } = await api.get('/classes');
       setClasses(data.classes || data || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -104,7 +106,10 @@ const Subjects: React.FC = () => {
   };
 
   const fetchTeachers = async () => {
-    // Fetches all teachers to populate the dropdown.
+    // TODO: This is a temporary workaround for a backend that only provides paginated teachers.
+    // In a production environment, this is highly inefficient and can cause performance issues
+    // if the number of teachers is large. A dedicated, non-paginated endpoint (e.g., /api/teachers/all)
+    // should be created to populate dropdowns efficiently.
     let allTeachers: Teacher[] = [];
     let page = 1;
     let totalPages = 1;
@@ -213,12 +218,21 @@ const Subjects: React.FC = () => {
                   </IonSelect>
                 </IonItem>
               </IonCol>
-              <IonCol size-md="6">
+              <IonCol size-md="4">
                 <IonItem>
                   <IonLabel>Filter by Class Level</IonLabel>
                   <IonSelect value={filterClassLevel} onIonChange={e => setFilterClassLevel(e.detail.value)}>
                     <IonSelectOption value="">All</IonSelectOption>
                     {classLevels.map(level => <IonSelectOption key={level._id} value={level._id}>{level.name}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
+              <IonCol size-md="4">
+                <IonItem>
+                  <IonLabel>Filter by Teacher</IonLabel>
+                  <IonSelect value={filterTeacher} onIonChange={e => setFilterTeacher(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {teachers.map(teacher => <IonSelectOption key={teacher._id} value={teacher._id}>{teacher.userId?.name}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>
               </IonCol>
@@ -240,7 +254,7 @@ const Subjects: React.FC = () => {
                         <tr key={subject._id}>
                           <td data-label="Name">{subject.name}</td>
                           <td data-label="Class">{typeof subject.classId === 'object' && subject.classId.name}</td>
-                          <td data-label="Teacher">{typeof subject.teacherId === 'object' && subject.teacherId.name}</td>
+                        <td data-label="Teacher">{subject.teacherId?.userId?.name || 'N/A'}</td>
                           <td data-label="Actions">
                             <IonButton onClick={() => openModal(subject)}>
                               <IonIcon slot="icon-only" icon={create} />
@@ -270,7 +284,9 @@ const Subjects: React.FC = () => {
                 <IonItem>
                   <IonLabel>Class</IonLabel>
                   <IonSelect name="classId" value={formData.classId} onIonChange={e => handleSelectChange('classId', e.detail.value)}>
-                    {classes.map((c) => (
+                    {classes
+                      .filter(c => !filterBranch || c.branchId === filterBranch)
+                      .map((c) => (
                       <IonSelectOption key={c._id} value={c._id}>
                         {c.name}
                       </IonSelectOption>

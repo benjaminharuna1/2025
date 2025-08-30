@@ -25,6 +25,7 @@ import SidebarMenu from '../../components/SidebarMenu';
 import { Student, Class, Branch, Session } from '../../types';
 import { TERMS } from '../../constants';
 import { getSessions } from '../../services/sessionsApi';
+import { getSessionId } from '../../utils/sessionUtils';
 
 const Reports: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
@@ -101,8 +102,7 @@ const Reports: React.FC = () => {
         studentId: resultReportStudent,
         classId: resultReportClass,
         branchId: resultReportBranch,
-        session: resultReportSession,
-        term: resultReportTerm,
+        sessionId: getSessionId(sessions, resultReportSession, resultReportTerm),
       };
     }
 

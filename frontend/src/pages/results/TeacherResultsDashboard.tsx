@@ -51,6 +51,7 @@ const TeacherResultsDashboard: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
@@ -98,23 +99,25 @@ const TeacherResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) {
+    if (selectedClass && selectedSessionId) {
       fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSession, selectedTerm]);
+  }, [selectedClass, selectedSessionId]);
 
   const fetchResults = async () => {
-    if (!selectedClass || !selectedSession || !selectedTerm) return;
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({
+      const params: any = {
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
-      }).toString();
-      const { data } = await api.get(`/results?${params}`);
+        sessionId: selectedSessionId,
+      };
+      if (selectedBranch) {
+        params.branchId = selectedBranch;
+      }
+      const { data } = await api.get('/results', { params });
       setResults(data.results || data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
@@ -269,10 +272,14 @@ const TeacherResultsDashboard: React.FC = () => {
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
+    setSelectedSessionId('');
   };
 
   const handleTermChange = (e: any) => {
-    setSelectedTerm(e.detail.value);
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (

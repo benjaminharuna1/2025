@@ -71,6 +71,7 @@ const AdminResultsDashboard: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState(''); // This is the academic year string
   const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -119,23 +120,25 @@ const AdminResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) {
-      fetchResults();
+    if (selectedClass && selectedSessionId) {
+      fetchResults(selectedSessionId);
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSession, selectedTerm, selectedBranch, user]);
+  }, [selectedClass, selectedSessionId, selectedBranch, user]);
 
-  const fetchResults = async () => {
-    if (!selectedClass || !selectedSession || !selectedTerm) return;
+  const fetchResults = async (sessionId: string) => {
+    if (!sessionId) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({
+      const params: any = {
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
-      }).toString();
-      const { data } = await api.get(`/results?${params}`);
+        sessionId: sessionId,
+      };
+      if (selectedBranch) {
+        params.branchId = selectedBranch;
+      }
+      const { data } = await api.get('/results', { params });
       setResults(data.results || data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
@@ -167,7 +170,7 @@ const AdminResultsDashboard: React.FC = () => {
         secondCA: Number(formData.secondCA),
         thirdCA: Number(formData.thirdCA),
         exam: Number(formData.exam),
-        branchId: user?.role === 'Super Admin' ? formData.branchId : user?.branchId || '',
+        branchId: selectedBranch,
       };
 
       // Clean up payload by removing properties that should not be sent
@@ -183,7 +186,7 @@ const AdminResultsDashboard: React.FC = () => {
       } else {
         await api.post('/results', payload);
       }
-      fetchResults();
+      fetchResults(selectedSessionId);
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
     } catch (err: any) {
@@ -196,7 +199,7 @@ const AdminResultsDashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this result?')) return;
     try {
       await api.delete(`/results/${id}`);
-      fetchResults();
+      fetchResults(selectedSessionId);
       setToastInfo({ show: true, message: 'Result deleted successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Delete failed:', err.response?.data || err.message);
@@ -207,7 +210,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       await api.put(`/results/${id}/approve`);
-      fetchResults();
+      fetchResults(selectedSessionId);
       setToastInfo({ show: true, message: 'Result approved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Approval failed:', err.response?.data || err.message);
@@ -219,7 +222,7 @@ const AdminResultsDashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to revert this result to Draft? This will hide it from students and parents.')) return;
     try {
       await api.put(`/results/${id}/revert-to-draft`);
-      fetchResults();
+      fetchResults(selectedSessionId);
       setToastInfo({ show: true, message: 'Result reverted to draft.', color: 'success' });
     } catch (err: any) {
       console.error('Revert failed:', err.response?.data || err.message);
@@ -232,14 +235,13 @@ const AdminResultsDashboard: React.FC = () => {
     if (!sessionObj) return;
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       await api.post('/results/rank', {
         classId: selectedClass,
         sessionId: sessionObj._id,
-        branchId,
+        branchId: selectedBranch,
       });
       setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
-      fetchResults();
+      fetchResults(sessionObj._id);
     } catch (err: any) {
       console.error('Ranking failed:', err.response?.data || err.message);
       setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to rank results', color: 'danger' });
@@ -261,11 +263,8 @@ const AdminResultsDashboard: React.FC = () => {
       const payload: any = {
         classId: selectedClass,
         sessionId: sessionObj._id,
+        branchId: selectedBranch,
       };
-
-      if (user?.role === 'Super Admin') {
-        payload.branchId = formData.branchId;
-      }
 
       const response = await api.post('/results/export', payload, {
         responseType: 'blob',
@@ -303,7 +302,7 @@ const AdminResultsDashboard: React.FC = () => {
         ? { ...result }
         : {
             classId: selectedClass,
-            branchId: (selectedClassObj?.branchId as string) || '',
+            branchId: selectedBranch,
             sessionId: sessionObj?._id,
           }
     );
@@ -338,7 +337,7 @@ const AdminResultsDashboard: React.FC = () => {
       await api.post('/results/import', importData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      fetchResults();
+      fetchResults(selectedSessionId);
       setShowImportModal(false);
       setSelectedFile(null);
       setToastInfo({ show: true, message: 'Results imported successfully.', color: 'success' });
@@ -347,8 +346,6 @@ const AdminResultsDashboard: React.FC = () => {
       setToastInfo({ show: true, message: 'Failed to import results.', color: 'danger' });
     }
   };
-
-  const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
     // Case 1: result.studentId is a populated Student object from the results endpoint
@@ -390,10 +387,14 @@ const AdminResultsDashboard: React.FC = () => {
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
+    setSelectedSessionId('');
   };
 
   const handleTermChange = (e: any) => {
-    setSelectedTerm(e.detail.value);
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (
@@ -468,7 +469,7 @@ const AdminResultsDashboard: React.FC = () => {
             {/* Action Buttons */}
             <IonRow>
               <IonCol>
-                <IonButton onClick={() => openModal()} disabled={!canPerformActions}>
+                <IonButton onClick={() => openModal()} disabled={!selectedClass || !selectedSessionId}>
                   <IonIcon slot="start" icon={add} /> Add Result
                 </IonButton>
                 <IonRouterLink routerLink="/results/bulk-add">
@@ -479,14 +480,14 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={() => setShowImportModal(true)} color="secondary">
                   <IonIcon slot="start" icon={cloudUploadOutline} /> Import
                 </IonButton>
-                <IonButton onClick={handleRankResults} color="tertiary" disabled={!canPerformActions}>
+                <IonButton onClick={handleRankResults} color="tertiary" disabled={!selectedClass || !selectedSessionId}>
                   <IonIcon slot="start" icon={ribbonOutline} /> Rank Results
                 </IonButton>
-                <IonButton onClick={handleExport} color="success" disabled={!canPerformActions}>
+                <IonButton onClick={handleExport} color="success" disabled={!selectedClass || !selectedSessionId}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
-                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm)?._id || ''}`}>
-                  <IonButton color="dark" disabled={!canPerformActions}>
+                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
+                  <IonButton color="dark" disabled={!selectedClass || !selectedSessionId}>
                     <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
                   </IonButton>
                 </IonRouterLink>

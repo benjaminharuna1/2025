@@ -100,10 +100,10 @@ const Classes: React.FC = () => {
   };
 
   const fetchTeachers = async () => {
-    // Fetches all teachers to populate the dropdown.
-    // Note: This is not ideal for performance if the number of teachers is very large.
-    // A better approach would be a dedicated API endpoint that returns all teachers
-    // or a searchable dropdown that fetches teachers on demand.
+    // TODO: This is a temporary workaround for a backend that only provides paginated teachers.
+    // In a production environment, this is highly inefficient and can cause performance issues
+    // if the number of teachers is large. A dedicated, non-paginated endpoint (e.g., /api/teachers/all)
+    // should be created to populate dropdowns efficiently.
     let allTeachers: Teacher[] = [];
     let page = 1;
     let totalPages = 1;

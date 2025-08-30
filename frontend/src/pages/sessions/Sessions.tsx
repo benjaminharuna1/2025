@@ -30,6 +30,7 @@ import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
 import { Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
+import { getSessions } from '../../services/sessionsApi';
 
 const Sessions: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -45,12 +46,8 @@ const Sessions: React.FC = () => {
 
   const fetchSessions = async () => {
     try {
-      const { data } = await api.get('/sessions');
-      if (data && data.sessions) {
-        setSessions(data.sessions);
-      } else if(Array.isArray(data)) {
-        setSessions(data);
-      }
+      const data = await getSessions();
+      setSessions(data);
     } catch (error) {
       console.error('Error fetching sessions:', error);
     }
