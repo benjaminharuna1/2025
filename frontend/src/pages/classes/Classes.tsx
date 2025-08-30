@@ -100,13 +100,26 @@ const Classes: React.FC = () => {
   };
 
   const fetchTeachers = async () => {
+    // Fetches all teachers to populate the dropdown.
+    // Note: This is not ideal for performance if the number of teachers is very large.
+    // A better approach would be a dedicated API endpoint that returns all teachers
+    // or a searchable dropdown that fetches teachers on demand.
+    let allTeachers: Teacher[] = [];
+    let page = 1;
+    let totalPages = 1;
+
     try {
-      const { data } = await api.get('/users', {
-        params: { role: 'Teacher' },
-      });
-      if (data && Array.isArray(data.users)) {
-        setTeachers(data.users);
-      }
+      do {
+        const { data } = await api.get('/teachers', { params: { page } });
+        if (data && data.teachers) {
+          allTeachers = [...allTeachers, ...data.teachers];
+          totalPages = data.pages;
+          page++;
+        } else {
+          totalPages = 0; // stop the loop
+        }
+      } while (page <= totalPages);
+      setTeachers(allTeachers);
     } catch (error) {
       console.error('Error fetching teachers:', error);
     }
