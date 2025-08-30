@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -24,6 +24,7 @@ import {
   IonMenuButton,
   IonLoading,
   IonRouterLink,
+  IonToast,
 } from '@ionic/react';
 import {
   add,
@@ -40,11 +41,7 @@ import api from '../../services/api';
 import { Result, Student, Subject, Class, Branch, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { useAuth } from '../../contexts/AuthContext';
-import { getSessions } from '../../services/sessionsApi';
-import { IonToast } from '@ionic/react';
 import '../../theme/global.css';
-
-const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminResultsDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -66,72 +63,94 @@ const AdminResultsDashboard: React.FC = () => {
   const [toastInfo, setToastInfo] = useState<{ show: boolean, message: string, color: string }>({ show: false, message: '', color: '' });
 
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState<string>(user?.role === 'Branch Admin' ? user.branchId || '' : '');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState(''); // This is the academic year string
   const [selectedTerm, setSelectedTerm] = useState<string>('');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
+  // Fetch initial data for dropdowns
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchDropdownData = async () => {
       setLoading(true);
       try {
         const promises = [
-          getSessions(),
-          api.get('/classes'),
+          api.get('/dropdowns/sessions'),
           api.get('/subjects'),
+          api.get('/dropdowns/classes') // Fetches classes based on user role
         ];
-        if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
-        }
-        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
 
-        setSessions(sessionsData);
-        setClasses(classesData.data.classes || classesData.data || []);
-        setSubjects(subjectsData.data.subjects || []);
-        if (branchesData) {
-          setBranches(branchesData.data.branches || branchesData.data || []);
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/dropdowns/branches'));
+        }
+
+        const [sessionsRes, subjectsRes, classesRes, branchesRes] = await Promise.all(promises);
+
+        setSessions(sessionsRes.data || []);
+        setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
+        setClasses(classesRes.data || []);
+
+        if (branchesRes) {
+          setBranches(branchesRes.data || []);
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
+        setToastInfo({ show: true, message: 'Could not load initial data.', color: 'danger' });
       } finally {
         setLoading(false);
       }
     };
     if (user) {
-      fetchInitialData();
+      fetchDropdownData();
     }
   }, [user]);
 
+  // Refetch classes when a Super Admin selects a different branch
   useEffect(() => {
-    if (selectedClass) fetchStudentsInClass(selectedClass);
-  }, [selectedClass]);
-
-  useEffect(() => {
-    if (selectedClass && selectedSessionId) {
-      fetchResults();
-    } else {
-      setResults([]);
+    if (user?.role === 'Super Admin' && selectedBranch) {
+      const fetchClassesForBranch = async () => {
+        setLoading(true);
+        try {
+          const { data } = await api.get(`/dropdowns/classes?branchId=${selectedBranch}`);
+          setClasses(data || []);
+          setSelectedClass(''); // Reset class selection
+        } catch (error) {
+          console.error('Error fetching classes for branch:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchClassesForBranch();
     }
-  }, [selectedClass, selectedSessionId, formData.branchId, user]);
+  }, [selectedBranch, user?.role]);
 
-  const fetchResults = async () => {
-    if (!selectedSessionId) return;
+  const fetchResults = useCallback(async () => {
+    if (!selectedClass || !selectedSessionId) return;
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       const params = new URLSearchParams({
         classId: selectedClass,
         sessionId: selectedSessionId,
-        branchId,
-      }).toString();
-      const { data } = await api.get(`/results?${params}`);
+      });
+
+      if (user?.role === 'Super Admin' && selectedBranch) {
+        params.append('branchId', selectedBranch);
+      }
+      // For other roles, the backend will scope by their branchId automatically
+
+      const { data } = await api.get(`/results?${params.toString()}`);
       setResults(data.results || data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
+      setToastInfo({ show: true, message: 'Failed to fetch results.', color: 'danger' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedClass, selectedSessionId, selectedBranch, user?.role]);
+
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
 
   const fetchStudentsInClass = async (classId: string) => {
     try {
@@ -141,6 +160,12 @@ const AdminResultsDashboard: React.FC = () => {
       console.error('Error fetching students:', error);
     }
   };
+
+  useEffect(() => {
+    if (selectedClass) {
+      fetchStudentsInClass(selectedClass);
+    }
+  }, [selectedClass]);
 
   const handleSave = async () => {
     if (!selectedSessionId && !selectedResult?.sessionId) {
@@ -155,12 +180,20 @@ const AdminResultsDashboard: React.FC = () => {
         secondCA: Number(formData.secondCA),
         thirdCA: Number(formData.thirdCA),
         exam: Number(formData.exam),
-        branchId: user?.role === 'Super Admin' ? formData.branchId : user?.branchId || '',
       };
 
-      // Clean up payload by removing properties that should not be sent
-      delete payload.session;
-      delete payload.term;
+      const targetClass = classes.find(c => c._id === payload.classId);
+
+      if (user?.role === 'Super Admin') {
+        payload.branchId = selectedBranch || targetClass?.branchId;
+      } else {
+        payload.branchId = user?.branchId;
+      }
+
+      if (!payload.branchId) {
+        setToastInfo({ show: true, message: 'Could not determine Branch for this result.', color: 'danger'});
+        return;
+      }
 
       if (!selectedResult) {
         payload.sessionId = selectedSessionId;
@@ -216,15 +249,20 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleRankResults = async () => {
-    if (!selectedSessionId) return;
+    if (!selectedSessionId || !selectedClass) return;
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
-      await api.post('/results/rank', {
+      const payload: any = {
         classId: selectedClass,
-        sessionId: selectedSessionId,
-        branchId,
-      });
+        session: selectedSession,
+        term: selectedTerm,
+      };
+
+      if (user?.role === 'Super Admin' && selectedBranch) {
+        payload.branchId = selectedBranch;
+      }
+
+      await api.post('/results/rank', payload);
       setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
       fetchResults();
     } catch (err: any) {
@@ -241,16 +279,16 @@ const AdminResultsDashboard: React.FC = () => {
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-
       const payload: any = {
         classId: selectedClass,
-        sessionId: selectedSessionId,
+        session: selectedSession,
+        term: selectedTerm,
       };
 
-      if (user?.role === 'Super Admin') {
-        payload.branchId = formData.branchId;
+      if (user?.role === 'Super Admin' && selectedBranch) {
+        payload.branchId = selectedBranch;
       }
 
       const response = await api.post('/results/export', payload, {
@@ -261,13 +299,9 @@ const AdminResultsDashboard: React.FC = () => {
         type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       });
       const url = window.URL.createObjectURL(blob);
-
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute(
-        'download',
-        `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
-      );
+      link.setAttribute('download', `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -281,14 +315,12 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const openModal = (result: Result | null = null) => {
-    const selectedClassObj = classes.find((c) => c._id === selectedClass);
     setSelectedResult(result);
     setFormData(
       result
         ? { ...result }
         : {
             classId: selectedClass,
-            branchId: (selectedClassObj?.branchId as string) || '',
             sessionId: selectedSessionId,
           }
     );
@@ -306,11 +338,6 @@ const AdminResultsDashboard: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSelectChange = (e: any) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setSelectedFile(e.target.files[0]);
   };
@@ -319,6 +346,7 @@ const AdminResultsDashboard: React.FC = () => {
     if (!selectedFile) return;
     const importData = new FormData();
     importData.append('file', selectedFile);
+    setLoading(true);
     try {
       await api.post('/results/import', importData, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -330,23 +358,19 @@ const AdminResultsDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error importing results:', error);
       setToastInfo({ show: true, message: 'Failed to import results.', color: 'danger' });
+    } finally {
+        setLoading(false);
     }
   };
 
   const canPerformActions = selectedClass && selectedSessionId;
 
   const getStudentName = (result: Result) => {
-    // Case 1: result.studentId is a populated Student object from the results endpoint
     if (typeof result.studentId === 'object' && result.studentId.userId?.name) {
       return result.studentId.userId.name;
     }
-    // Case 2: result.studentId is just an ID, find the student in the list fetched separately
     const student = students.find((s) => s._id === result.studentId);
-    if (student?.userId?.name) {
-      return student.userId.name;
-    }
-    // Fallback for non-populated or differently shaped student data
-    return 'N/A';
+    return student?.userId?.name || 'N/A';
   };
 
   const getAdmissionNumber = (result: Result) => {
@@ -354,7 +378,7 @@ const AdminResultsDashboard: React.FC = () => {
       return result.studentId.admissionNumber;
     }
     const student = students.find((s) => s._id === result.studentId);
-    return student ? student.admissionNumber : 'N/A';
+    return student?.admissionNumber || 'N/A';
   };
 
   const getSubjectName = (result: Result) => {
@@ -362,7 +386,7 @@ const AdminResultsDashboard: React.FC = () => {
       return result.subjectId.name;
     }
     const subject = subjects.find((s) => s._id === result.subjectId);
-    return subject ? subject.name : 'N/A';
+    return subject?.name || 'N/A';
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
@@ -371,7 +395,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
-    setSelectedSessionId(''); // Reset term and sessionId when session (year) changes
+    setSelectedSessionId('');
   };
 
   const handleTermChange = (e: any) => {
@@ -401,12 +425,7 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonCol size-md="3" size="12">
                   <IonItem>
                     <IonLabel>Branch</IonLabel>
-                    <IonSelect
-                      value={formData.branchId as string}
-                      onIonChange={(e) =>
-                        setFormData({ ...formData, branchId: e.detail.value })
-                      }
-                    >
+                    <IonSelect value={selectedBranch} onIonChange={(e) => setSelectedBranch(e.detail.value)}>
                       {branches.map((b) => (
                         <IonSelectOption key={b._id} value={b._id}>
                           {b.name}
@@ -419,7 +438,7 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Class</IonLabel>
-                  <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)}>
+                  <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)} disabled={user?.role === 'Super Admin' && !selectedBranch}>
                     {classes.map((c) => (
                       <IonSelectOption key={c._id} value={c._id}>
                         {c.name}
@@ -548,7 +567,6 @@ const AdminResultsDashboard: React.FC = () => {
                         </tr>
                       ))}
                     </tbody>
-
                   </table>
                 </div>
               </IonCol>
@@ -562,48 +580,23 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle>
               </IonCardHeader>
               <IonCardContent className="modal-content">
-                {/* Modal Inputs */}
-                {user?.role === 'Super Admin' && !selectedResult ? (
-                  <IonItem>
-                    <IonLabel>Branch</IonLabel>
-                    <IonSelect name="branchId" value={formData.branchId as string} onIonChange={handleSelectChange}>
-                      {branches.map((b) => (
-                        <IonSelectOption key={b._id} value={b._id}>
-                          {b.name}
-                        </IonSelectOption>
-                      ))}
-                    </IonSelect>
-                  </IonItem>
-                ) : (
-                  <IonItem>
-                    <IonLabel>Branch</IonLabel>
-                    <IonInput
-                      readonly
-                      value={branches.find((b) => b._id === formData.branchId)?.name || ''}
-                    />
-                  </IonItem>
-                )}
                 {/* Student */}
                 <IonItem>
                   <IonLabel>Student</IonLabel>
-                  <IonInput
-                    readonly
-                    value={
-                      (typeof formData.studentId === 'object' && formData.studentId.name) || ''
-                    }
-                  />
+                  <IonSelect name="studentId" value={formData.studentId} onIonChange={handleInputChange}>
+                    {students.map(s => (
+                        <IonSelectOption key={s._id} value={s._id}>{s.userId.name} ({s.admissionNumber})</IonSelectOption>
+                    ))}
+                  </IonSelect>
                 </IonItem>
                 {/* Subject */}
                 <IonItem>
                   <IonLabel>Subject</IonLabel>
-                  <IonInput
-                    readonly
-                    value={
-                      typeof formData.subjectId === 'object' && formData.subjectId?.name
-                        ? formData.subjectId.name
-                        : subjects.find((s) => s._id === formData.subjectId)?.name || ''
-                    }
-                  />
+                   <IonSelect name="subjectId" value={formData.subjectId} onIonChange={handleInputChange}>
+                    {subjects.map(s => (
+                        <IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>
+                    ))}
+                  </IonSelect>
                 </IonItem>
                 {/* Marks */}
                 <IonItem>
@@ -613,15 +606,15 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonItem>
                   <IonLabel position="floating">Second CA</IonLabel>
                   <IonInput name="secondCA" type="number" value={formData.secondCA || ''} onIonChange={handleInputChange} />
-                </IonItem>
+                </Item>
                 <IonItem>
                   <IonLabel position="floating">Third CA</IonLabel>
                   <IonInput name="thirdCA" type="number" value={formData.thirdCA || ''} onIonChange={handleInputChange} />
-                </IonItem>
+                </Item>
                 <IonItem>
                   <IonLabel position="floating">Exam</IonLabel>
                   <IonInput name="exam" type="number" value={formData.exam || ''} onIonChange={handleInputChange} />
-                </IonItem>
+                </Item>
                 <IonItem>
                   <IonLabel>Total Marks</IonLabel>
                   <IonInput
@@ -642,10 +635,9 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonItem>
                     <IonLabel position="floating">Principal Comment</IonLabel>
                     <IonInput name="principalComment" value={formData.principalComment || ''} onIonChange={handleInputChange} />
-                  </IonItem>
+                  </Item>
                 )}
 
-                {/* Save/Cancel Buttons */}
                 <div className="modal-buttons">
                   <IonButton expand="block" onClick={handleSave}>
                     Save
@@ -680,7 +672,7 @@ const AdminResultsDashboard: React.FC = () => {
             onDidDismiss={() => setToastInfo({ ...toastInfo, show: false })}
             message={toastInfo.message}
             duration={3000}
-            color={toastInfo.color}
+            color={toastInfo.color as any}
           />
         </IonContent>
       </IonPage>
