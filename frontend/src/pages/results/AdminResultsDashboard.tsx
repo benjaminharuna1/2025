@@ -87,7 +87,6 @@ const AdminResultsDashboard: React.FC = () => {
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters(prev => {
       const newFilters = { ...prev, [key]: value };
-      // Reset dependent filters
       if (key === 'branchId') {
         newFilters.classId = '';
       }
@@ -112,7 +111,6 @@ const AdminResultsDashboard: React.FC = () => {
           promises.push(api.get('/branches'));
         }
         const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
-
         setAllSessions(sessionsData || []);
         setAllClasses(classesData.data.classes || classesData.data || []);
         setSubjects(subjectsData.data.subjects || []);
@@ -156,13 +154,17 @@ const AdminResultsDashboard: React.FC = () => {
   const availableTerms = useMemo(() => filters.academicYear ? [...new Set(filteredSessions.filter(s => s.academicYear === filters.academicYear).map(s => s.term))] : [], [filteredSessions, filters.academicYear]);
 
   const fetchResults = useCallback(async () => {
-    if (!filters.classId || !filters.sessionId) {
+    if (!filters.classId || !filters.academicYear || !filters.term) {
       setResults([]);
       return;
     }
     setLoading(true);
     try {
-      const params = new URLSearchParams({ classId: filters.classId, sessionId: filters.sessionId });
+      const params = new URLSearchParams({
+        classId: filters.classId,
+        session: filters.academicYear,
+        term: filters.term,
+      });
       const branchId = user?.role === 'Super Admin' ? filters.branchId : user?.branchId;
       if (branchId) {
         params.append('branchId', branchId);
@@ -171,10 +173,11 @@ const AdminResultsDashboard: React.FC = () => {
       setResults(data.results || data || []);
     } catch (error) {
       console.error('Error fetching results:', error);
+      setToastInfo({ show: true, message: 'Failed to fetch results.', color: 'danger' });
     } finally {
       setLoading(false);
     }
-  }, [filters.classId, filters.sessionId, filters.branchId, user]);
+  }, [filters.classId, filters.academicYear, filters.term, filters.branchId, user]);
 
   useEffect(() => {
     fetchResults();
@@ -209,7 +212,7 @@ const AdminResultsDashboard: React.FC = () => {
         await api.post('/results', {
             ...formData,
             classId: filters.classId,
-            sessionId: filters.sessionId,
+            sessionId: filters.sessionId, // The backend addResult needs sessionId
             session: filters.academicYear,
             term: filters.term,
             branchId: user?.role === 'Super Admin' ? filters.branchId : user?.branchId
@@ -289,7 +292,7 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleExport = async () => {
-    if (!filters.classId || !filters.sessionId) {
+    if (!filters.classId || !filters.academicYear || !filters.term) {
       setToastInfo({ show: true, message: 'Please select class, session, and term before exporting.', color: 'warning' });
       return;
     }
@@ -361,7 +364,7 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const canPerformActions = filters.classId && filters.sessionId;
+  const canPerformActions = filters.classId && filters.academicYear && filters.term;
   const getStudentName = (result: Result) => result.studentId?.userId?.name || 'N/A';
   const getAdmissionNumber = (result: Result) => result.studentId?.admissionNumber || 'N/A';
   const getSubjectName = (result: Result) => result.subjectId?.name || 'N/A';
