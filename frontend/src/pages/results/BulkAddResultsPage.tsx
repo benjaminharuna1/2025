@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -18,13 +18,15 @@ import {
   IonButtons,
   IonBackButton,
   IonLoading,
+  IonToast,
 } from '@ionic/react';
 import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Student, Subject, Class, Branch, Session } from '../../types';
+import { Student, Subject, Class, Branch, Session, Result } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { getSessions } from '../../services/sessionsApi';
-import { IonToast } from '@ionic/react';
+
+type ToastColor = 'success' | 'danger' | 'warning';
 
 interface MarkEntry {
   studentId: string;
@@ -37,21 +39,22 @@ interface MarkEntry {
 const BulkAddResultsPage: React.FC = () => {
   const { user } = useAuth();
 
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  // Raw Data
+  const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
+  const [allClasses, setAllClasses] = useState<Class[]>([]);
+  const [allBranches, setAllBranches] = useState<Branch[]>([]);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
+
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<MarkEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
+  const [toastInfo, setToastInfo] = useState<{ show: boolean; message: string; color: ToastColor }>({ show: false, message: '', color: 'success' });
 
-  const [selectedBranch, setSelectedBranch] = useState<string>(
-    user?.role === 'Super Admin' ? '' : user?.branchId || ''
-  );
+  // Filters
+  const [selectedBranch, setSelectedBranch] = useState<string>(user?.role === 'Branch Admin' ? user.branchId || '' : '');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
-  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
@@ -59,26 +62,20 @@ const BulkAddResultsPage: React.FC = () => {
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        const promises = [
-          api.get('/classes'),
-          api.get('/subjects'),
-          getSessions(),
-        ];
+        const promises: Promise<any>[] = [ api.get('/classes'), api.get('/subjects'), getSessions() ];
         if (user?.role === 'Super Admin') {
           promises.push(api.get('/branches'));
         }
         const [classesData, subjectsData, sessionsData, branchesData] = await Promise.all(promises);
-
-        setClasses(classesData.data.classes || classesData.data || []);
-        setSubjects(subjectsData.data.subjects || subjectsData.data || []);
-        setSessions(sessionsData);
+        setAllClasses(classesData.data.classes || classesData.data || []);
+        setAllSubjects(subjectsData.data.subjects || []);
+        setAllSessions(sessionsData || []);
         if (branchesData) {
-          setBranches(branchesData.data.branches || branchesData.data || []);
+          setAllBranches(branchesData.data.branches || branchesData.data || []);
         }
-
       } catch (error) {
         console.error('Error fetching initial data:', error);
-        setShowToast({ show: true, message: 'Failed to load initial data.', color: 'danger' });
+        setToastInfo({ show: true, message: 'Failed to load initial data.', color: 'danger' });
       } finally {
         setLoading(false);
       }
@@ -88,105 +85,90 @@ const BulkAddResultsPage: React.FC = () => {
     }
   }, [user]);
 
-  useEffect(() => {
-    if (selectedClass) fetchStudentsInClass(selectedClass);
-    else setStudents([]);
-  }, [selectedClass]);
+  // Filtered data for dropdowns
+  const filteredClasses = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'Teacher') return user.classes ? allClasses.filter(c => user.classes.includes(c._id)) : [];
+    const branchId = user.role === 'Super Admin' ? selectedBranch : user.branchId;
+    if (branchId) return allClasses.filter(c => c.branchId === branchId);
+    return user.role === 'Super Admin' ? allClasses : [];
+  }, [user, allClasses, selectedBranch]);
 
-  useEffect(() => {
-    if (
-      students.length > 0 &&
-      selectedClass &&
-      selectedSubject &&
-      selectedSessionId
-    ) {
-      fetchExistingResults();
+  const filteredSubjects = useMemo(() => {
+    if(!user) return [];
+    if (user.role === 'Teacher') return user.subjects ? allSubjects.filter(s => user.subjects.includes(s._id)) : [];
+    return allSubjects;
+  }, [user, allSubjects]);
+
+  const filteredSessions = useMemo(() => {
+    if (!user) return [];
+    const branchId = user.role === 'Super Admin' ? selectedBranch : user.branchId;
+    if (branchId) return allSessions.filter(s => !s.branchId || s.branchId === branchId);
+    return allSessions;
+  }, [user, allSessions, selectedBranch]);
+
+  const academicYears = useMemo(() => [...new Set(filteredSessions.map(s => s.academicYear))].sort().reverse(), [filteredSessions]);
+  const availableTerms = useMemo(() => selectedAcademicYear ? [...new Set(filteredSessions.filter(s => s.academicYear === selectedAcademicYear).map(s => s.term))] : [], [filteredSessions, selectedAcademicYear]);
+
+
+  const fetchStudentsAndResults = useCallback(async () => {
+    if (!selectedClass || !selectedSubject || !selectedSessionId) {
+      setStudents([]);
+      setMarks([]);
+      return;
     }
-  }, [students, selectedClass, selectedSubject, selectedSessionId]);
-
-  const fetchStudentsInClass = async (classId: string) => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/students?classId=${classId}`);
-      setStudents(data.students || []);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const [studentsRes, resultsRes] = await Promise.all([
+        api.get(`/students?classId=${selectedClass}`),
+        api.get('/results', { params: { classId: selectedClass, subjectId: selectedSubject, sessionId: selectedSessionId } })
+      ]);
 
-  const fetchExistingResults = async () => {
-    if (!selectedSessionId) return;
-    setLoading(true);
-    try {
-      const { data } = await api.get('/results', {
-        params: {
-          classId: selectedClass,
-          subjectId: selectedSubject,
-          sessionId: selectedSessionId,
-        },
-      });
+      const fetchedStudents = studentsRes.data.students || [];
+      setStudents(fetchedStudents);
 
       const resultMap: Record<string, MarkEntry> = {};
-      (data.results || data).forEach((res: any) => {
+      (resultsRes.data.results || resultsRes.data).forEach((res: Result) => {
         const studentIdentifier = typeof res.studentId === 'object' ? res.studentId._id : res.studentId;
         resultMap[studentIdentifier] = {
           studentId: studentIdentifier,
-          firstCA: res.firstCA ?? '',
-          secondCA: res.secondCA ?? '',
-          thirdCA: res.thirdCA ?? '',
-          exam: res.exam ?? '',
+          firstCA: res.firstCA ?? '', secondCA: res.secondCA ?? '', thirdCA: res.thirdCA ?? '', exam: res.exam ?? '',
         };
       });
-
-      const initialMarks = students.map((student) =>
-        resultMap[student._id]
-          ? resultMap[student._id]
-          : { studentId: student._id, firstCA: '', secondCA: '', thirdCA: '', exam: '' }
+      const initialMarks = fetchedStudents.map((student: Student) =>
+        resultMap[student._id] ? resultMap[student._id] : { studentId: student._id, firstCA: '', secondCA: '', thirdCA: '', exam: '' }
       );
-
       setMarks(initialMarks);
     } catch (err) {
-      console.error('Error fetching existing results:', err);
+      console.error('Error fetching students or existing results:', err);
+      setToastInfo({ show: true, message: 'Could not load student data.', color: 'danger' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedClass, selectedSubject, selectedSessionId]);
 
-  const handleMarkChange = (
-    studentId: string,
-    field: keyof MarkEntry,
-    value: string
-  ) => {
-    setMarks((prev) =>
-      prev.map((m) => (m.studentId === studentId ? { ...m, [field]: value } : m))
-    );
+  useEffect(() => {
+    fetchStudentsAndResults();
+  }, [fetchStudentsAndResults]);
+
+
+  const handleMarkChange = (studentId: string, field: keyof MarkEntry, value: string) => {
+    setMarks((prev) => prev.map((m) => (m.studentId === studentId ? { ...m, [field]: value } : m)));
   };
 
   const handleSubmitAll = async () => {
-    if (!selectedSessionId) {
-      setShowToast({ show: true, message: 'A valid session and term must be selected.', color: 'danger' });
+    if (!canSubmit) {
+      setToastInfo({ show: true, message: 'Please fill all filter fields before submitting.', color: 'warning' });
       return;
     }
-
-    if (
-      !selectedClass ||
-      !selectedSubject ||
-      (!selectedBranch && user?.role === 'Super Admin')
-    ) {
-      setShowToast({ show: true, message: 'Please select class, subject, and session (and branch if Super Admin).', color: 'warning' });
-      return;
-    }
-
     setLoading(true);
-
     try {
       await api.post('/results/bulk', {
         classId: selectedClass,
         subjectId: selectedSubject,
-        sessionId: selectedSessionId,
-        branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
+        session: selectedAcademicYear,
+        term: selectedTerm,
+        branchId: user?.role === 'Super Admin' ? selectedBranch : user?.branchId,
         results: marks.map((mark) => ({
           studentId: mark.studentId,
           firstCA: Number(mark.firstCA) || 0,
@@ -195,79 +177,43 @@ const BulkAddResultsPage: React.FC = () => {
           exam: Number(mark.exam) || 0,
         })),
       });
-
-      setShowToast({ show: true, message: 'Results submitted successfully!', color: 'success' });
-      fetchExistingResults(); // Refetch to show any calculated fields
+      setToastInfo({ show: true, message: 'Results submitted successfully!', color: 'success' });
+      await fetchStudentsAndResults();
     } catch (err: any) {
-      if (err.response && err.response.status === 403) {
-        setShowToast({
-          show: true,
-          message: 'Result entry for this term is not currently open. Please contact an administrator.',
-          color: 'danger',
-        });
-      } else {
-        setShowToast({
-          show: true,
-          message: err.response?.data?.message || 'Failed to submit results.',
-          color: 'danger',
-        });
-      }
       console.error('Bulk add failed:', err.response?.data || err.message);
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to submit results.', color: 'danger' });
     } finally {
       setLoading(false);
     }
   };
 
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
-
-  const handleSessionChange = (e: any) => {
-    setSelectedSession(e.detail.value);
-    setSelectedTerm('');
-    setSelectedSessionId('');
-  };
-
-  const handleTermChange = (e: any) => {
-    const term = e.detail.value;
+  const handleTermChange = (term: string) => {
     setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    const sessionObj = filteredSessions.find(s => s.academicYear === selectedAcademicYear && s.term === term);
     setSelectedSessionId(sessionObj?._id || '');
   };
 
-  const canSubmit =
-    (user?.role !== 'Super Admin' || selectedBranch) &&
-    selectedClass &&
-    selectedSubject &&
-    selectedSessionId &&
-    students.length > 0;
+  const canSubmit = selectedClass && selectedSubject && selectedSessionId && students.length > 0;
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonButtons slot="start">
-            <IonBackButton defaultHref="/dashboard/results" />
-          </IonButtons>
+          <IonButtons slot="start"><IonBackButton defaultHref="/dashboard/results" /></IonButtons>
           <IonTitle>Bulk Add Results</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent>
         <IonLoading isOpen={loading} message="Please wait..." />
+        <IonToast isOpen={toastInfo.show} onDidDismiss={() => setToastInfo({show: false, message: '', color: 'success'})} message={toastInfo.message} duration={3000} color={toastInfo.color} />
         <IonGrid>
           <IonRow>
             {user?.role === 'Super Admin' && (
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Branch</IonLabel>
-                  <IonSelect
-                    value={selectedBranch}
-                    onIonChange={(e) => setSelectedBranch(e.detail.value)}
-                  >
-                    {branches.map((b) => (
-                      <IonSelectOption key={b._id} value={b._id}>
-                        {b.name}
-                      </IonSelectOption>
-                    ))}
+                  <IonSelect value={selectedBranch} onIonChange={(e) => {setSelectedBranch(e.detail.value); setSelectedClass('');}}>
+                    {allBranches.map((b) => (<IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>))}
                   </IonSelect>
                 </IonItem>
               </IonCol>
@@ -275,61 +221,32 @@ const BulkAddResultsPage: React.FC = () => {
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Class</IonLabel>
-                <IonSelect
-                  value={selectedClass}
-                  onIonChange={(e) => setSelectedClass(e.detail.value)}
-                >
-                  {classes.map((c) => (
-                    <IonSelectOption key={c._id} value={c._id}>
-                      {c.name}
-                    </IonSelectOption>
-                  ))}
+                <IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)} disabled={user?.role === 'Super Admin' && !selectedBranch}>
+                  {filteredClasses.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}
                 </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Subject</IonLabel>
-                <IonSelect
-                  value={selectedSubject}
-                  onIonChange={(e) => setSelectedSubject(e.detail.value)}
-                >
-                  {subjects.map((s) => (
-                    <IonSelectOption key={s._id} value={s._id}>
-                      {s.name}
-                    </IonSelectOption>
-                  ))}
+                <IonSelect value={selectedSubject} onIonChange={(e) => setSelectedSubject(e.detail.value)}>
+                  {filteredSubjects.map((s) => (<IonSelectOption key={s._id} value={s._id}>{s.name}</IonSelectOption>))}
                 </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Session</IonLabel>
-                <IonSelect
-                  value={selectedSession}
-                  onIonChange={handleSessionChange}
-                >
-                  {academicYears.map((session) => (
-                    <IonSelectOption key={session} value={session}>
-                      {session}
-                    </IonSelectOption>
-                  ))}
+                <IonSelect value={selectedAcademicYear} onIonChange={e => setSelectedAcademicYear(e.detail.value)}>
+                  {academicYears.map((session) => (<IonSelectOption key={session} value={session}>{session}</IonSelectOption>))}
                 </IonSelect>
               </IonItem>
             </IonCol>
             <IonCol size-md="3" size="12">
               <IonItem>
                 <IonLabel>Term</IonLabel>
-                <IonSelect
-                  value={selectedTerm}
-                  onIonChange={handleTermChange}
-                  disabled={!selectedSession}
-                >
-                  {availableTerms.map((term) => (
-                    <IonSelectOption key={term} value={term}>
-                      {term}
-                    </IonSelectOption>
-                  ))}
+                <IonSelect value={selectedTerm} onIonChange={e => handleTermChange(e.detail.value)} disabled={!selectedAcademicYear}>
+                  {availableTerms.map((term) => (<IonSelectOption key={term} value={term}>{term}</IonSelectOption>))}
                 </IonSelect>
               </IonItem>
             </IonCol>
@@ -338,93 +255,28 @@ const BulkAddResultsPage: React.FC = () => {
           {canSubmit && (
             <IonRow>
               <IonCol>
-                <div className="ion-padding">
+                <div className="ion-padding responsive-table-wrapper">
                   <table className="responsive-table">
-  <thead>
-    <tr>
-      <th>Student Name</th>
-      <th>Admission No</th>
-      <th>1st CA</th>
-      <th>2nd CA</th>
-      <th>3rd CA</th>
-      <th>Exam</th>
-      <th>Total</th> {/* New column */}
-    </tr>
-  </thead>
-  <tbody>
-    {students.map((student, index) => {
-      const total =
-        (Number(marks[index]?.firstCA) || 0) +
-        (Number(marks[index]?.secondCA) || 0) +
-        (Number(marks[index]?.thirdCA) || 0) +
-        (Number(marks[index]?.exam) || 0);
-
-      return (
-        <tr key={student._id}>
-          <td data-label="Student Name">
-            <span>{student.userId?.name}</span>
-          </td>
-          <td data-label="Admission Number">
-            <span>{student.admissionNumber}</span>
-          </td>
-          <td data-label="1st CA">
-            <IonInput
-              type="number"
-              value={marks[index]?.firstCA}
-              onIonChange={(e) =>
-                handleMarkChange(student._id, 'firstCA', e.detail.value!)
-              }
-              placeholder="0"
-            />
-          </td>
-          <td data-label="2nd CA">
-            <IonInput
-              type="number"
-              value={marks[index]?.secondCA}
-              onIonChange={(e) =>
-                handleMarkChange(student._id, 'secondCA', e.detail.value!)
-              }
-              placeholder="0"
-            />
-          </td>
-          <td data-label="3rd CA">
-            <IonInput
-              type="number"
-              value={marks[index]?.thirdCA}
-              onIonChange={(e) =>
-                handleMarkChange(student._id, 'thirdCA', e.detail.value!)
-              }
-              placeholder="0"
-            />
-          </td>
-          <td data-label="Exam">
-            <IonInput
-              type="number"
-              value={marks[index]?.exam}
-              onIonChange={(e) =>
-                handleMarkChange(student._id, 'exam', e.detail.value!)
-              }
-              placeholder="0"
-            />
-          </td>
-          <td data-label="Total">
-            <span>{total}</span> {/* Live computed total */}
-          </td>
-        </tr>
-      );
-    })}
-  </tbody>
-</table>
-
-                  <IonButton
-                    expand="full"
-                    onClick={handleSubmitAll}
-                    className="ion-margin-top"
-                    disabled={loading}
-                  >
-                    <IonIcon slot="start" icon={checkmarkDoneOutline} />
-                    Submit All
-                  </IonButton>
+                    <thead><tr><th>Student Name</th><th>Admission No</th><th>1st CA</th><th>2nd CA</th><th>3rd CA</th><th>Exam</th><th>Total</th></tr></thead>
+                    <tbody>
+                      {students.map((student, index) => {
+                        const mark = marks.find(m => m.studentId === student._id) || { studentId: student._id };
+                        const total = (Number(mark.firstCA) || 0) + (Number(mark.secondCA) || 0) + (Number(mark.thirdCA) || 0) + (Number(mark.exam) || 0);
+                        return (
+                          <tr key={student._id}>
+                            <td data-label="Student Name"><span>{student.userId?.name}</span></td>
+                            <td data-label="Admission Number"><span>{student.admissionNumber}</span></td>
+                            <td data-label="1st CA"><IonInput type="number" value={mark.firstCA} onIonChange={(e) => handleMarkChange(student._id, 'firstCA', e.detail.value!)} placeholder="0"/></td>
+                            <td data-label="2nd CA"><IonInput type="number" value={mark.secondCA} onIonChange={(e) => handleMarkChange(student._id, 'secondCA', e.detail.value!)} placeholder="0"/></td>
+                            <td data-label="3rd CA"><IonInput type="number" value={mark.thirdCA} onIonChange={(e) => handleMarkChange(student._id, 'thirdCA', e.detail.value!)} placeholder="0"/></td>
+                            <td data-label="Exam"><IonInput type="number" value={mark.exam} onIonChange={(e) => handleMarkChange(student._id, 'exam', e.detail.value!)} placeholder="0"/></td>
+                            <td data-label="Total"><span>{total}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <IonButton expand="full" onClick={handleSubmitAll} className="ion-margin-top" disabled={loading}><IonIcon slot="start" icon={checkmarkDoneOutline} />Submit All</IonButton>
                 </div>
               </IonCol>
             </IonRow>

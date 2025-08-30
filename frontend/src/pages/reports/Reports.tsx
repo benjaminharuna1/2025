@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -19,96 +19,138 @@ import {
   IonCardContent,
   IonButtons,
   IonMenuButton,
+  IonLoading,
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Student, Class, Branch } from '../../types';
-import { SESSIONS, TERMS } from '../../constants';
+import { Student, Class, Branch, Session } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
+import { getSessions } from '../../services/sessionsApi';
 
 const Reports: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const { user } = useAuth();
+
+  // Raw Data
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
+  const [allClasses, setAllClasses] = useState<Class[]>([]);
+  const [allBranches, setAllBranches] = useState<Branch[]>([]);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
+
+  // Fee Report Filters
   const [feeReportFormat, setFeeReportFormat] = useState('pdf');
-  const [feeReportBranch, setFeeReportBranch] = useState('');
+  const [feeReportBranch, setFeeReportBranch] = useState(user?.role === 'Branch Admin' ? user.branchId || '' : '');
+
+  // Result Report Filters
   const [resultReportFormat, setResultReportFormat] = useState('pdf');
   const [resultReportStudent, setResultReportStudent] = useState('');
   const [resultReportClass, setResultReportClass] = useState('');
-  const [resultReportBranch, setResultReportBranch] = useState('');
+  const [resultReportBranch, setResultReportBranch] = useState(user?.role === 'Branch Admin' ? user.branchId || '' : '');
   const [resultReportSession, setResultReportSession] = useState('');
   const [resultReportTerm, setResultReportTerm] = useState('');
 
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchInitialData = async () => {
+      setLoading(true);
       try {
-        const { data } = await api.get('/students');
-        if (data && Array.isArray(data.students)) {
-          const sortedStudents = data.students.sort((a: Student, b: Student) =>
-            a.userId.name.localeCompare(b.userId.name)
-          );
-          setStudents(sortedStudents);
+        const promises: Promise<any>[] = [
+          api.get('/students'),
+          api.get('/classes'),
+          getSessions(),
+        ];
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/branches'));
+        }
+        const [studentsRes, classesRes, sessionsRes, branchesRes] = await Promise.all(promises);
+
+        setAllStudents(studentsRes.data.students || studentsRes.data || []);
+        setAllClasses(classesRes.data.classes || classesRes.data || []);
+        setAllSessions(sessionsRes || []);
+        if (branchesRes) {
+          setAllBranches(branchesRes.data.branches || branchesRes.data || []);
         }
       } catch (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
       }
     };
+    if (user) {
+        fetchInitialData();
+    }
+  }, [user]);
 
-    const fetchClasses = async () => {
-      try {
-        const { data } = await api.get('/classes');
-        setClasses(data.classes || []);
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      }
-    };
+  // Memoized lists for Result Report dropdowns
+  const resultFilteredBranches = useMemo(() => {
+      return user?.role === 'Super Admin' ? allBranches : [];
+  }, [user, allBranches]);
 
-    const fetchBranches = async () => {
-      try {
-        const { data } = await api.get('/branches');
-        setBranches(data.branches || []);
-      } catch (error) {
-        console.error('Error fetching branches:', error);
-      }
-    };
+  const resultFilteredClasses = useMemo(() => {
+    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
+    if (branchId) {
+        return allClasses.filter(c => c.branchId === branchId);
+    }
+    return user?.role === 'Super Admin' ? allClasses : [];
+  }, [user, allClasses, resultReportBranch]);
 
-    fetchStudents();
-    fetchClasses();
-    fetchBranches();
-  }, []);
+  const resultFilteredStudents = useMemo(() => {
+    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
+    if (resultReportClass) {
+        return allStudents.filter(s => s.classId === resultReportClass);
+    }
+    if (branchId) {
+        return allStudents.filter(s => s.branchId === branchId);
+    }
+    return allStudents;
+  }, [allStudents, resultReportBranch, resultReportClass, user]);
+
+  const resultFilteredSessions = useMemo(() => {
+    const branchId = user?.role === 'Super Admin' ? resultReportBranch : user?.branchId;
+    if(branchId) {
+        return allSessions.filter(s => !s.branchId || s.branchId === branchId);
+    }
+    return allSessions;
+  }, [allSessions, resultReportBranch, user]);
+
+  const resultAcademicYears = useMemo(() => [...new Set(resultFilteredSessions.map(s => s.academicYear))].sort().reverse(), [resultFilteredSessions]);
+  const resultAvailableTerms = useMemo(() => resultReportSession ? [...new Set(resultFilteredSessions.filter(s => s.academicYear === resultReportSession).map(s => s.term))] : [], [resultFilteredSessions, resultReportSession]);
+
 
   const generateReport = async (reportType: 'fees' | 'results') => {
-    let params = {};
+    setLoading(true);
+    let params: any = {};
+    let url = `/reports/${reportType}`;
     if (reportType === 'fees') {
-      params = {
-        format: feeReportFormat,
-        branchId: feeReportBranch,
-      };
+      params = { format: feeReportFormat, branchId: feeReportBranch };
     } else {
       params = {
         format: resultReportFormat,
         studentId: resultReportStudent,
         classId: resultReportClass,
-        branchId: resultReportBranch,
         session: resultReportSession,
         term: resultReportTerm,
       };
+      // Note: The backend for result report might not need branchId if classId is provided
+      // and class is unique across branches. Sending it just in case.
+      if(resultReportBranch) params.branchId = resultReportBranch;
     }
 
     try {
-      const response = await api.get(`/reports/${reportType}`, {
-        params,
-        responseType: 'blob',
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const response = await api.get(url, { params, responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
-      link.href = url;
-      const filename = reportType === 'fees' ? `fee_report.${feeReportFormat}` : `result_report.${resultReportFormat}`;
+      link.href = blobUrl;
+      const filename = `${reportType}_report_${new Date().toISOString().split('T')[0]}.${params.format}`;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error(`Error generating ${reportType} report:`, error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,32 +160,27 @@ const Reports: React.FC = () => {
       <IonPage id="main-content">
         <IonHeader>
           <IonToolbar>
-            <IonButtons slot="start">
-              <IonMenuButton />
-            </IonButtons>
+            <IonButtons slot="start"><IonMenuButton /></IonButtons>
             <IonTitle>Reports</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent>
+          <IonLoading isOpen={loading} />
           <IonGrid>
             <IonRow>
               <IonCol>
                 <IonCard>
-                  <IonCardHeader>
-                    <IonCardTitle>Fee Report</IonCardTitle>
-                  </IonCardHeader>
+                  <IonCardHeader><IonCardTitle>Fee Report</IonCardTitle></IonCardHeader>
                   <IonCardContent>
-                    <IonItem>
-                      <IonLabel>Branch</IonLabel>
-                      <IonSelect value={feeReportBranch} onIonChange={(e) => setFeeReportBranch(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {branches.map((branch) => (
-                          <IonSelectOption key={branch._id} value={branch._id}>
-                            {branch.name}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
+                    {user?.role === 'Super Admin' && (
+                        <IonItem>
+                        <IonLabel>Branch</IonLabel>
+                        <IonSelect value={feeReportBranch} onIonChange={(e) => setFeeReportBranch(e.detail.value)}>
+                            <IonSelectOption value="">All</IonSelectOption>
+                            {allBranches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
+                        </IonSelect>
+                        </IonItem>
+                    )}
                     <IonItem>
                       <IonLabel>Format</IonLabel>
                       <IonSelect value={feeReportFormat} onIonChange={(e) => setFeeReportFormat(e.detail.value)}>
@@ -151,9 +188,7 @@ const Reports: React.FC = () => {
                         <IonSelectOption value="excel">Excel</IonSelectOption>
                       </IonSelect>
                     </IonItem>
-                    <IonButton expand="full" onClick={() => generateReport('fees')} className="ion-margin-top">
-                      Generate Fee Report
-                    </IonButton>
+                    <IonButton expand="full" onClick={() => generateReport('fees')} className="ion-margin-top">Generate Fee Report</IonButton>
                   </IonCardContent>
                 </IonCard>
               </IonCol>
@@ -161,63 +196,43 @@ const Reports: React.FC = () => {
             <IonRow>
               <IonCol>
                 <IonCard>
-                  <IonCardHeader>
-                    <IonCardTitle>Result Report</IonCardTitle>
-                  </IonCardHeader>
+                  <IonCardHeader><IonCardTitle>Result Report</IonCardTitle></IonCardHeader>
                   <IonCardContent>
+                    {user?.role === 'Super Admin' && (
+                        <IonItem>
+                        <IonLabel>Branch</IonLabel>
+                        <IonSelect value={resultReportBranch} onIonChange={(e) => {setResultReportBranch(e.detail.value); setResultReportClass(''); setResultReportStudent('');}}>
+                            <IonSelectOption value="">All</IonSelectOption>
+                            {resultFilteredBranches.map((branch) => (<IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>))}
+                        </IonSelect>
+                        </IonItem>
+                    )}
                     <IonItem>
-                      <IonLabel>Branch</IonLabel>
-                      <IonSelect value={resultReportBranch} onIonChange={(e) => setResultReportBranch(e.detail.value)}>
+                      <IonLabel>Class</IonLabel>
+                      <IonSelect value={resultReportClass} onIonChange={(e) => {setResultReportClass(e.detail.value); setResultReportStudent('');}}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {branches.map((branch) => (
-                          <IonSelectOption key={branch._id} value={branch._id}>
-                            {branch.name}
-                          </IonSelectOption>
-                        ))}
+                        {resultFilteredClasses.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}
                       </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Student</IonLabel>
                       <IonSelect value={resultReportStudent} onIonChange={(e) => setResultReportStudent(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {students.map((student) => (
-                          <IonSelectOption key={student._id} value={student._id}>
-                            {student.userId.name}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Class</IonLabel>
-                      <IonSelect value={resultReportClass} onIonChange={(e) => setResultReportClass(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {classes.map((c) => (
-                          <IonSelectOption key={c._id} value={c._id}>
-                            {c.name}
-                          </IonSelectOption>
-                        ))}
+                        {resultFilteredStudents.map((student) => (<IonSelectOption key={student._id} value={student._id}>{student.userId.name}</IonSelectOption>))}
                       </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Session</IonLabel>
                       <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {SESSIONS.map((session) => (
-                          <IonSelectOption key={session} value={session}>
-                            {session}
-                          </IonSelectOption>
-                        ))}
+                        {resultAcademicYears.map((session) => (<IonSelectOption key={session} value={session}>{session}</IonSelectOption>))}
                       </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Term</IonLabel>
                       <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)}>
                         <IonSelectOption value="">All</IonSelectOption>
-                        {TERMS.map((term) => (
-                          <IonSelectOption key={term} value={term}>
-                            {term}
-                          </IonSelectOption>
-                        ))}
+                        {resultAvailableTerms.map((term) => (<IonSelectOption key={term} value={term}>{term}</IonSelectOption>))}
                       </IonSelect>
                     </IonItem>
                     <IonItem>
@@ -227,9 +242,7 @@ const Reports: React.FC = () => {
                         <IonSelectOption value="excel">Excel</IonSelectOption>
                       </IonSelect>
                     </IonItem>
-                    <IonButton expand="full" onClick={() => generateReport('results')} className="ion-margin-top">
-                      Generate Result Report
-                    </IonButton>
+                    <IonButton expand="full" onClick={() => generateReport('results')} className="ion-margin-top">Generate Result Report</IonButton>
                   </IonCardContent>
                 </IonCard>
               </IonCol>

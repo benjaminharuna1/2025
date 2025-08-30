@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   IonPage,
   IonHeader,
@@ -21,92 +21,85 @@ import api from '../../services/api';
 import { Result, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { getSessions } from '../../services/sessionsApi';
+import { useAuth } from '../../contexts/AuthContext';
+
+type ToastColor = 'success' | 'danger' | 'warning';
 
 const StudentResultsPage: React.FC = () => {
+  const { user } = useAuth();
   const [results, setResults] = useState<Result[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string>('');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('Please select a session and term to view results.');
-  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
+  const [toastInfo, setToastInfo] = useState<{ show: boolean; message: string; color: ToastColor }>({ show: false, message: '', color: 'success' });
 
   useEffect(() => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
+        // The getSessions endpoint on the backend should be smart enough to only return
+        // sessions relevant to the logged-in student (i.e., their branch + global sessions)
         const sessionsData = await getSessions();
         setSessions(sessionsData);
       } catch (error) {
         console.error('Error fetching sessions:', error);
-        setShowToast({ show: true, message: 'Could not fetch available sessions.', color: 'danger' });
+        setToastInfo({ show: true, message: 'Could not fetch available sessions.', color: 'danger' });
       } finally {
         setLoading(false);
       }
     };
-    fetchInitialData();
-  }, []);
+    if (user) {
+        fetchInitialData();
+    }
+  }, [user]);
+
+  const fetchResults = useCallback(async () => {
+    if (!selectedAcademicYear || !selectedTerm) {
+      setResults([]);
+      setMessage('Please select a session and term to view results.');
+      return;
+    }
+
+    const session = sessions.find(s => s.academicYear === selectedAcademicYear && s.term === selectedTerm);
+    if (!session || session.resultPublicationStatus !== 'Published') {
+      setResults([]);
+      setMessage('Results for this term are not yet available.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data } = await api.get('/results', {
+        params: {
+          session: selectedAcademicYear,
+          term: selectedTerm,
+        },
+      });
+      const fetchedResults = data.results || data || [];
+      setResults(fetchedResults);
+      if (fetchedResults.length === 0) {
+        setMessage('No results found for this term.');
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      setToastInfo({ show: true, message: 'Could not fetch results.', color: 'danger' });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedAcademicYear, selectedTerm, sessions]);
 
   useEffect(() => {
-    const fetchResults = async () => {
-      if (!selectedSessionId) {
-        setResults([]);
-        setMessage('Please select a session and term to view results.');
-        return;
-      }
-
-      const session = sessions.find(s => s._id === selectedSessionId);
-
-      if (!session || session.resultPublicationStatus !== 'Published') {
-        setResults([]);
-        setMessage('Results for this term are not yet available.');
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const { data } = await api.get('/results', {
-          params: { sessionId: selectedSessionId },
-        });
-        const fetchedResults = data.results || data || [];
-        setResults(fetchedResults);
-        if (fetchedResults.length === 0) {
-          setMessage('No results found for this term.');
-        }
-      } catch (error) {
-        console.error('Error fetching results:', error);
-        setShowToast({ show: true, message: 'Could not fetch results.', color: 'danger' });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchResults();
-  }, [selectedSessionId, sessions]);
+  }, [fetchResults]);
 
   const getSubjectName = (result: Result) => {
-    if (typeof result.subjectId === 'object' && result.subjectId.name) {
-      return result.subjectId.name;
-    }
-    return 'N/A';
+    return (typeof result.subjectId === 'object' && result.subjectId.name) || 'N/A';
   };
 
-  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
-
-  const handleSessionChange = (e: any) => {
-    setSelectedSession(e.detail.value);
-    setSelectedTerm('');
-    setSelectedSessionId('');
-  };
-
-  const handleTermChange = (e: any) => {
-    const term = e.detail.value;
-    setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
-    setSelectedSessionId(sessionObj?._id || '');
-  };
+  const academicYears = useMemo(() => [...new Set(sessions.map(s => s.academicYear))].sort().reverse(), [sessions]);
+  const availableTerms = useMemo(() => selectedAcademicYear ? [...new Set(sessions.filter(s => s.academicYear === selectedAcademicYear).map(s => s.term))] : [], [sessions, selectedAcademicYear]);
 
   return (
     <>
@@ -114,9 +107,7 @@ const StudentResultsPage: React.FC = () => {
       <IonPage id="main-content">
         <IonHeader>
           <IonToolbar>
-            <IonButtons slot="start">
-              <IonMenuButton />
-            </IonButtons>
+            <IonButtons slot="start"><IonMenuButton /></IonButtons>
             <IonTitle>My Results</IonTitle>
           </IonToolbar>
         </IonHeader>
@@ -127,72 +118,41 @@ const StudentResultsPage: React.FC = () => {
               <IonCol size="6">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect
-                    value={selectedSession}
-                    onIonChange={handleSessionChange}
-                  >
-                    {academicYears.map((session) => (
-                      <IonSelectOption key={session} value={session}>
-                        {session}
-                      </IonSelectOption>
-                    ))}
+                  <IonSelect value={selectedAcademicYear} onIonChange={e => {setSelectedAcademicYear(e.detail.value); setSelectedTerm('');}}>
+                    {academicYears.map((session) => (<IonSelectOption key={session} value={session}>{session}</IonSelectOption>))}
                   </IonSelect>
                 </IonItem>
               </IonCol>
               <IonCol size="6">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect
-                    value={selectedTerm}
-                    onIonChange={handleTermChange}
-                    disabled={!selectedSession}
-                  >
-                    <IonSelectOption value="">Select Term</IonSelectOption>
-                    {availableTerms.map((term) => (
-                      <IonSelectOption key={term} value={term}>
-                        {term}
-                      </IonSelectOption>
-                    ))}
+                  <IonSelect value={selectedTerm} onIonChange={e => setSelectedTerm(e.detail.value)} disabled={!selectedAcademicYear}>
+                    {availableTerms.map((term) => (<IonSelectOption key={term} value={term}>{term}</IonSelectOption>))}
                   </IonSelect>
                 </IonItem>
               </IonCol>
             </IonRow>
             <IonRow>
               <IonCol>
-                <div className="ion-padding">
+                <div className="ion-padding responsive-table-wrapper">
                   <table className="responsive-table">
-                    <thead>
-                      <tr>
-                        <th>Subject</th>
-                        <th>1st CA</th>
-                        <th>2nd CA</th>
-                        <th>3rd CA</th>
-                        <th>Exam</th>
-                        <th>Total</th>
-                        <th>Grade</th>
-                        <th>Remarks</th>
-                      </tr>
-                    </thead>
+                    <thead><tr><th>Subject</th><th>1st CA</th><th>2nd CA</th><th>3rd CA</th><th>Exam</th><th>Total</th><th>Grade</th><th>Remarks</th></tr></thead>
                     <tbody>
                       {results.length > 0 ? (
                         results.map((result) => (
                           <tr key={result._id}>
-                            <td>{getSubjectName(result)}</td>
-                            <td>{result.firstCA ?? 'N/A'}</td>
-                            <td>{result.secondCA ?? 'N/A'}</td>
-                            <td>{result.thirdCA ?? 'N/A'}</td>
-                            <td>{result.exam ?? 'N/A'}</td>
-                            <td>{result.marks}</td>
-                            <td>{result.grade}</td>
-                            <td>{result.remarks}</td>
+                            <td data-label="Subject">{getSubjectName(result)}</td>
+                            <td data-label="1st CA">{result.firstCA ?? 'N/A'}</td>
+                            <td data-label="2nd CA">{result.secondCA ?? 'N/A'}</td>
+                            <td data-label="3rd CA">{result.thirdCA ?? 'N/A'}</td>
+                            <td data-label="Exam">{result.exam ?? 'N/A'}</td>
+                            <td data-label="Total">{result.marks}</td>
+                            <td data-label="Grade">{result.grade}</td>
+                            <td data-label="Remarks">{result.remarks}</td>
                           </tr>
                         ))
                       ) : (
-                        <tr>
-                          <td colSpan={8} className="ion-text-center">
-                            {message}
-                          </td>
-                        </tr>
+                        <tr><td colSpan={8} className="ion-text-center">{message}</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -200,13 +160,7 @@ const StudentResultsPage: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-          <IonToast
-            isOpen={showToast.show}
-            onDidDismiss={() => setShowToast({ show: false, message: '', color: '' })}
-            message={showToast.message}
-            duration={3000}
-            color={showToast.color}
-          />
+          <IonToast isOpen={toastInfo.show} onDidDismiss={() => setToastInfo({ show: false, message: '', color: 'success' })} message={toastInfo.message} duration={3000} color={toastInfo.color} />
         </IonContent>
       </IonPage>
     </>
