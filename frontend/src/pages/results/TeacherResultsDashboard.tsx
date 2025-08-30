@@ -47,21 +47,22 @@ const TeacherResultsDashboard: React.FC = () => {
   const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
 
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        const [classesData, subjectsData, sessionsData] = await Promise.all([
-          api.get('/classes'),
+        const [branchesData, subjectsData, sessionsData] = await Promise.all([
+          api.get('/branches'),
           api.get('/subjects'),
           getSessions(),
         ]);
-        setClasses(classesData.data.classes || []);
+        setBranches(branchesData.data.branches || []);
         setSubjects(subjectsData.data.subjects || []);
         setSessions(sessionsData);
       } catch (error) {
@@ -75,26 +76,43 @@ const TeacherResultsDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const fetchClassesByBranch = async () => {
+      if (selectedBranch) {
+        try {
+          const { data } = await api.get(`/classes?branchId=${selectedBranch}`);
+          setClasses(data.classes || data || []);
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+        }
+      } else {
+        setClasses([]);
+      }
+    };
+    fetchClassesByBranch();
+  }, [selectedBranch]);
+
+  useEffect(() => {
     if (selectedClass) {
       fetchStudentsInClass(selectedClass);
     }
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSessionId) {
+    if (selectedClass && selectedSession && selectedTerm) {
       fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSessionId]);
+  }, [selectedClass, selectedSession, selectedTerm]);
 
   const fetchResults = async () => {
-    if (!selectedSessionId) return;
+    if (!selectedClass || !selectedSession || !selectedTerm) return;
     setLoading(true);
     try {
       const params = new URLSearchParams({
         classId: selectedClass,
-        sessionId: selectedSessionId,
+        session: selectedSession,
+        term: selectedTerm,
       }).toString();
       const { data } = await api.get(`/results?${params}`);
       setResults(data.results || data || []);
@@ -115,7 +133,8 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedSessionId && !selectedResult?.sessionId) {
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
+    if (!sessionObj && !selectedResult?.sessionId) {
       setShowToast({ show: true, message: 'A session and term must be selected.', color: 'danger' });
       return;
     }
@@ -133,7 +152,7 @@ const TeacherResultsDashboard: React.FC = () => {
       delete payload.term;
 
       if (!selectedResult) {
-        payload.sessionId = selectedSessionId;
+        payload.sessionId = sessionObj?._id;
       }
 
       if (selectedResult) {
@@ -175,8 +194,9 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const openModal = (result: Result | null = null) => {
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
     setSelectedResult(result);
-    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: selectedSessionId });
+    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: sessionObj?._id });
     setShowModal(true);
   };
 
@@ -216,7 +236,7 @@ const TeacherResultsDashboard: React.FC = () => {
     }
   };
 
-  const canPerformActions = selectedClass && selectedSessionId;
+  const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
     // Case 1: result.studentId is a populated Student object from the results endpoint
@@ -241,17 +261,18 @@ const TeacherResultsDashboard: React.FC = () => {
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
   const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
 
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranch(branchId);
+    setSelectedClass('');
+  };
+
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
-    setSelectedSessionId('');
   };
 
   const handleTermChange = (e: any) => {
-    const term = e.detail.value;
-    setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
-    setSelectedSessionId(sessionObj?._id || '');
+    setSelectedTerm(e.detail.value);
   };
 
   return (
@@ -269,10 +290,18 @@ const TeacherResultsDashboard: React.FC = () => {
         <IonContent>
           <IonGrid>
             <IonRow>
-              <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value as string)}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
+            <IonCol size-md="3" size="12">
+                <IonItem>
+                  <IonLabel>Branch</IonLabel>
+                  <IonSelect value={selectedBranch} onIonChange={e => handleBranchChange(e.detail.value)}>
+                    {branches.map(branch => <IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
-              <IonCol size-md="4" size="12">
+              <IonCol size-md="3" size="12">
+                <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value as string)} disabled={!selectedBranch}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
+              </IonCol>
+              <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
                   <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
@@ -281,7 +310,7 @@ const TeacherResultsDashboard: React.FC = () => {
                   </IonSelect>
                 </IonItem>
               </IonCol>
-              <IonCol size-md="4" size="12">
+              <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
                   <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>

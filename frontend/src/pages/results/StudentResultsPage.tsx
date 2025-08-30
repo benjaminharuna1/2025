@@ -27,7 +27,6 @@ const StudentResultsPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
-  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('Please select a session and term to view results.');
   const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
@@ -50,13 +49,13 @@ const StudentResultsPage: React.FC = () => {
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!selectedSessionId) {
+      if (!selectedSession || !selectedTerm) {
         setResults([]);
         setMessage('Please select a session and term to view results.');
         return;
       }
 
-      const session = sessions.find(s => s._id === selectedSessionId);
+      const session = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
 
       if (!session || session.resultPublicationStatus !== 'Published') {
         setResults([]);
@@ -67,7 +66,7 @@ const StudentResultsPage: React.FC = () => {
       setLoading(true);
       try {
         const { data } = await api.get('/results', {
-          params: { sessionId: selectedSessionId },
+          params: { session: selectedSession, term: selectedTerm },
         });
         const fetchedResults = data.results || data || [];
         setResults(fetchedResults);
@@ -83,7 +82,7 @@ const StudentResultsPage: React.FC = () => {
     };
 
     fetchResults();
-  }, [selectedSessionId, sessions]);
+  }, [selectedSession, selectedTerm, sessions]);
 
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) {
@@ -98,14 +97,10 @@ const StudentResultsPage: React.FC = () => {
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
     setSelectedTerm('');
-    setSelectedSessionId('');
   };
 
   const handleTermChange = (e: any) => {
-    const term = e.detail.value;
-    setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
-    setSelectedSessionId(sessionObj?._id || '');
+    setSelectedTerm(e.detail.value);
   };
 
   return (
