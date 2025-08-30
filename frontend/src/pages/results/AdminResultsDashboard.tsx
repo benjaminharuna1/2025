@@ -131,13 +131,17 @@ const AdminResultsDashboard: React.FC = () => {
 
   const filteredClasses = useMemo(() => {
     if (!user) return [];
+    // Teacher role has the most specific filter, check it first.
+    if (user.role === 'Teacher') {
+        // Assumes user object for a teacher includes an array of assigned class IDs `user.classes`
+        return user.classes ? allClasses.filter(c => user.classes.includes(c._id)) : [];
+    }
+    // For other roles, filtering by branch is the main logic.
     const branchId = user.role === 'Super Admin' ? filters.branchId : user.branchId;
     if (branchId) {
       return allClasses.filter(c => c.branchId === branchId);
     }
-    if (user.role === 'Teacher') {
-        return user.classes ? allClasses.filter(c => user.classes.includes(c._id)) : [];
-    }
+    // For Super Admin with no branch selected, show all classes. Otherwise, empty.
     return user.role === 'Super Admin' ? allClasses : [];
   }, [user, allClasses, filters.branchId]);
 
@@ -212,7 +216,7 @@ const AdminResultsDashboard: React.FC = () => {
         await api.post('/results', {
             ...formData,
             classId: filters.classId,
-            sessionId: filters.sessionId, // The backend addResult needs sessionId
+            sessionId: filters.sessionId,
             session: filters.academicYear,
             term: filters.term,
             branchId: user?.role === 'Super Admin' ? filters.branchId : user?.branchId
