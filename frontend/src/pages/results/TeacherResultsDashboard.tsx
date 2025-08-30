@@ -48,8 +48,7 @@ const TeacherResultsDashboard: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState('');
 
   useEffect(() => {
-    fetchClasses();
-    fetchSubjects();
+    fetchTeacherData();
   }, []);
 
   useEffect(() => {
@@ -101,12 +100,25 @@ const TeacherResultsDashboard: React.FC = () => {
     }
   };
 
-  const fetchClasses = async () => {
+  const fetchTeacherData = async () => {
+    setLoading(true);
     try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
+      // Assuming the /api/teachers/me endpoint returns the teacher's details,
+      // including the classes and subjects they are assigned to.
+      const { data: teacherData } = await api.get('/teachers/me');
+      if (teacherData) {
+        setClasses(teacherData.classes || []);
+        setSubjects(teacherData.subjects || []);
+      }
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error('Error fetching teacher data:', error);
+      // Fallback to fetching all if the dedicated endpoint fails
+      const { data: classData } = await api.get('/classes');
+      setClasses(classData.classes || []);
+      const { data: subjectData } = await api.get('/subjects');
+      setSubjects(subjectData.subjects || []);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -219,10 +231,36 @@ const TeacherResultsDashboard: React.FC = () => {
                 <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
               </IonCol>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Session</IonLabel><IonInput value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value!)} placeholder="e.g. 2024/2025" /></IonItem>
+                <IonItem>
+                  <IonLabel>Session</IonLabel>
+                  <IonSelect
+                    value={selectedSession}
+                    onIonChange={(e) => setSelectedSession(e.detail.value)}
+                    placeholder="Select Session"
+                  >
+                    {SESSIONS.map((session) => (
+                      <IonSelectOption key={session} value={session}>
+                        {session}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Term</IonLabel><IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}><IonSelectOption value="First">First</IonSelectOption><IonSelectOption value="Second">Second</IonSelectOption><IonSelectOption value="Third">Third</IonSelectOption></IonSelect></IonItem>
+                <IonItem>
+                  <IonLabel>Term</IonLabel>
+                  <IonSelect
+                    value={selectedTerm}
+                    onIonChange={(e) => setSelectedTerm(e.detail.value)}
+                    placeholder="Select Term"
+                  >
+                    {TERMS.map((term) => (
+                      <IonSelectOption key={term} value={term}>
+                        {term}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
             </IonRow>
             <IonRow>

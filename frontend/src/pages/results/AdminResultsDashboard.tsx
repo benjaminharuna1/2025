@@ -62,24 +62,42 @@ const AdminResultsDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Filters
+  const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
 
   useEffect(() => {
-    if (user?.role === 'Super Admin') fetchBranches();
-    fetchClasses();
+    if (user?.role === 'Super Admin') {
+      fetchBranches();
+    } else {
+      // For Branch Admin, set their branch as the selected one
+      setSelectedBranch(user?.branchId || '');
+    }
     fetchSubjects();
   }, [user]);
+
+  useEffect(() => {
+    // Fetch classes whenever the selected branch changes
+    if (user?.role === 'Super Admin') {
+      fetchClasses(selectedBranch);
+    } else if (user?.branchId) {
+      fetchClasses(user.branchId);
+    }
+  }, [selectedBranch, user]);
 
   useEffect(() => {
     if (selectedClass) fetchStudentsInClass(selectedClass);
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) fetchResults();
-    else setResults([]);
-  }, [selectedClass, selectedSession, selectedTerm, formData.branchId, user]);
+    const shouldFetch = selectedClass && selectedSession && selectedTerm;
+    if (shouldFetch) {
+      fetchResults();
+    } else {
+      setResults([]);
+    }
+  }, [selectedClass, selectedSession, selectedTerm, selectedBranch, user]);
 
   const fetchBranches = async () => {
     try {
@@ -93,7 +111,13 @@ const AdminResultsDashboard: React.FC = () => {
   const fetchResults = async () => {
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
+      const branchId = user?.role === 'Super Admin' ? selectedBranch : user?.branchId || '';
+      if (!branchId) {
+        // Don't fetch if a branch isn't selected for Super Admin
+        setResults([]);
+        setLoading(false)
+        return;
+      }
       const params = new URLSearchParams({
         classId: selectedClass,
         session: selectedSession,
@@ -127,9 +151,14 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (branchId?: string) => {
     try {
-      const { data } = await api.get('/classes');
+      // If the user is Super Admin, classes should only be fetched when a branch is selected.
+      if (user?.role === 'Super Admin' && !branchId) {
+        setClasses([]); // Clear classes if no branch is selected
+        return;
+      }
+      const { data } = await api.get('/classes', { params: { branchId } });
       setClasses(data.classes || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -180,7 +209,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleRankResults = async () => {
     setLoading(true);
     try {
-      const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
+      const branchId = user?.role === 'Super Admin' ? selectedBranch : user?.branchId || '';
       await api.post('/results/rank', {
         classId: selectedClass,
         session: selectedSession,
@@ -214,7 +243,7 @@ const AdminResultsDashboard: React.FC = () => {
     };
 
     if (user?.role === 'Super Admin') {
-      payload.branchId = formData.branchId;
+      payload.branchId = selectedBranch;
     }
 
     // Make POST request to export endpoint
@@ -252,14 +281,13 @@ const AdminResultsDashboard: React.FC = () => {
 
 
   const openModal = (result: Result | null = null) => {
-    const selectedClassObj = classes.find((c) => c._id === selectedClass);
     setSelectedResult(result);
     setFormData(
       result
         ? { ...result }
         : {
             classId: selectedClass,
-            branchId: (selectedClassObj?.branchId as string) || '',
+            branchId: user?.role === 'Super Admin' ? selectedBranch : user?.branchId,
             session: selectedSession,
             term: selectedTerm || 'First Term',
           }
@@ -344,10 +372,12 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonItem>
                     <IonLabel>Branch</IonLabel>
                     <IonSelect
-                      value={formData.branchId as string}
-                      onIonChange={(e) =>
-                        setFormData({ ...formData, branchId: e.detail.value })
-                      }
+                      value={selectedBranch}
+                      placeholder="Select Branch"
+                      onIonChange={(e) => {
+                        setSelectedBranch(e.detail.value);
+                        setSelectedClass(''); // Reset class when branch changes
+                      }}
                     >
                       {branches.map((b) => (
                         <IonSelectOption key={b._id} value={b._id}>

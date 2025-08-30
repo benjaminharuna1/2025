@@ -39,42 +39,55 @@ const Reports: React.FC = () => {
   const [resultReportTerm, setResultReportTerm] = useState('');
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        const { data } = await api.get('/students');
-        if (data && Array.isArray(data.students)) {
-          const sortedStudents = data.students.sort((a: Student, b: Student) =>
-            a.userId.name.localeCompare(b.userId.name)
-          );
-          setStudents(sortedStudents);
-        }
-      } catch (error) {
-        console.error('Error fetching students:', error);
-      }
-    };
-
-    const fetchClasses = async () => {
-      try {
-        const { data } = await api.get('/classes');
-        setClasses(data.classes || []);
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      }
-    };
-
-    const fetchBranches = async () => {
-      try {
-        const { data } = await api.get('/branches');
-        setBranches(data.branches || []);
-      } catch (error) {
-        console.error('Error fetching branches:', error);
-      }
-    };
-
-    fetchStudents();
-    fetchClasses();
     fetchBranches();
   }, []);
+
+  useEffect(() => {
+    fetchClasses(resultReportBranch);
+    fetchStudents(resultReportBranch, resultReportClass);
+  }, [resultReportBranch, resultReportClass]);
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      setBranches(data.branches || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
+  const fetchStudents = async (branchId: string, classId: string) => {
+    try {
+      const { data } = await api.get('/students', {
+        params: {
+          branchId: branchId || undefined,
+          classId: classId || undefined,
+        },
+      });
+      if (data && Array.isArray(data.students)) {
+        const sortedStudents = data.students.sort((a: Student, b: Student) =>
+          a.userId.name.localeCompare(b.userId.name)
+        );
+        setStudents(sortedStudents);
+      } else {
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setStudents([]);
+    }
+  };
+
+  const fetchClasses = async (branchId: string) => {
+    try {
+      const { data } = await api.get('/classes', {
+        params: { branchId: branchId || undefined },
+      });
+      setClasses(data.classes || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
 
   const generateReport = async (reportType: 'fees' | 'results') => {
     let params = {};
@@ -167,11 +180,35 @@ const Reports: React.FC = () => {
                   <IonCardContent>
                     <IonItem>
                       <IonLabel>Branch</IonLabel>
-                      <IonSelect value={resultReportBranch} onIonChange={(e) => setResultReportBranch(e.detail.value)}>
+                      <IonSelect
+                        value={resultReportBranch}
+                        onIonChange={(e) => {
+                          setResultReportBranch(e.detail.value);
+                          setResultReportClass(''); // Reset class on branch change
+                          setResultReportStudent(''); // Reset student on branch change
+                        }}
+                      >
                         <IonSelectOption value="">All</IonSelectOption>
                         {branches.map((branch) => (
                           <IonSelectOption key={branch._id} value={branch._id}>
                             {branch.name}
+                          </IonSelectOption>
+                        ))}
+                      </IonSelect>
+                    </IonItem>
+                    <IonItem>
+                      <IonLabel>Class</IonLabel>
+                      <IonSelect
+                        value={resultReportClass}
+                        onIonChange={(e) => {
+                          setResultReportClass(e.detail.value);
+                          setResultReportStudent(''); // Reset student on class change
+                        }}
+                      >
+                        <IonSelectOption value="">All</IonSelectOption>
+                        {classes.map((c) => (
+                          <IonSelectOption key={c._id} value={c._id}>
+                            {c.name}
                           </IonSelectOption>
                         ))}
                       </IonSelect>
@@ -183,17 +220,6 @@ const Reports: React.FC = () => {
                         {students.map((student) => (
                           <IonSelectOption key={student._id} value={student._id}>
                             {student.userId.name}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Class</IonLabel>
-                      <IonSelect value={resultReportClass} onIonChange={(e) => setResultReportClass(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {classes.map((c) => (
-                          <IonSelectOption key={c._id} value={c._id}>
-                            {c.name}
                           </IonSelectOption>
                         ))}
                       </IonSelect>

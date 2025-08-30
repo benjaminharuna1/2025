@@ -52,17 +52,19 @@ const BulkAddResultsPage: React.FC = () => {
   const [selectedTerm, setSelectedTerm] = useState('');
 
   useEffect(() => {
-    fetchClasses();
     fetchSubjects();
     if (user?.role === 'Super Admin') {
       fetchBranches();
     }
-
     // Auto-select current session
     if (SESSIONS.length > 0) {
       setSelectedSession(SESSIONS[0]);
     }
   }, [user]);
+
+  useEffect(() => {
+    fetchClasses(selectedBranch);
+  }, [selectedBranch]);
 
   useEffect(() => {
     if (selectedClass) fetchStudentsInClass(selectedClass);
@@ -90,9 +92,16 @@ const BulkAddResultsPage: React.FC = () => {
     }
   };
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (branchId?: string) => {
     try {
-      const { data } = await api.get('/classes');
+      // If the user is Super Admin, classes should only be fetched when a branch is selected.
+      if (user?.role === 'Super Admin' && !branchId) {
+        setClasses([]); // Clear classes if no branch is selected
+        return;
+      }
+      const { data } = await api.get('/classes', {
+        params: { branchId: branchId || user?.branchId },
+      });
       setClasses(data.classes || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -261,7 +270,10 @@ const BulkAddResultsPage: React.FC = () => {
                   <IonLabel>Branch</IonLabel>
                   <IonSelect
                     value={selectedBranch}
-                    onIonChange={(e) => setSelectedBranch(e.detail.value)}
+                    onIonChange={(e) => {
+                      setSelectedBranch(e.detail.value);
+                      setSelectedClass(''); // Reset class on branch change
+                    }}
                   >
                     {branches.map((b) => (
                       <IonSelectOption key={b._id} value={b._id}>
