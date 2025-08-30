@@ -69,7 +69,7 @@ const ParentDashboard: React.FC = () => {
               <IonAccordion key={child.student._id} value={child.student._id}>
                 <IonItem slot="header" color="light">
                   <IonIcon icon={personOutline} slot="start" />
-                  <IonLabel>{child.student.name || child.student.userId?.name}</IonLabel>
+                  <IonLabel>{child.student.userId?.name}</IonLabel>
                 </IonItem>
                 <div className="ion-padding" slot="content">
                   <IonCard>

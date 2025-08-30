@@ -21,9 +21,10 @@ import {
 } from '@ionic/react';
 import { checkmarkDoneOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Student, Subject, Class, Branch } from '../../types';
+import { Student, Subject, Class, Branch, Session } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { SESSIONS, TERMS } from '../../constants';
+import { getSessions } from '../../services/sessionsApi';
+import { IonToast } from '@ionic/react';
 
 interface MarkEntry {
   studentId: string;
@@ -39,9 +40,11 @@ const BulkAddResultsPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [marks, setMarks] = useState<MarkEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
 
   const [selectedBranch, setSelectedBranch] = useState<string>(
     user?.role === 'Super Admin' ? '' : user?.branchId || ''
@@ -50,17 +53,38 @@ const BulkAddResultsPage: React.FC = () => {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
-    fetchClasses();
-    fetchSubjects();
-    if (user?.role === 'Super Admin') {
-      fetchBranches();
-    }
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const promises = [
+          api.get('/classes'),
+          api.get('/subjects'),
+          getSessions(),
+        ];
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/branches'));
+        }
+        const [classesData, subjectsData, sessionsData, branchesData] = await Promise.all(promises);
 
-    // Auto-select current session
-    if (SESSIONS.length > 0) {
-      setSelectedSession(SESSIONS[0]);
+        setClasses(classesData.data.classes || classesData.data || []);
+        setSubjects(subjectsData.data.subjects || subjectsData.data || []);
+        setSessions(sessionsData);
+        if (branchesData) {
+          setBranches(branchesData.data.branches || branchesData.data || []);
+        }
+
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setShowToast({ show: true, message: 'Failed to load initial data.', color: 'danger' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user) {
+      loadInitialData();
     }
   }, [user]);
 
@@ -74,39 +98,11 @@ const BulkAddResultsPage: React.FC = () => {
       students.length > 0 &&
       selectedClass &&
       selectedSubject &&
-      selectedSession &&
-      selectedTerm
+      selectedSessionId
     ) {
       fetchExistingResults();
     }
-  }, [students, selectedClass, selectedSubject, selectedSession, selectedTerm]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data } = await api.get('/branches');
-      setBranches(data.branches || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    }
-  };
-
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await api.get('/subjects');
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
+  }, [students, selectedClass, selectedSubject, selectedSessionId]);
 
   const fetchStudentsInClass = async (classId: string) => {
     setLoading(true);
@@ -121,21 +117,22 @@ const BulkAddResultsPage: React.FC = () => {
   };
 
   const fetchExistingResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const { data } = await api.get('/results', {
         params: {
           classId: selectedClass,
           subjectId: selectedSubject,
-          session: selectedSession,
-          term: selectedTerm,
+          sessionId: selectedSessionId,
         },
       });
 
       const resultMap: Record<string, MarkEntry> = {};
-      data.forEach((res: any) => {
-        resultMap[res.studentId._id] = {
-          studentId: res.studentId._id,
+      (data.results || data).forEach((res: any) => {
+        const studentIdentifier = typeof res.studentId === 'object' ? res.studentId._id : res.studentId;
+        resultMap[studentIdentifier] = {
+          studentId: studentIdentifier,
           firstCA: res.firstCA ?? '',
           secondCA: res.secondCA ?? '',
           thirdCA: res.thirdCA ?? '',
@@ -168,26 +165,27 @@ const BulkAddResultsPage: React.FC = () => {
   };
 
   const handleSubmitAll = async () => {
+    if (!selectedSessionId) {
+      setShowToast({ show: true, message: 'A valid session and term must be selected.', color: 'danger' });
+      return;
+    }
+
     if (
       !selectedClass ||
       !selectedSubject ||
-      !selectedSession ||
-      !selectedTerm ||
       (!selectedBranch && user?.role === 'Super Admin')
     ) {
-      alert('Please select class, subject, session (and branch if Super Admin)');
+      setShowToast({ show: true, message: 'Please select class, subject, and session (and branch if Super Admin).', color: 'warning' });
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1️⃣ Submit bulk results (backend will upsert)
       await api.post('/results/bulk', {
         classId: selectedClass,
         subjectId: selectedSubject,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
         branchId: user?.role === 'Super Admin' ? selectedBranch : undefined,
         results: marks.map((mark) => ({
           studentId: mark.studentId,
@@ -198,47 +196,49 @@ const BulkAddResultsPage: React.FC = () => {
         })),
       });
 
-      // 2️⃣ Refetch results for current filters
-      const { data } = await api.get('/results', {
-        params: {
-          classId: selectedClass,
-          subjectId: selectedSubject,
-          session: selectedSession,
-          term: selectedTerm,
-        },
-      });
-
-      // 3️⃣ Update marks array with returned data
-      const updatedMarks = students.map((student) => {
-        const existingResult = data.find(
-          (r: any) => r.studentId._id === student._id
-        );
-        return {
-          studentId: student._id,
-          firstCA: existingResult?.firstCA ?? '',
-          secondCA: existingResult?.secondCA ?? '',
-          thirdCA: existingResult?.thirdCA ?? '',
-          exam: existingResult?.exam ?? '',
-        };
-      });
-
-      setMarks(updatedMarks);
-
-      alert('Results submitted and updated successfully!');
+      setShowToast({ show: true, message: 'Results submitted successfully!', color: 'success' });
+      fetchExistingResults(); // Refetch to show any calculated fields
     } catch (err: any) {
+      if (err.response && err.response.status === 403) {
+        setShowToast({
+          show: true,
+          message: 'Result entry for this term is not currently open. Please contact an administrator.',
+          color: 'danger',
+        });
+      } else {
+        setShowToast({
+          show: true,
+          message: err.response?.data?.message || 'Failed to submit results.',
+          color: 'danger',
+        });
+      }
       console.error('Bulk add failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to submit results.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm('');
+    setSelectedSessionId('');
+  };
+
+  const handleTermChange = (e: any) => {
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   const canSubmit =
     (user?.role !== 'Super Admin' || selectedBranch) &&
     selectedClass &&
     selectedSubject &&
-    selectedSession &&
-    selectedTerm &&
+    selectedSessionId &&
     students.length > 0;
 
   return (
@@ -307,9 +307,9 @@ const BulkAddResultsPage: React.FC = () => {
                 <IonLabel>Session</IonLabel>
                 <IonSelect
                   value={selectedSession}
-                  onIonChange={(e) => setSelectedSession(e.detail.value)}
+                  onIonChange={handleSessionChange}
                 >
-                  {SESSIONS.map((session) => (
+                  {academicYears.map((session) => (
                     <IonSelectOption key={session} value={session}>
                       {session}
                     </IonSelectOption>
@@ -322,9 +322,10 @@ const BulkAddResultsPage: React.FC = () => {
                 <IonLabel>Term</IonLabel>
                 <IonSelect
                   value={selectedTerm}
-                  onIonChange={(e) => setSelectedTerm(e.detail.value)}
+                  onIonChange={handleTermChange}
+                  disabled={!selectedSession}
                 >
-                  {TERMS.map((term) => (
+                  {availableTerms.map((term) => (
                     <IonSelectOption key={term} value={term}>
                       {term}
                     </IonSelectOption>

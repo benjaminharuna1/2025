@@ -67,8 +67,9 @@ const AdminResultsDashboard: React.FC = () => {
 
   // Filters
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedSession, setSelectedSession] = useState(''); // This is the academic year string
   const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -85,10 +86,10 @@ const AdminResultsDashboard: React.FC = () => {
         const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
 
         setSessions(sessionsData);
-        setClasses(classesData.data.classes || []);
+        setClasses(classesData.data.classes || classesData.data || []);
         setSubjects(subjectsData.data.subjects || []);
         if (branchesData) {
-          setBranches(branchesData.data.branches || []);
+          setBranches(branchesData.data.branches || branchesData.data || []);
         }
       } catch (error) {
         console.error('Error fetching initial data:', error);
@@ -106,18 +107,21 @@ const AdminResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) fetchResults();
-    else setResults([]);
-  }, [selectedClass, selectedSession, selectedTerm, formData.branchId, user]);
+    if (selectedClass && selectedSessionId) {
+      fetchResults();
+    } else {
+      setResults([]);
+    }
+  }, [selectedClass, selectedSessionId, formData.branchId, user]);
 
   const fetchResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       const params = new URLSearchParams({
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
         branchId,
       }).toString();
       const { data } = await api.get(`/results?${params}`);
@@ -139,8 +143,13 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!selectedSessionId && !selectedResult?.sessionId) {
+      setToastInfo({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+      return;
+    }
+
     try {
-      const payload = {
+      const payload: Partial<Result> = {
         ...formData,
         firstCA: Number(formData.firstCA),
         secondCA: Number(formData.secondCA),
@@ -148,8 +157,20 @@ const AdminResultsDashboard: React.FC = () => {
         exam: Number(formData.exam),
         branchId: user?.role === 'Super Admin' ? formData.branchId : user?.branchId || '',
       };
-      if (selectedResult) await api.put(`/results/${selectedResult._id}`, payload);
-      else await api.post('/results', payload);
+
+      // Clean up payload by removing properties that should not be sent
+      delete payload.session;
+      delete payload.term;
+
+      if (!selectedResult) {
+        payload.sessionId = selectedSessionId;
+      }
+
+      if (selectedResult) {
+        await api.put(`/results/${selectedResult._id}`, payload);
+      } else {
+        await api.post('/results', payload);
+      }
       fetchResults();
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
@@ -195,13 +216,13 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleRankResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       await api.post('/results/rank', {
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
         branchId,
       });
       setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
@@ -215,7 +236,7 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleExport = async () => {
-    if (!selectedClass || !selectedSession || !selectedTerm) {
+    if (!selectedClass || !selectedSessionId) {
       setToastInfo({ show: true, message: 'Please select class, session, and term before exporting.', color: 'warning' });
       return;
     }
@@ -225,8 +246,7 @@ const AdminResultsDashboard: React.FC = () => {
 
       const payload: any = {
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
       };
 
       if (user?.role === 'Super Admin') {
@@ -269,8 +289,7 @@ const AdminResultsDashboard: React.FC = () => {
         : {
             classId: selectedClass,
             branchId: (selectedClassObj?.branchId as string) || '',
-            session: selectedSession,
-            term: selectedTerm as 'First' | 'Second' | 'Third' | undefined,
+            sessionId: selectedSessionId,
           }
     );
     setShowModal(true);
@@ -314,15 +333,20 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const canPerformActions = selectedClass && selectedSession && selectedTerm;
+  const canPerformActions = selectedClass && selectedSessionId;
 
   const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.name) {
-      return result.studentId.name;
+    // Case 1: result.studentId is a populated Student object from the results endpoint
+    if (typeof result.studentId === 'object' && result.studentId.userId?.name) {
+      return result.studentId.userId.name;
     }
+    // Case 2: result.studentId is just an ID, find the student in the list fetched separately
     const student = students.find((s) => s._id === result.studentId);
+    if (student?.userId?.name) {
+      return student.userId.name;
+    }
     // Fallback for non-populated or differently shaped student data
-    return student?.userId?.name || 'N/A';
+    return 'N/A';
   };
 
   const getAdmissionNumber = (result: Result) => {
@@ -346,7 +370,15 @@ const AdminResultsDashboard: React.FC = () => {
 
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
-    setSelectedTerm(''); // Reset term when session changes
+    setSelectedTerm('');
+    setSelectedSessionId(''); // Reset term and sessionId when session (year) changes
+  };
+
+  const handleTermChange = (e: any) => {
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (
@@ -411,7 +443,7 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value as string)} disabled={!selectedSession}>
+                  <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>
                     {availableTerms.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
@@ -442,9 +474,14 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={handleExport} color="success" disabled={!canPerformActions}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
-                <IonRouterLink routerLink={`/reports/report-card/${selectedClass}/${selectedSession}`}>
+                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
                   <IonButton color="dark" disabled={!canPerformActions}>
                     <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
+                  </IonButton>
+                </IonRouterLink>
+                <IonRouterLink routerLink="/promotions">
+                  <IonButton color="warning">
+                    <IonIcon slot="start" icon={ribbonOutline} /> End of Session
                   </IonButton>
                 </IonRouterLink>
               </IonCol>

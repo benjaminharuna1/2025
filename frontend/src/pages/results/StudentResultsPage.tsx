@@ -27,6 +27,7 @@ const StudentResultsPage: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string>('');
   const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [message, setMessage] = useState<string>('Please select a session and term to view results.');
   const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
@@ -49,13 +50,13 @@ const StudentResultsPage: React.FC = () => {
 
   useEffect(() => {
     const fetchResults = async () => {
-      if (!selectedSession || !selectedTerm) {
+      if (!selectedSessionId) {
         setResults([]);
         setMessage('Please select a session and term to view results.');
         return;
       }
 
-      const session = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
+      const session = sessions.find(s => s._id === selectedSessionId);
 
       if (!session || session.resultPublicationStatus !== 'Published') {
         setResults([]);
@@ -66,12 +67,12 @@ const StudentResultsPage: React.FC = () => {
       setLoading(true);
       try {
         const { data } = await api.get('/results', {
-          params: { session: selectedSession, term: selectedTerm },
+          params: { sessionId: selectedSessionId },
         });
         const fetchedResults = data.results || data || [];
         setResults(fetchedResults);
         if (fetchedResults.length === 0) {
-          setMessage('Results for this term are not yet available.');
+          setMessage('No results found for this term.');
         }
       } catch (error) {
         console.error('Error fetching results:', error);
@@ -82,7 +83,7 @@ const StudentResultsPage: React.FC = () => {
     };
 
     fetchResults();
-  }, [selectedSession, selectedTerm, sessions]);
+  }, [selectedSessionId, sessions]);
 
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) {
@@ -96,7 +97,15 @@ const StudentResultsPage: React.FC = () => {
 
   const handleSessionChange = (e: any) => {
     setSelectedSession(e.detail.value);
-    setSelectedTerm(''); // Reset term when session changes
+    setSelectedTerm('');
+    setSelectedSessionId('');
+  };
+
+  const handleTermChange = (e: any) => {
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (
@@ -135,7 +144,7 @@ const StudentResultsPage: React.FC = () => {
                   <IonLabel>Term</IonLabel>
                   <IonSelect
                     value={selectedTerm}
-                    onIonChange={(e) => setSelectedTerm(e.detail.value as string)}
+                    onIonChange={handleTermChange}
                     disabled={!selectedSession}
                   >
                     <IonSelectOption value="">Select Term</IonSelectOption>

@@ -148,7 +148,12 @@ const Classes: React.FC = () => {
   };
 
   const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.detail.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSelectChange = (fieldName: keyof Class, value: any) => {
+    setFormData({ ...formData, [fieldName]: value });
   };
 
   return (
@@ -234,7 +239,7 @@ const Classes: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel>Branch</IonLabel>
-                <IonSelect name="branchId" value={formData.branchId} onIonChange={handleInputChange}>
+                <IonSelect name="branchId" value={formData.branchId} onIonChange={e => handleSelectChange('branchId', e.detail.value)}>
                   {branches.map((branch) => (
                     <IonSelectOption key={branch._id} value={branch._id}>
                       {branch.name}
@@ -244,7 +249,7 @@ const Classes: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel>Class Level</IonLabel>
-                <IonSelect name="classLevel" value={formData.classLevel} onIonChange={handleInputChange}>
+                <IonSelect name="classLevel" value={formData.classLevel as string} onIonChange={e => handleSelectChange('classLevel', e.detail.value)}>
                   {classLevels.map((level) => (
                     <IonSelectOption key={level._id} value={level._id}>
                       {level.name}
@@ -254,7 +259,7 @@ const Classes: React.FC = () => {
               </IonItem>
               <IonItem>
                 <IonLabel>Teacher</IonLabel>
-                <IonSelect name="teacher" value={formData.teacher} onIonChange={handleInputChange}>
+                <IonSelect name="teacher" value={formData.teacher as string} onIonChange={e => handleSelectChange('teacher', e.detail.value)}>
                   {teachers.map((teacher) => (
                     <IonSelectOption key={teacher._id} value={teacher._id}>
                       {teacher.name}
