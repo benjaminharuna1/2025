@@ -24,6 +24,7 @@
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.11.0",
     "ionicons": "^7.4.0",
+    "jspdf": "^3.0.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-router": "^5.3.4",

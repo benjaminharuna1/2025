@@ -17,6 +17,8 @@
   text-align: left;
 }
 
+
+
 /* Hide table headers on mobile and convert rows to cards */
 @media screen and (max-width: 768px) {
   .responsive-table thead {
