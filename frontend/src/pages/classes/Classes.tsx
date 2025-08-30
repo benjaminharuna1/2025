@@ -41,23 +41,35 @@ const Classes: React.FC = () => {
   const [filterBranch, setFilterBranch] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
 
   useEffect(() => {
-    fetchClasses();
     fetchBranches();
     fetchClassLevels();
     fetchTeachers();
-  }, [filterBranch]);
+  }, []);
+
+  useEffect(() => {
+    fetchClasses();
+  }, [filterBranch, page]);
 
   const fetchClasses = async () => {
     try {
       const { data } = await api.get('/classes', {
-        params: { branchId: filterBranch },
+        params: { branchId: filterBranch, page },
       });
       if (data && Array.isArray(data.classes)) {
         setClasses(data.classes);
+        setTotalPages(data.pages);
+      } else if (Array.isArray(data)) {
+        // Handle case where API returns a direct array
+        setClasses(data);
+        setTotalPages(1); // No pagination info
       } else {
         setClasses([]);
+        setTotalPages(1);
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -108,22 +120,30 @@ const Classes: React.FC = () => {
         await api.post('/classes', formData);
       }
       fetchClasses();
+      setToastMessage('Class saved successfully.');
+      setShowToast(true);
       closeModal();
     } catch (error) {
       console.error('Error saving class:', error);
-      setToastMessage('Failed to save class.');
+      const errorMsg = (error as any).response?.data?.message || 'Failed to save class.';
+      setToastMessage(errorMsg);
       setShowToast(true);
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      await api.delete(`/classes/${id}`);
-      fetchClasses();
-    } catch (error) {
-      console.error('Error deleting class:', error);
-      setToastMessage('Failed to delete class.');
-      setShowToast(true);
+    if (window.confirm('Are you sure you want to delete this class?')) {
+      try {
+        await api.delete(`/classes/${id}`);
+        fetchClasses();
+        setToastMessage('Class deleted successfully.');
+        setShowToast(true);
+      } catch (error) {
+        console.error('Error deleting class:', error);
+        const errorMsg = (error as any).response?.data?.message || 'Failed to delete class.';
+        setToastMessage(errorMsg);
+        setShowToast(true);
+      }
     }
   };
 
@@ -133,10 +153,10 @@ const Classes: React.FC = () => {
       setFormData({
         ...klass,
         classLevel: typeof klass.classLevel === 'object' ? klass.classLevel._id : klass.classLevel,
-        teacher: typeof klass.teacher === 'object' ? klass.teacher._id : klass.teacher,
+        mainTeacherId: typeof klass.mainTeacherId === 'object' ? klass.mainTeacherId._id : klass.mainTeacherId,
       });
     } else {
-      setFormData({});
+      setFormData({ branchId: filterBranch });
     }
     setShowModal(true);
   };
@@ -201,7 +221,7 @@ const Classes: React.FC = () => {
                     <tr>
                       <th>Name</th>
                       <th>Class Level</th>
-                      <th>Teacher</th>
+                      <th>Main Teacher</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -210,7 +230,7 @@ const Classes: React.FC = () => {
                       <tr key={klass._id}>
                         <td data-label="Name">{klass.name}</td>
                         <td data-label="Class Level">{typeof klass.classLevel === 'object' ? klass.classLevel.name : 'N/A'}</td>
-                        <td data-label="Teacher">{typeof klass.teacher === 'object' ? klass.teacher.name : 'N/A'}</td>
+                        <td data-label="Main Teacher">{typeof klass.mainTeacherId === 'object' ? klass.mainTeacherId.name : 'N/A'}</td>
                         <td data-label="Actions">
                           <IonButton onClick={() => openModal(klass)}>
                             <IonIcon slot="icon-only" icon={create} />
@@ -223,6 +243,15 @@ const Classes: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+                <div className="pagination">
+                  <IonButton onClick={() => setPage(p => p - 1)} disabled={page === 1}>
+                    Previous
+                  </IonButton>
+                  <span>Page {page} of {totalPages}</span>
+                  <IonButton onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>
+                    Next
+                  </IonButton>
+                </div>
               </div>
             </IonCol>
           </IonRow>
@@ -258,8 +287,8 @@ const Classes: React.FC = () => {
                 </IonSelect>
               </IonItem>
               <IonItem>
-                <IonLabel>Teacher</IonLabel>
-                <IonSelect name="teacher" value={formData.teacher as string} onIonChange={e => handleSelectChange('teacher', e.detail.value)}>
+                <IonLabel>Main Teacher</IonLabel>
+                <IonSelect name="mainTeacherId" value={formData.mainTeacherId as string} onIonChange={e => handleSelectChange('mainTeacherId', e.detail.value)}>
                   {teachers.map((teacher) => (
                     <IonSelectOption key={teacher._id} value={teacher._id}>
                       {teacher.name}
