@@ -45,7 +45,7 @@ const PromotionPage: React.FC = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState('');
   const [promotionResults, setPromotionResults] = useState<PromotionResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -80,14 +80,14 @@ const PromotionPage: React.FC = () => {
   }, []);
 
   const handleRunPromotion = async () => {
-    if (!selectedClass || !selectedSession) {
+    if (!selectedClass || !selectedSessionId) {
       setToastMessage("Please select both a class and a session.");
       setShowToast(true);
       return;
     }
     setLoading(true);
     try {
-      const res = await api.post(`/promotions/run/${selectedClass}/${selectedSession}`);
+      const res = await api.post(`/promotions/run/${selectedClass}/${selectedSessionId}`);
       setPromotionResults(res.data.data || []);
       setToastMessage(res.data.message || "Promotion process completed.");
       setShowToast(true);
@@ -182,13 +182,13 @@ const PromotionPage: React.FC = () => {
               <IonCol size-md="4">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect value={selectedSession} onIonChange={e => setSelectedSession(e.detail.value)}>
+                  <IonSelect value={selectedSessionId} onIonChange={e => setSelectedSessionId(e.detail.value)}>
                     {sessions.map(s => <IonSelectOption key={s._id} value={s._id}>{s.academicYear} {s.term}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>
               </IonCol>
               <IonCol size-md="4" className="ion-align-self-end">
-                <IonButton expand="block" onClick={handleRunPromotion} disabled={!selectedClass || !selectedSession}>
+                <IonButton expand="block" onClick={handleRunPromotion} disabled={!selectedClass || !selectedSessionId}>
                   Run Promotion Process
                 </IonButton>
               </IonCol>

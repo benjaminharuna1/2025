@@ -38,12 +38,11 @@ export interface Subject {
 
 export interface Student {
     _id: string;
-    userId?: {
+    userId: {
         _id: string;
         name: string;
         email: string;
     };
-    name?: string;
     admissionNumber?: string;
     dateOfBirth?: string;
     gender?: string;
@@ -141,6 +140,7 @@ export interface Result {
   classId: string | Class;
   branchId: string | Branch;
   session: string;
+  sessionId: string;
   term: 'First' | 'Second' | 'Third';
   marks: number; // This will be the total marks calculated by the backend
   firstCA?: number;

@@ -27,11 +27,14 @@ import {
 } from '@ionic/react';
 import { add, create, trash, cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject, Class } from '../../types';
+import { Result, Student, Subject, Class, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
+import { getSessions } from '../../services/sessionsApi';
+import { IonToast } from '@ionic/react';
 
 const TeacherResultsDashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -41,15 +44,34 @@ const TeacherResultsDashboard: React.FC = () => {
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [formData, setFormData] = useState<Partial<Result>>({});
   const [loading, setLoading] = useState(false);
+  const [showToast, setShowToast] = useState<{ show: boolean; message: string; color: string }>({ show: false, message: '', color: '' });
 
   // Filters
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
-    fetchClasses();
-    fetchSubjects();
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        const [classesData, subjectsData, sessionsData] = await Promise.all([
+          api.get('/classes'),
+          api.get('/subjects'),
+          getSessions(),
+        ]);
+        setClasses(classesData.data.classes || []);
+        setSubjects(subjectsData.data.subjects || []);
+        setSessions(sessionsData);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+        setShowToast({ show: true, message: 'Failed to load initial data.', color: 'danger' });
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -59,20 +81,20 @@ const TeacherResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) {
+    if (selectedClass && selectedSessionId) {
       fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSession, selectedTerm]);
+  }, [selectedClass, selectedSessionId]);
 
   const fetchResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const params = new URLSearchParams({
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
       }).toString();
       const { data } = await api.get(`/results?${params}`);
       setResults(data.results || data || []);
@@ -92,33 +114,28 @@ const TeacherResultsDashboard: React.FC = () => {
     }
   };
 
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await api.get('/subjects');
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    }
-  };
-
   const handleSave = async () => {
+    if (!selectedSessionId && !selectedResult?.sessionId) {
+      setShowToast({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+      return;
+    }
+
     try {
-      const payload = {
+      const payload: Partial<Result> = {
         ...formData,
         firstCA: Number(formData.firstCA),
         secondCA: Number(formData.secondCA),
         thirdCA: Number(formData.thirdCA),
         exam: Number(formData.exam),
       };
+
+      delete payload.session;
+      delete payload.term;
+
+      if (!selectedResult) {
+        payload.sessionId = selectedSessionId;
+      }
+
       if (selectedResult) {
         await api.put(`/results/${selectedResult._id}`, payload);
       } else {
@@ -126,9 +143,22 @@ const TeacherResultsDashboard: React.FC = () => {
       }
       fetchResults();
       closeModal();
+      setShowToast({ show: true, message: 'Result saved successfully!', color: 'success' });
     } catch (err: any) {
-      console.error("Save failed:", err.response?.data || err.message);
-      alert(err.response?.data?.message || "Failed to save result");
+      if (err.response && err.response.status === 403) {
+        setShowToast({
+          show: true,
+          message: 'Result entry for this term is not currently open. Please contact an administrator.',
+          color: 'danger',
+        });
+      } else {
+        setShowToast({
+          show: true,
+          message: err.response?.data?.message || 'Failed to save result',
+          color: 'danger',
+        });
+      }
+      console.error('Save failed:', err.response?.data || err.message);
     }
   };
 
@@ -146,7 +176,7 @@ const TeacherResultsDashboard: React.FC = () => {
 
   const openModal = (result: Result | null = null) => {
     setSelectedResult(result);
-    setFormData(result ? { ...result } : { classId: selectedClass, session: selectedSession, term: selectedTerm });
+    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: selectedSessionId });
     setShowModal(true);
   };
 
@@ -186,18 +216,42 @@ const TeacherResultsDashboard: React.FC = () => {
     }
   };
 
-  const canPerformActions = selectedClass && selectedSession && selectedTerm;
+  const canPerformActions = selectedClass && selectedSessionId;
 
   const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.userId) return result.studentId.userId.name;
-    const student = students.find(s => s._id === result.studentId);
-    return student ? student.userId.name : 'N/A';
+    // Case 1: result.studentId is a populated Student object from the results endpoint
+    if (typeof result.studentId === 'object' && result.studentId.userId?.name) {
+      return result.studentId.userId.name;
+    }
+    // Case 2: result.studentId is just an ID, find the student in the list fetched separately
+    const student = students.find((s) => s._id === result.studentId);
+    if (student?.userId?.name) {
+      return student.userId.name;
+    }
+    // Fallback for non-populated or differently shaped student data
+    return 'N/A';
   };
 
   const getSubjectName = (result: Result) => {
     if (typeof result.subjectId === 'object' && result.subjectId.name) return result.subjectId.name;
     const subject = subjects.find(s => s._id === result.subjectId);
     return subject ? subject.name : 'N/A';
+  };
+
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm('');
+    setSelectedSessionId('');
+  };
+
+  const handleTermChange = (e: any) => {
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (
@@ -216,13 +270,25 @@ const TeacherResultsDashboard: React.FC = () => {
           <IonGrid>
             <IonRow>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value)}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
+                <IonItem><IonLabel>Class</IonLabel><IonSelect value={selectedClass} onIonChange={(e) => setSelectedClass(e.detail.value as string)}>{classes.map((c) => (<IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>))}</IonSelect></IonItem>
               </IonCol>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Session</IonLabel><IonInput value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value!)} placeholder="e.g. 2024/2025" /></IonItem>
+                <IonItem>
+                  <IonLabel>Session</IonLabel>
+                  <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
+                    <IonSelectOption value="">Select Session</IonSelectOption>
+                    {academicYears.map(year => <IonSelectOption key={year} value={year}>{year}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
               <IonCol size-md="4" size="12">
-                <IonItem><IonLabel>Term</IonLabel><IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}><IonSelectOption value="First">First</IonSelectOption><IonSelectOption value="Second">Second</IonSelectOption><IonSelectOption value="Third">Third</IonSelectOption></IonSelect></IonItem>
+                <IonItem>
+                  <IonLabel>Term</IonLabel>
+                  <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>
+                    <IonSelectOption value="">Select Term</IonSelectOption>
+                    {availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
             </IonRow>
             <IonRow>

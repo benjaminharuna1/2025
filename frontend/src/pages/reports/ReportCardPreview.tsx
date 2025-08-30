@@ -11,7 +11,7 @@ import {
   IonButton,
   IonIcon,
 } from '@ionic/react';
-import { useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { downloadOutline } from 'ionicons/icons';
 import jsPDF from 'jspdf';
@@ -57,7 +57,11 @@ interface ReportCardData {
 }
 
 const ReportCardPreviewPage: React.FC = () => {
-  const { classId, sessionId } = useParams<{ classId: string; sessionId: string }>();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const classId = queryParams.get('classId');
+  const sessionId = queryParams.get('sessionId');
+
   const [reportData, setReportData] = useState<ReportCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const reportContainerRef = useRef<HTMLDivElement>(null);
@@ -85,25 +89,44 @@ const ReportCardPreviewPage: React.FC = () => {
     if (!container) return;
 
     setLoading(true);
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-    const reportCards = container.querySelectorAll('.report-card-container');
+      const reportCardNodes = container.querySelectorAll('.report-card-container');
+      const reportCards = Array.from(reportCardNodes) as HTMLElement[];
 
-    for (let i = 0; i < reportCards.length; i++) {
-      const card = reportCards[i] as HTMLElement;
-      const canvas = await html2canvas(card, { scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      for (let i = 0; i < reportCards.length; i++) {
+        const card = reportCards[i];
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
 
-      if (i > 0) {
-        pdf.addPage();
+        const imgData = canvas.toDataURL('image/png');
+        let imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+        if (i > 0) {
+          pdf.addPage();
+        }
+
+        // Scale image to fit the page if it's too tall
+        if (imgHeight > pdfHeight) {
+          imgHeight = pdfHeight;
+        }
+
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
       }
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
-    }
 
-    pdf.save('report-cards.pdf');
-    setLoading(false);
+      pdf.save('report-cards.pdf');
+    } catch (error) {
+      console.error("Failed to generate PDF:", error);
+      // You might want to show a toast to the user here
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
