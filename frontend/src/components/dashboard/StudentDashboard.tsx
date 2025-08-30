@@ -32,10 +32,10 @@ const StudentDashboard: React.FC = () => {
   }, [user]);
 
   const getAttendanceSummary = () => {
-    if (attendance.length === 0) return 'No attendance records';
+    if (!attendance || attendance.length === 0) return 'No attendance records';
     const totalDays = attendance.length;
-    const presentDays = attendance.filter(a => a.records.some(r => r.status === 'Present')).length;
-    const percentage = (presentDays / totalDays) * 100;
+    const presentDays = attendance.filter(a => a.status === 'Present').length;
+    const percentage = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
     return `${percentage.toFixed(2)}% (${presentDays}/${totalDays} days)`;
   };
 

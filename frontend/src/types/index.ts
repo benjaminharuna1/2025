@@ -32,8 +32,8 @@ export interface Class {
 export interface Subject {
   _id: string;
   name: string;
-  classId: string;
-  teacherId: string;
+  classId: string | { _id: string; name: string };
+  teacherId: string | { _id: string; name: string };
 }
 
 export interface Student {
@@ -140,6 +140,7 @@ export interface Result {
   classId: string | Class;
   branchId: string | Branch;
   session: string;
+  sessionId: string;
   term: 'First' | 'Second' | 'Third';
   marks: number; // This will be the total marks calculated by the backend
   firstCA?: number;
@@ -149,6 +150,7 @@ export interface Result {
   grade: string;
   remarks?: string;
   teacherComment?: string;
+  principalComment?: string;
   status: 'Draft' | 'Approved';
   totalMarks?: number;
   average?: number;

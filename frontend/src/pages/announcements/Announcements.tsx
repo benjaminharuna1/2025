@@ -168,8 +168,9 @@ const handleSave = async () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFormData(prev => ({ ...prev, attachments: Array.from(e.target.files) as any[] }));
+    const files = e.target.files;
+    if (files) {
+      setFormData(prev => ({ ...prev, attachments: Array.from(files) as any[] }));
     }
   };
 

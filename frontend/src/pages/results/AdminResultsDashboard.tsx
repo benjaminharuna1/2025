@@ -34,12 +34,14 @@ import {
   ribbonOutline,
   downloadOutline,
   documentTextOutline,
+  refreshOutline,
 } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject, Class, Branch } from '../../types';
+import { Result, Student, Subject, Class, Branch, Session } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { useAuth } from '../../contexts/AuthContext';
-import { SESSIONS, TERMS } from '../../constants';
+import { getSessions } from '../../services/sessionsApi';
+import { IonToast } from '@ionic/react';
 import '../../theme/global.css';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -48,6 +50,7 @@ const AdminResultsDashboard: React.FC = () => {
   const { user } = useAuth();
 
   const [results, setResults] = useState<Result[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -60,16 +63,43 @@ const AdminResultsDashboard: React.FC = () => {
 
   const [formData, setFormData] = useState<Partial<Result>>({});
   const [loading, setLoading] = useState(false);
+  const [toastInfo, setToastInfo] = useState<{ show: boolean, message: string, color: string }>({ show: false, message: '', color: '' });
 
   // Filters
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedSession, setSelectedSession] = useState('');
+  const [selectedSession, setSelectedSession] = useState(''); // This is the academic year string
   const [selectedTerm, setSelectedTerm] = useState<string>('');
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('');
 
   useEffect(() => {
-    if (user?.role === 'Super Admin') fetchBranches();
-    fetchClasses();
-    fetchSubjects();
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        const promises = [
+          getSessions(),
+          api.get('/classes'),
+          api.get('/subjects'),
+        ];
+        if (user?.role === 'Super Admin') {
+          promises.push(api.get('/branches'));
+        }
+        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
+
+        setSessions(sessionsData);
+        setClasses(classesData.data.classes || classesData.data || []);
+        setSubjects(subjectsData.data.subjects || []);
+        if (branchesData) {
+          setBranches(branchesData.data.branches || branchesData.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user) {
+      fetchInitialData();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -77,27 +107,21 @@ const AdminResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSession && selectedTerm) fetchResults();
-    else setResults([]);
-  }, [selectedClass, selectedSession, selectedTerm, formData.branchId, user]);
-
-  const fetchBranches = async () => {
-    try {
-      const { data } = await api.get('/branches');
-      setBranches(data.branches || []);
-    } catch (error) {
-      console.error('Error fetching branches:', error);
+    if (selectedClass && selectedSessionId) {
+      fetchResults();
+    } else {
+      setResults([]);
     }
-  };
+  }, [selectedClass, selectedSessionId, formData.branchId, user]);
 
   const fetchResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       const params = new URLSearchParams({
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
         branchId,
       }).toString();
       const { data } = await api.get(`/results?${params}`);
@@ -118,27 +142,14 @@ const AdminResultsDashboard: React.FC = () => {
     }
   };
 
-  const fetchSubjects = async () => {
-    try {
-      const { data } = await api.get('/subjects');
-      setSubjects(data.subjects || []);
-    } catch (error) {
-      console.error('Error fetching subjects:', error);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-    }
-  };
-
   const handleSave = async () => {
+    if (!selectedSessionId && !selectedResult?.sessionId) {
+      setToastInfo({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+      return;
+    }
+
     try {
-      const payload = {
+      const payload: Partial<Result> = {
         ...formData,
         firstCA: Number(formData.firstCA),
         secondCA: Number(formData.secondCA),
@@ -146,13 +157,26 @@ const AdminResultsDashboard: React.FC = () => {
         exam: Number(formData.exam),
         branchId: user?.role === 'Super Admin' ? formData.branchId : user?.branchId || '',
       };
-      if (selectedResult) await api.put(`/results/${selectedResult._id}`, payload);
-      else await api.post('/results', payload);
+
+      // Clean up payload by removing properties that should not be sent
+      delete payload.session;
+      delete payload.term;
+
+      if (!selectedResult) {
+        payload.sessionId = selectedSessionId;
+      }
+
+      if (selectedResult) {
+        await api.put(`/results/${selectedResult._id}`, payload);
+      } else {
+        await api.post('/results', payload);
+      }
       fetchResults();
       closeModal();
+      setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Save failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to save result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to save result', color: 'danger' });
     }
   };
 
@@ -161,9 +185,10 @@ const AdminResultsDashboard: React.FC = () => {
     try {
       await api.delete(`/results/${id}`);
       fetchResults();
+      setToastInfo({ show: true, message: 'Result deleted successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Delete failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to delete result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to delete result', color: 'danger' });
     }
   };
 
@@ -171,85 +196,89 @@ const AdminResultsDashboard: React.FC = () => {
     try {
       await api.put(`/results/${id}/approve`);
       fetchResults();
+      setToastInfo({ show: true, message: 'Result approved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Approval failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to approve result');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to approve result', color: 'danger' });
+    }
+  };
+
+  const handleRevertToDraft = async (id: string) => {
+    if (!window.confirm('Are you sure you want to revert this result to Draft? This will hide it from students and parents.')) return;
+    try {
+      await api.put(`/results/${id}/revert-to-draft`);
+      fetchResults();
+      setToastInfo({ show: true, message: 'Result reverted to draft.', color: 'success' });
+    } catch (err: any) {
+      console.error('Revert failed:', err.response?.data || err.message);
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to revert result', color: 'danger' });
     }
   };
 
   const handleRankResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const branchId = user?.role === 'Super Admin' ? (formData.branchId as string) : user?.branchId || '';
       await api.post('/results/rank', {
         classId: selectedClass,
-        session: selectedSession,
-        term: selectedTerm,
+        sessionId: selectedSessionId,
         branchId,
       });
-      alert('Results ranked successfully!');
+      setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
       fetchResults();
     } catch (err: any) {
       console.error('Ranking failed:', err.response?.data || err.message);
-      alert(err.response?.data?.message || 'Failed to rank results');
+      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to rank results', color: 'danger' });
     } finally {
       setLoading(false);
     }
   };
 
   const handleExport = async () => {
-  if (!selectedClass || !selectedSession || !selectedTerm) {
-    alert('Please select class, session, and term before exporting.');
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    // Prepare request payload
-    const payload: any = {
-      classId: selectedClass,
-      session: selectedSession,
-      term: selectedTerm,
-    };
-
-    if (user?.role === 'Super Admin') {
-      payload.branchId = formData.branchId;
+    if (!selectedClass || !selectedSessionId) {
+      setToastInfo({ show: true, message: 'Please select class, session, and term before exporting.', color: 'warning' });
+      return;
     }
 
-    // Make POST request to export endpoint
-    const response = await api.post('/results/export', payload, {
-      responseType: 'blob', // Important to handle file download
-    });
+    try {
+      setLoading(true);
 
-    // Create a URL for the blob
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = window.URL.createObjectURL(blob);
+      const payload: any = {
+        classId: selectedClass,
+        sessionId: selectedSessionId,
+      };
 
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute(
-      'download',
-      `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
-    );
-    document.body.appendChild(link);
-    link.click();
+      if (user?.role === 'Super Admin') {
+        payload.branchId = formData.branchId;
+      }
 
-    // Clean up
-    link.parentNode?.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      const response = await api.post('/results/export', payload, {
+        responseType: 'blob',
+      });
 
-  } catch (err: any) {
-    console.error('Export failed:', err.response?.data || err.message);
-    alert('Failed to export results.');
-  } finally {
-    setLoading(false);
-  }
-};
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = window.URL.createObjectURL(blob);
 
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `results-${selectedClass}-${selectedSession}-${selectedTerm}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Export failed:', err.response?.data || err.message);
+      setToastInfo({ show: true, message: 'Failed to export results.', color: 'danger' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const openModal = (result: Result | null = null) => {
     const selectedClassObj = classes.find((c) => c._id === selectedClass);
@@ -260,8 +289,7 @@ const AdminResultsDashboard: React.FC = () => {
         : {
             classId: selectedClass,
             branchId: (selectedClassObj?.branchId as string) || '',
-            session: selectedSession,
-            term: selectedTerm || 'First Term',
+            sessionId: selectedSessionId,
           }
     );
     setShowModal(true);
@@ -298,29 +326,59 @@ const AdminResultsDashboard: React.FC = () => {
       fetchResults();
       setShowImportModal(false);
       setSelectedFile(null);
+      setToastInfo({ show: true, message: 'Results imported successfully.', color: 'success' });
     } catch (error) {
       console.error('Error importing results:', error);
+      setToastInfo({ show: true, message: 'Failed to import results.', color: 'danger' });
     }
   };
 
-  const canPerformActions = selectedClass && selectedSession && selectedTerm;
+  const canPerformActions = selectedClass && selectedSessionId;
 
   const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.name) return result.studentId.name;
+    // Case 1: result.studentId is a populated Student object from the results endpoint
+    if (typeof result.studentId === 'object' && result.studentId.userId?.name) {
+      return result.studentId.userId.name;
+    }
+    // Case 2: result.studentId is just an ID, find the student in the list fetched separately
     const student = students.find((s) => s._id === result.studentId);
-    return student ? student.userId.name : 'N/A';
+    if (student?.userId?.name) {
+      return student.userId.name;
+    }
+    // Fallback for non-populated or differently shaped student data
+    return 'N/A';
   };
 
   const getAdmissionNumber = (result: Result) => {
-    if (typeof result.studentId === 'object' && result.studentId.admissionNumber) return result.studentId.admissionNumber;
+    if (typeof result.studentId === 'object' && result.studentId.admissionNumber) {
+      return result.studentId.admissionNumber;
+    }
     const student = students.find((s) => s._id === result.studentId);
     return student ? student.admissionNumber : 'N/A';
   };
 
   const getSubjectName = (result: Result) => {
-    if (typeof result.subjectId === 'object' && result.subjectId.name) return result.subjectId.name;
+    if (typeof result.subjectId === 'object' && result.subjectId.name) {
+      return result.subjectId.name;
+    }
     const subject = subjects.find((s) => s._id === result.subjectId);
     return subject ? subject.name : 'N/A';
+  };
+
+  const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
+  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
+
+  const handleSessionChange = (e: any) => {
+    setSelectedSession(e.detail.value);
+    setSelectedTerm('');
+    setSelectedSessionId(''); // Reset term and sessionId when session (year) changes
+  };
+
+  const handleTermChange = (e: any) => {
+    const term = e.detail.value;
+    setSelectedTerm(term);
+    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
+    setSelectedSessionId(sessionObj?._id || '');
   };
 
   return (
@@ -373,8 +431,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Session</IonLabel>
-                  <IonSelect value={selectedSession} onIonChange={(e) => setSelectedSession(e.detail.value)}>
-                    {SESSIONS.map((session) => (
+                  <IonSelect value={selectedSession} onIonChange={handleSessionChange}>
+                    {academicYears.map((session) => (
                       <IonSelectOption key={session} value={session}>
                         {session}
                       </IonSelectOption>
@@ -385,8 +443,8 @@ const AdminResultsDashboard: React.FC = () => {
               <IonCol size-md="3" size="12">
                 <IonItem>
                   <IonLabel>Term</IonLabel>
-                  <IonSelect value={selectedTerm} onIonChange={(e) => setSelectedTerm(e.detail.value)}>
-                    {TERMS.map((term) => (
+                  <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>
+                    {availableTerms.map((term) => (
                       <IonSelectOption key={term} value={term}>
                         {term}
                       </IonSelectOption>
@@ -416,6 +474,16 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={handleExport} color="success" disabled={!canPerformActions}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
+                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
+                  <IonButton color="dark" disabled={!canPerformActions}>
+                    <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
+                  </IonButton>
+                </IonRouterLink>
+                <IonRouterLink routerLink="/promotions">
+                  <IonButton color="warning">
+                    <IonIcon slot="start" icon={ribbonOutline} /> End of Session
+                  </IonButton>
+                </IonRouterLink>
               </IonCol>
             </IonRow>
 
@@ -470,6 +538,11 @@ const AdminResultsDashboard: React.FC = () => {
                                   </IonButton>
                                 </>
                               )}
+                              {result.status === 'Approved' && (
+                                <IonButton size="small" color="warning" onClick={() => handleRevertToDraft(result._id)}>
+                                  <IonIcon slot="icon-only" icon={refreshOutline} />
+                                </IonButton>
+                              )}
                             </span>
                           </td>
                         </tr>
@@ -516,9 +589,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonInput
                     readonly
                     value={
-                      typeof formData.studentId === 'object' && formData.studentId?.name
-                        ? formData.studentId.name
-                        : students.find((s) => s._id === formData.studentId)?.userId?.name || ''
+                      (typeof formData.studentId === 'object' && formData.studentId.name) || ''
                     }
                   />
                 </IonItem>
@@ -567,7 +638,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonLabel position="floating">Teacher Comment</IonLabel>
                   <IonInput name="teacherComment" value={formData.teacherComment || ''} onIonChange={handleInputChange} />
                 </IonItem>
-                {['Super Admin', 'Branch Admin'].includes(user.role) && (
+                {user && ['Super Admin', 'Branch Admin'].includes(user.role) && (
                   <IonItem>
                     <IonLabel position="floating">Principal Comment</IonLabel>
                     <IonInput name="principalComment" value={formData.principalComment || ''} onIonChange={handleInputChange} />
@@ -604,6 +675,13 @@ const AdminResultsDashboard: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </IonModal>
+          <IonToast
+            isOpen={toastInfo.show}
+            onDidDismiss={() => setToastInfo({ ...toastInfo, show: false })}
+            message={toastInfo.message}
+            duration={3000}
+            color={toastInfo.color}
+          />
         </IonContent>
       </IonPage>
     </>

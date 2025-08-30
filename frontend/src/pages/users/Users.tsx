@@ -566,7 +566,7 @@ const UsersPage: React.FC = () => {
                   >
                     {students.map((stu) => (
                       <IonSelectOption key={stu._id} value={stu._id}>
-                        {stu.name}
+                        {stu.userId.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>

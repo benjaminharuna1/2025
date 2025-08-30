@@ -107,7 +107,15 @@ const Subjects: React.FC = () => {
 
   const openModal = (subject: Subject | null = null) => {
     setSelectedSubject(subject);
-    setFormData(subject ? { ...subject } : {});
+    if (subject) {
+      setFormData({
+        ...subject,
+        classId: typeof subject.classId === 'object' ? subject.classId._id : subject.classId,
+        teacherId: typeof subject.teacherId === 'object' ? subject.teacherId._id : subject.teacherId,
+      });
+    } else {
+      setFormData({});
+    }
     setShowModal(true);
   };
 
