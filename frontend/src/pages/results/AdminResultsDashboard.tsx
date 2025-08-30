@@ -317,19 +317,26 @@ const AdminResultsDashboard: React.FC = () => {
   const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
-    if (typeof result.studentId === 'object') return result.studentId.userId.name;
+    if (typeof result.studentId === 'object' && result.studentId.name) {
+      return result.studentId.name;
+    }
     const student = students.find((s) => s._id === result.studentId);
-    return student ? student.userId.name : 'N/A';
+    // Fallback for non-populated or differently shaped student data
+    return student?.userId?.name || 'N/A';
   };
 
   const getAdmissionNumber = (result: Result) => {
-    if (typeof result.studentId === 'object') return result.studentId.admissionNumber;
+    if (typeof result.studentId === 'object' && result.studentId.admissionNumber) {
+      return result.studentId.admissionNumber;
+    }
     const student = students.find((s) => s._id === result.studentId);
     return student ? student.admissionNumber : 'N/A';
   };
 
   const getSubjectName = (result: Result) => {
-    if (typeof result.subjectId === 'object') return result.subjectId.name;
+    if (typeof result.subjectId === 'object' && result.subjectId.name) {
+      return result.subjectId.name;
+    }
     const subject = subjects.find((s) => s._id === result.subjectId);
     return subject ? subject.name : 'N/A';
   };
@@ -540,9 +547,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonInput
                     readonly
                     value={
-                      typeof formData.studentId === 'object' && formData.studentId?.name
-                        ? formData.studentId.name
-                        : students.find((s) => s._id === formData.studentId)?.userId?.name || ''
+                      (typeof formData.studentId === 'object' && formData.studentId.name) || ''
                     }
                   />
                 </IonItem>
