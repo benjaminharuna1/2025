@@ -243,7 +243,7 @@ const Classes: React.FC = () => {
                       <tr key={klass._id}>
                         <td data-label="Name">{klass.name}</td>
                         <td data-label="Class Level">{typeof klass.classLevel === 'object' ? klass.classLevel.name : 'N/A'}</td>
-                        <td data-label="Main Teacher">{typeof klass.mainTeacherId === 'object' ? klass.mainTeacherId.name : 'N/A'}</td>
+                        <td data-label="Main Teacher">{klass.mainTeacherId?.userId?.name || 'N/A'}</td>
                         <td data-label="Actions">
                           <IonButton onClick={() => openModal(klass)}>
                             <IonIcon slot="icon-only" icon={create} />
@@ -304,7 +304,7 @@ const Classes: React.FC = () => {
                 <IonSelect name="mainTeacherId" value={formData.mainTeacherId as string} onIonChange={e => handleSelectChange('mainTeacherId', e.detail.value)}>
                   {teachers.map((teacher) => (
                     <IonSelectOption key={teacher._id} value={teacher._id}>
-                      {teacher.name}
+                      {teacher.userId?.name}
                     </IonSelectOption>
                   ))}
                 </IonSelect>
