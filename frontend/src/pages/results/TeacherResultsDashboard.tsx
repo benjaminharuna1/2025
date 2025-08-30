@@ -136,9 +136,8 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
-    if (!sessionObj && !selectedResult?.sessionId) {
-      setShowToast({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+    if (!selectedResult && (!selectedSession || !selectedTerm)) {
+      setShowToast({ show: true, message: 'A session and term must be selected for new results.', color: 'danger' });
       return;
     }
 
@@ -151,11 +150,9 @@ const TeacherResultsDashboard: React.FC = () => {
         exam: Number(formData.exam),
       };
 
-      delete payload.session;
-      delete payload.term;
-
       if (!selectedResult) {
-        payload.sessionId = sessionObj?._id;
+        payload.session = selectedSession;
+        payload.term = selectedTerm;
       }
 
       if (selectedResult) {
@@ -197,9 +194,8 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const openModal = (result: Result | null = null) => {
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
     setSelectedResult(result);
-    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: sessionObj?._id });
+    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: selectedSessionId });
     setShowModal(true);
   };
 
@@ -238,8 +234,6 @@ const TeacherResultsDashboard: React.FC = () => {
       console.error('Error importing results:', error);
     }
   };
-
-  const canPerformActions = selectedClass && selectedSession && selectedTerm;
 
   const getStudentName = (result: Result) => {
     // Case 1: result.studentId is a populated Student object from the results endpoint
@@ -329,7 +323,7 @@ const TeacherResultsDashboard: React.FC = () => {
             </IonRow>
             <IonRow>
                 <IonCol>
-                    <IonButton onClick={() => openModal()} disabled={!canPerformActions}><IonIcon slot="start" icon={add} />Add Result</IonButton>
+                    <IonButton onClick={() => openModal()} disabled={!selectedClass || !selectedSessionId}><IonIcon slot="start" icon={add} />Add Result</IonButton>
                     <IonRouterLink routerLink="/results/bulk-add"><IonButton><IonIcon slot="start" icon={documentTextOutline} />Bulk Add</IonButton></IonRouterLink>
                     <IonButton onClick={() => setShowImportModal(true)} color="secondary"><IonIcon slot="start" icon={cloudUploadOutline} />Import</IonButton>
                 </IonCol>

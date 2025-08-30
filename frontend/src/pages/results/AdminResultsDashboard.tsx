@@ -44,6 +44,7 @@ import { getSessions } from '../../services/sessionsApi';
 import { IonToast } from '@ionic/react';
 import '../../theme/global.css';
 import { TERMS } from '../../constants';
+import { getSessionId } from '../../utils/sessionUtils';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -121,19 +122,19 @@ const AdminResultsDashboard: React.FC = () => {
 
   useEffect(() => {
     if (selectedClass && selectedSessionId) {
-      fetchResults(selectedSessionId);
+      fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSessionId, selectedBranch, user]);
+  }, [selectedClass, selectedSessionId]);
 
-  const fetchResults = async (sessionId: string) => {
-    if (!sessionId) return;
+  const fetchResults = async () => {
+    if (!selectedSessionId) return;
     setLoading(true);
     try {
       const params: any = {
         classId: selectedClass,
-        sessionId: sessionId,
+        sessionId: selectedSessionId,
       };
       if (selectedBranch) {
         params.branchId = selectedBranch;
@@ -157,9 +158,8 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
-    if (!sessionObj && !selectedResult?.sessionId) {
-      setToastInfo({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+    if (!selectedResult && (!selectedSession || !selectedTerm)) {
+      setToastInfo({ show: true, message: 'A session and term must be selected for new results.', color: 'danger' });
       return;
     }
 
@@ -173,12 +173,9 @@ const AdminResultsDashboard: React.FC = () => {
         branchId: selectedBranch,
       };
 
-      // Clean up payload by removing properties that should not be sent
-      delete payload.session;
-      delete payload.term;
-
       if (!selectedResult) {
-        payload.sessionId = sessionObj?._id;
+        payload.session = selectedSession;
+        payload.term = selectedTerm;
       }
 
       if (selectedResult) {
@@ -186,7 +183,7 @@ const AdminResultsDashboard: React.FC = () => {
       } else {
         await api.post('/results', payload);
       }
-      fetchResults(selectedSessionId);
+      fetchResults();
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
     } catch (err: any) {
@@ -199,7 +196,7 @@ const AdminResultsDashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this result?')) return;
     try {
       await api.delete(`/results/${id}`);
-      fetchResults(selectedSessionId);
+      fetchResults();
       setToastInfo({ show: true, message: 'Result deleted successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Delete failed:', err.response?.data || err.message);
@@ -210,7 +207,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleApprove = async (id: string) => {
     try {
       await api.put(`/results/${id}/approve`);
-      fetchResults(selectedSessionId);
+      fetchResults();
       setToastInfo({ show: true, message: 'Result approved successfully.', color: 'success' });
     } catch (err: any) {
       console.error('Approval failed:', err.response?.data || err.message);
@@ -222,7 +219,7 @@ const AdminResultsDashboard: React.FC = () => {
     if (!window.confirm('Are you sure you want to revert this result to Draft? This will hide it from students and parents.')) return;
     try {
       await api.put(`/results/${id}/revert-to-draft`);
-      fetchResults(selectedSessionId);
+      fetchResults();
       setToastInfo({ show: true, message: 'Result reverted to draft.', color: 'success' });
     } catch (err: any) {
       console.error('Revert failed:', err.response?.data || err.message);
@@ -237,11 +234,12 @@ const AdminResultsDashboard: React.FC = () => {
     try {
       await api.post('/results/rank', {
         classId: selectedClass,
-        sessionId: sessionObj._id,
+        session: selectedSession,
+        term: selectedTerm,
         branchId: selectedBranch,
       });
       setToastInfo({ show: true, message: 'Results ranked successfully!', color: 'success' });
-      fetchResults(sessionObj._id);
+      fetchResults();
     } catch (err: any) {
       console.error('Ranking failed:', err.response?.data || err.message);
       setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to rank results', color: 'danger' });
@@ -262,7 +260,8 @@ const AdminResultsDashboard: React.FC = () => {
 
       const payload: any = {
         classId: selectedClass,
-        sessionId: sessionObj._id,
+        session: selectedSession,
+        term: selectedTerm,
         branchId: selectedBranch,
       };
 
@@ -295,7 +294,6 @@ const AdminResultsDashboard: React.FC = () => {
 
   const openModal = (result: Result | null = null) => {
     const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === selectedTerm);
-    const selectedClassObj = classes.find((c) => c._id === selectedClass);
     setSelectedResult(result);
     setFormData(
       result
@@ -303,7 +301,8 @@ const AdminResultsDashboard: React.FC = () => {
         : {
             classId: selectedClass,
             branchId: selectedBranch,
-            sessionId: sessionObj?._id,
+            session: selectedSession,
+            term: selectedTerm,
           }
     );
     setShowModal(true);
@@ -337,7 +336,7 @@ const AdminResultsDashboard: React.FC = () => {
       await api.post('/results/import', importData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      fetchResults(selectedSessionId);
+      fetchResults();
       setShowImportModal(false);
       setSelectedFile(null);
       setToastInfo({ show: true, message: 'Results imported successfully.', color: 'success' });
@@ -480,14 +479,14 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={() => setShowImportModal(true)} color="secondary">
                   <IonIcon slot="start" icon={cloudUploadOutline} /> Import
                 </IonButton>
-                <IonButton onClick={handleRankResults} color="tertiary" disabled={!selectedClass || !selectedSessionId}>
+                <IonButton onClick={handleRankResults} color="tertiary" disabled={!selectedClass || !selectedSession || !selectedTerm}>
                   <IonIcon slot="start" icon={ribbonOutline} /> Rank Results
                 </IonButton>
-                <IonButton onClick={handleExport} color="success" disabled={!selectedClass || !selectedSessionId}>
+                <IonButton onClick={handleExport} color="success" disabled={!selectedClass || !selectedSession || !selectedTerm}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
-                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
-                  <IonButton color="dark" disabled={!selectedClass || !selectedSessionId}>
+                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${getSessionId(sessions, selectedSession, selectedTerm)}`}>
+                  <IonButton color="dark" disabled={!selectedClass || !selectedSession || !selectedTerm}>
                     <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
                   </IonButton>
                 </IonRouterLink>
