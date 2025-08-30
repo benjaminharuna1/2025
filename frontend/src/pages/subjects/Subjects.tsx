@@ -26,7 +26,7 @@ import {
 } from '@ionic/react';
 import { add, create, trash } from 'ionicons/icons';
 import api from '../../services/api';
-import { Subject, Class, User as Teacher } from '../../types';
+import { Subject, Class, User as Teacher, Branch, ClassLevel } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Subjects.css';
 
@@ -34,21 +34,52 @@ const Subjects: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [formData, setFormData] = useState<Partial<Subject>>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [filterBranch, setFilterBranch] = useState('');
+  const [filterClassLevel, setFilterClassLevel] = useState('');
+
+  useEffect(() => {
+    fetchBranches();
+    fetchClassLevels();
+    fetchTeachers();
+  }, []);
 
   useEffect(() => {
     fetchSubjects();
     fetchClasses();
-    fetchTeachers();
-  }, []);
+  }, [filterBranch, filterClassLevel]);
+
+  const fetchBranches = async () => {
+    try {
+      const { data } = await api.get('/branches');
+      setBranches(data.branches || []);
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+    }
+  };
+
+  const fetchClassLevels = async () => {
+    try {
+      const { data } = await api.get('/classlevels');
+      setClassLevels(data || []);
+    } catch (error) {
+      console.error('Error fetching class levels:', error);
+    }
+  };
 
   const fetchSubjects = async () => {
     try {
-      const { data } = await api.get('/subjects');
+      const params: any = {};
+      if (filterBranch) params.branchId = filterBranch;
+      if (filterClassLevel) params.classLevelId = filterClassLevel;
+
+      const { data } = await api.get('/subjects', { params });
       if (data && Array.isArray(data.subjects)) {
         setSubjects(data.subjects);
       } else {
@@ -62,17 +93,34 @@ const Subjects: React.FC = () => {
 
   const fetchClasses = async () => {
     try {
-      const { data } = await api.get('/classes');
-      setClasses(data.classes || []);
+      const params: any = {};
+      if (filterBranch) params.branchId = filterBranch;
+      if (filterClassLevel) params.classLevelId = filterClassLevel;
+      const { data } = await api.get('/classes', { params });
+      setClasses(data.classes || data || []);
     } catch (error) {
       console.error('Error fetching classes:', error);
     }
   };
 
   const fetchTeachers = async () => {
+    // Fetches all teachers to populate the dropdown.
+    let allTeachers: Teacher[] = [];
+    let page = 1;
+    let totalPages = 1;
+
     try {
-      const { data } = await api.get('/users?role=Teacher');
-      setTeachers(data.users || []);
+      do {
+        const { data } = await api.get('/teachers', { params: { page } });
+        if (data && data.teachers) {
+          allTeachers = [...allTeachers, ...data.teachers];
+          totalPages = data.pages;
+          page++;
+        } else {
+          totalPages = 0; // stop the loop
+        }
+      } while (page <= totalPages);
+      setTeachers(allTeachers);
     } catch (error) {
       console.error('Error fetching teachers:', error);
     }
@@ -129,6 +177,10 @@ const Subjects: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.detail.value });
   };
 
+  const handleSelectChange = (fieldName: keyof Subject, value: any) => {
+    setFormData({ ...formData, [fieldName]: value });
+  };
+
   return (
     <>
       <SidebarMenu />
@@ -149,6 +201,26 @@ const Subjects: React.FC = () => {
                   <IonIcon slot="start" icon={add} />
                   Add Subject
                 </IonButton>
+              </IonCol>
+            </IonRow>
+            <IonRow>
+              <IonCol size-md="6">
+                <IonItem>
+                  <IonLabel>Filter by Branch</IonLabel>
+                  <IonSelect value={filterBranch} onIonChange={e => setFilterBranch(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {branches.map(branch => <IonSelectOption key={branch._id} value={branch._id}>{branch.name}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
+              <IonCol size-md="6">
+                <IonItem>
+                  <IonLabel>Filter by Class Level</IonLabel>
+                  <IonSelect value={filterClassLevel} onIonChange={e => setFilterClassLevel(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {classLevels.map(level => <IonSelectOption key={level._id} value={level._id}>{level.name}</IonSelectOption>)}
+                  </IonSelect>
+                </IonItem>
               </IonCol>
             </IonRow>
             <IonRow>
@@ -197,7 +269,7 @@ const Subjects: React.FC = () => {
                 </IonItem>
                 <IonItem>
                   <IonLabel>Class</IonLabel>
-                  <IonSelect name="classId" value={formData.classId} onIonChange={handleInputChange}>
+                  <IonSelect name="classId" value={formData.classId} onIonChange={e => handleSelectChange('classId', e.detail.value)}>
                     {classes.map((c) => (
                       <IonSelectOption key={c._id} value={c._id}>
                         {c.name}
@@ -207,10 +279,10 @@ const Subjects: React.FC = () => {
                 </IonItem>
                 <IonItem>
                   <IonLabel>Teacher</IonLabel>
-                  <IonSelect name="teacherId" value={formData.teacherId} onIonChange={handleInputChange}>
+                  <IonSelect name="teacherId" value={formData.teacherId} onIonChange={e => handleSelectChange('teacherId', e.detail.value)}>
                     {teachers.map((t) => (
                       <IonSelectOption key={t._id} value={t._id}>
-                        {t.name}
+                        {t.userId?.name}
                       </IonSelectOption>
                     ))}
                   </IonSelect>
