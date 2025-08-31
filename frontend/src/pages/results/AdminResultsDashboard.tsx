@@ -361,8 +361,24 @@ const AdminResultsDashboard: React.FC = () => {
   const handleTermChange = (e: any) => {
     const term = e.detail.value;
     setSelectedTerm(term);
-    const sessionObj = sessions.find(s => s.academicYear === selectedSession && s.term === term);
-    setSelectedSessionId(sessionObj?._id || '');
+
+    // Prioritize branch-specific session, then fall back to global
+    const branchSpecificSession = sessions.find(s =>
+      s.academicYear === selectedSession &&
+      s.term === term &&
+      s.branchId?._id === selectedBranch
+    );
+
+    if (branchSpecificSession) {
+      setSelectedSessionId(branchSpecificSession._id);
+    } else {
+      const globalSession = sessions.find(s =>
+        s.academicYear === selectedSession &&
+        s.term === term &&
+        (s.branchId === null || s.branchId === undefined)
+      );
+      setSelectedSessionId(globalSession?._id || '');
+    }
   };
 
   return (
