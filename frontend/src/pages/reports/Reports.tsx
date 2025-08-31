@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonPage,
   IonHeader,
@@ -19,98 +20,82 @@ import {
   IonCardContent,
   IonButtons,
   IonMenuButton,
+  IonLoading,
 } from '@ionic/react';
 import api from '../../services/api';
 import SidebarMenu from '../../components/SidebarMenu';
-import { Student, Class, Branch } from '../../types';
-import { SESSIONS, TERMS } from '../../constants';
+import { Class, Branch, Session } from '../../types';
 
 const Reports: React.FC = () => {
-  const [students, setStudents] = useState<Student[]>([]);
+  const history = useHistory();
   const [classes, setClasses] = useState<Class[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [feeReportFormat, setFeeReportFormat] = useState('pdf');
-  const [feeReportBranch, setFeeReportBranch] = useState('');
-  const [resultReportFormat, setResultReportFormat] = useState('pdf');
-  const [resultReportStudent, setResultReportStudent] = useState('');
-  const [resultReportClass, setResultReportClass] = useState('');
-  const [resultReportBranch, setResultReportBranch] = useState('');
-  const [resultReportSession, setResultReportSession] = useState('');
-  const [resultReportTerm, setResultReportTerm] = useState('');
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // State for the new Report Card Generator
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSessionId, setSelectedSessionId] = useState('');
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchInitialData = async () => {
+      setLoading(true);
       try {
-        const { data } = await api.get('/students');
-        if (data && Array.isArray(data.students)) {
-          const sortedStudents = data.students.sort((a: Student, b: Student) =>
-            a.userId.name.localeCompare(b.userId.name)
-          );
-          setStudents(sortedStudents);
-        }
+        // The getSessions function from the service already handles the API call
+        const [branchesData, sessionsData] = await Promise.all([
+          api.get('/branches'),
+          api.get('/sessions'),
+        ]);
+        setBranches(branchesData.data.branches || []);
+        setSessions(sessionsData.data || []);
       } catch (error) {
-        console.error('Error fetching students:', error);
+        console.error('Error fetching initial data:', error);
+      } finally {
+        setLoading(false);
       }
     };
-
-    const fetchClasses = async () => {
-      try {
-        const { data } = await api.get('/classes');
-        setClasses(data.classes || []);
-      } catch (error) {
-        console.error('Error fetching classes:', error);
-      }
-    };
-
-    const fetchBranches = async () => {
-      try {
-        const { data } = await api.get('/branches');
-        setBranches(data.branches || []);
-      } catch (error) {
-        console.error('Error fetching branches:', error);
-      }
-    };
-
-    fetchStudents();
-    fetchClasses();
-    fetchBranches();
+    fetchInitialData();
   }, []);
 
-  const generateReport = async (reportType: 'fees' | 'results') => {
-    let params = {};
-    if (reportType === 'fees') {
-      params = {
-        format: feeReportFormat,
-        branchId: feeReportBranch,
-      };
-    } else {
-      params = {
-        format: resultReportFormat,
-        studentId: resultReportStudent,
-        classId: resultReportClass,
-        branchId: resultReportBranch,
-        session: resultReportSession,
-        term: resultReportTerm,
-      };
-    }
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (selectedBranch) {
+        try {
+          setLoading(true);
+          const { data } = await api.get(`/classes?branchId=${selectedBranch}`);
+          setClasses(data.classes || []);
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setClasses([]);
+      }
+    };
+    fetchClasses();
+  }, [selectedBranch]);
 
+  const handleGeneratePreview = async () => {
+    if (!selectedClass || !selectedSessionId) {
+      console.error('Class and Session must be selected');
+      return;
+    }
+    setLoading(true);
     try {
-      const response = await api.get(`/reports/${reportType}`, {
-        params,
-        responseType: 'blob',
+      const response = await api.get('/reports/report-card-data', {
+        params: { classId: selectedClass, sessionId: selectedSessionId },
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      const filename = reportType === 'fees' ? `fee_report.${feeReportFormat}` : `result_report.${resultReportFormat}`;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      history.push('/reports/report-card-preview', { reportData: response.data });
     } catch (error) {
-      console.error(`Error generating ${reportType} report:`, error);
+      console.error('Error fetching report card data:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const isButtonDisabled = !selectedBranch || !selectedClass || !selectedSessionId;
 
   return (
     <>
@@ -125,72 +110,40 @@ const Reports: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <IonContent>
+          <IonLoading isOpen={loading} message="Please wait..." />
           <IonGrid>
             <IonRow>
               <IonCol>
                 <IonCard>
                   <IonCardHeader>
-                    <IonCardTitle>Fee Report</IonCardTitle>
+                    <IonCardTitle>Generate Report Cards</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
                     <IonItem>
                       <IonLabel>Branch</IonLabel>
-                      <IonSelect value={feeReportBranch} onIonChange={(e) => setFeeReportBranch(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
+                      <IonSelect
+                        value={selectedBranch}
+                        onIonChange={(e) => {
+                          setSelectedBranch(e.detail.value);
+                          setSelectedClass(''); // Reset class on branch change
+                        }}
+                      >
+                        <IonSelectOption value="">Select Branch</IonSelectOption>
                         {branches.map((branch) => (
                           <IonSelectOption key={branch._id} value={branch._id}>
                             {branch.name}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Format</IonLabel>
-                      <IonSelect value={feeReportFormat} onIonChange={(e) => setFeeReportFormat(e.detail.value)}>
-                        <IonSelectOption value="pdf">PDF</IonSelectOption>
-                        <IonSelectOption value="excel">Excel</IonSelectOption>
-                      </IonSelect>
-                    </IonItem>
-                    <IonButton expand="full" onClick={() => generateReport('fees')} className="ion-margin-top">
-                      Generate Fee Report
-                    </IonButton>
-                  </IonCardContent>
-                </IonCard>
-              </IonCol>
-            </IonRow>
-            <IonRow>
-              <IonCol>
-                <IonCard>
-                  <IonCardHeader>
-                    <IonCardTitle>Result Report</IonCardTitle>
-                  </IonCardHeader>
-                  <IonCardContent>
-                    <IonItem>
-                      <IonLabel>Branch</IonLabel>
-                      <IonSelect value={resultReportBranch} onIonChange={(e) => setResultReportBranch(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {branches.map((branch) => (
-                          <IonSelectOption key={branch._id} value={branch._id}>
-                            {branch.name}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Student</IonLabel>
-                      <IonSelect value={resultReportStudent} onIonChange={(e) => setResultReportStudent(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {students.map((student) => (
-                          <IonSelectOption key={student._id} value={student._id}>
-                            {student.userId.name}
                           </IonSelectOption>
                         ))}
                       </IonSelect>
                     </IonItem>
                     <IonItem>
                       <IonLabel>Class</IonLabel>
-                      <IonSelect value={resultReportClass} onIonChange={(e) => setResultReportClass(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
+                      <IonSelect
+                        value={selectedClass}
+                        onIonChange={(e) => setSelectedClass(e.detail.value)}
+                        disabled={!selectedBranch}
+                      >
+                        <IonSelectOption value="">Select Class</IonSelectOption>
                         {classes.map((c) => (
                           <IonSelectOption key={c._id} value={c._id}>
                             {c.name}
@@ -200,35 +153,25 @@ const Reports: React.FC = () => {
                     </IonItem>
                     <IonItem>
                       <IonLabel>Session</IonLabel>
-                      <IonSelect value={resultReportSession} onIonChange={(e) => setResultReportSession(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {SESSIONS.map((session) => (
-                          <IonSelectOption key={session} value={session}>
-                            {session}
+                      <IonSelect
+                        value={selectedSessionId}
+                        onIonChange={(e) => setSelectedSessionId(e.detail.value)}
+                      >
+                        <IonSelectOption value="">Select Session</IonSelectOption>
+                        {sessions.map((session) => (
+                          <IonSelectOption key={session._id} value={session._id}>
+                            {`${session.academicYear} - ${session.term}`}
                           </IonSelectOption>
                         ))}
                       </IonSelect>
                     </IonItem>
-                    <IonItem>
-                      <IonLabel>Term</IonLabel>
-                      <IonSelect value={resultReportTerm} onIonChange={(e) => setResultReportTerm(e.detail.value)}>
-                        <IonSelectOption value="">All</IonSelectOption>
-                        {TERMS.map((term) => (
-                          <IonSelectOption key={term} value={term}>
-                            {term}
-                          </IonSelectOption>
-                        ))}
-                      </IonSelect>
-                    </IonItem>
-                    <IonItem>
-                      <IonLabel>Format</IonLabel>
-                      <IonSelect value={resultReportFormat} onIonChange={(e) => setResultReportFormat(e.detail.value)}>
-                        <IonSelectOption value="pdf">PDF</IonSelectOption>
-                        <IonSelectOption value="excel">Excel</IonSelectOption>
-                      </IonSelect>
-                    </IonItem>
-                    <IonButton expand="full" onClick={() => generateReport('results')} className="ion-margin-top">
-                      Generate Result Report
+                    <IonButton
+                      expand="full"
+                      onClick={handleGeneratePreview}
+                      disabled={isButtonDisabled}
+                      className="ion-margin-top"
+                    >
+                      Generate Preview
                     </IonButton>
                   </IonCardContent>
                 </IonCard>
