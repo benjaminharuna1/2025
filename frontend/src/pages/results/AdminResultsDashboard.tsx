@@ -155,7 +155,7 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedResult && !selectedSessionId) {
+    if (!selectedResult && (!selectedSession || !selectedTerm)) {
         setToastInfo({ show: true, message: 'A session and term must be selected to create a new result.', color: 'danger' });
         return;
     }
@@ -166,13 +166,17 @@ const AdminResultsDashboard: React.FC = () => {
         payload.thirdCA = Number(payload.thirdCA);
         payload.exam = Number(payload.exam);
 
-        payload.sessionId = selectedSessionId;
-        delete payload.session;
-        delete payload.term;
-
         if (selectedResult) {
+            // When updating, we don't send session, term, or sessionId.
+            delete payload.session;
+            delete payload.term;
+            delete payload.sessionId;
             await api.put(`/results/${selectedResult._id}`, payload);
         } else {
+            // When creating, we send session and term strings.
+            payload.session = selectedSession;
+            payload.term = selectedTerm;
+            delete payload.sessionId;
             await api.post('/results', payload);
         }
         fetchResults();
@@ -304,9 +308,6 @@ const AdminResultsDashboard: React.FC = () => {
     if (!selectedFile) return;
     const importData = new FormData();
     importData.append('file', selectedFile);
-    importData.append('sessionId', selectedSessionId);
-    importData.append('classId', selectedClass);
-    importData.append('branchId', selectedBranch);
     try {
       await api.post('/results/import', importData, {
         headers: { 'Content-Type': 'multipart/form-data' },
