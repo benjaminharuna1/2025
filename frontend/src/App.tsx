@@ -22,7 +22,6 @@ import LeaveRequestManagement from './pages/leave/LeaveRequests';
 import LeaveRequestForm from './pages/leave/LeaveRequestForm';
 import PromotionPage from './pages/promotions/PromotionPage';
 import ReportCardPreviewPage from './pages/reports/ReportCardPreview';
-import Sessions from './pages/sessions/Sessions';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -83,7 +82,6 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/feestructures" component={FeeStructures} />
             <ProtectedRoute path="/dashboard/subjects" component={Subjects} />
             <ProtectedRoute path="/dashboard/classes" component={Classes} />
-            <ProtectedRoute path="/dashboard/sessions" component={Sessions} />
             <ProtectedRoute path="/dashboard/classlevels" component={ClassLevels} />
             <ProtectedRoute path="/dashboard/users" component={Users} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />

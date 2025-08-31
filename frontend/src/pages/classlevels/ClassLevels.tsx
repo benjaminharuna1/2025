@@ -62,30 +62,22 @@ const ClassLevels: React.FC = () => {
         await api.post('/classlevels', formData);
       }
       fetchClassLevels();
-      setToastMessage('Class level saved successfully.');
-      setShowToast(true);
       closeModal();
     } catch (error) {
       console.error('Error saving class level:', error);
-      const errorMsg = (error as any).response?.data?.message || 'Failed to save class level.';
-      setToastMessage(errorMsg);
+      setToastMessage('Failed to save class level.');
       setShowToast(true);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this class level?')) {
-      try {
-        await api.delete(`/classlevels/${id}`);
-        fetchClassLevels();
-        setToastMessage('Class level deleted successfully.');
-        setShowToast(true);
-      } catch (error) {
-        console.error('Error deleting class level:', error);
-        const errorMsg = (error as any).response?.data?.message || 'Failed to delete class level.';
-        setToastMessage(errorMsg);
-        setShowToast(true);
-      }
+    try {
+      await api.delete(`/classlevels/${id}`);
+      fetchClassLevels();
+    } catch (error) {
+      console.error('Error deleting class level:', error);
+      setToastMessage('Failed to delete class level.');
+      setShowToast(true);
     }
   };
 
@@ -134,7 +126,6 @@ const ClassLevels: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Name</th>
-                      <th>Level</th>
                       <th>Description</th>
                       <th>Actions</th>
                     </tr>
@@ -143,7 +134,6 @@ const ClassLevels: React.FC = () => {
                     {classLevels.map((classLevel) => (
                       <tr key={classLevel._id}>
                         <td data-label="Name">{classLevel.name}</td>
-                        <td data-label="Level">{classLevel.level}</td>
                         <td data-label="Description">{classLevel.description}</td>
                         <td data-label="Actions">
                           <IonButton onClick={() => openModal(classLevel)}>
@@ -170,10 +160,6 @@ const ClassLevels: React.FC = () => {
               <IonItem>
                 <IonLabel position="floating">Name</IonLabel>
                 <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
-              </IonItem>
-              <IonItem>
-                <IonLabel position="floating">Level</IonLabel>
-                <IonInput name="level" type="number" value={formData.level} onIonChange={handleInputChange} />
               </IonItem>
               <IonItem>
                 <IonLabel position="floating">Description</IonLabel>

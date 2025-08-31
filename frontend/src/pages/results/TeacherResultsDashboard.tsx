@@ -24,13 +24,14 @@ import {
   IonMenuButton,
   IonRouterLink,
   IonLoading,
+  IonToast,
 } from '@ionic/react';
 import { add, create, trash, cloudUploadOutline, documentTextOutline } from 'ionicons/icons';
 import api from '../../services/api';
-import { Result, Student, Subject, Class, Session } from '../../types';
+import { Result, Student, Subject, Class, Session, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import { getSessions } from '../../services/sessionsApi';
-import { IonToast } from '@ionic/react';
+import { TERMS } from '../../constants';
 
 const TeacherResultsDashboard: React.FC = () => {
   const [results, setResults] = useState<Result[]>([]);
@@ -38,6 +39,7 @@ const TeacherResultsDashboard: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -52,7 +54,6 @@ const TeacherResultsDashboard: React.FC = () => {
   const [selectedSession, setSelectedSession] = useState('');
   const [selectedTerm, setSelectedTerm] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string>('');
-  const [branches, setBranches] = useState<Branch[]>([]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -99,20 +100,21 @@ const TeacherResultsDashboard: React.FC = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSessionId) {
+    if (selectedClass && selectedSession && selectedTerm) {
       fetchResults();
     } else {
       setResults([]);
     }
-  }, [selectedClass, selectedSessionId]);
+  }, [selectedClass, selectedSession, selectedTerm]);
 
   const fetchResults = async () => {
-    if (!selectedSessionId) return;
+    if (!selectedClass || !selectedSession || !selectedTerm) return;
     setLoading(true);
     try {
       const params: any = {
         classId: selectedClass,
-        sessionId: selectedSessionId,
+        session: selectedSession,
+        term: selectedTerm,
       };
       if (selectedBranch) {
         params.branchId = selectedBranch;
@@ -136,7 +138,7 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedResult && (!selectedSession || !selectedTerm)) {
+    if (!selectedResult && !selectedSessionId) {
       setShowToast({ show: true, message: 'A session and term must be selected for new results.', color: 'danger' });
       return;
     }
@@ -150,10 +152,9 @@ const TeacherResultsDashboard: React.FC = () => {
         exam: Number(formData.exam),
       };
 
-      if (!selectedResult) {
-        payload.session = selectedSession;
-        payload.term = selectedTerm;
-      }
+      payload.sessionId = selectedSessionId;
+      delete payload.session;
+      delete payload.term;
 
       if (selectedResult) {
         await api.put(`/results/${selectedResult._id}`, payload);
@@ -184,7 +185,7 @@ const TeacherResultsDashboard: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this result?')) {
       try {
-        await api.delete(`/results/${id}`);
+        await api.delete(`/results/${id}`, { data: { sessionId: selectedSessionId } });
         fetchResults();
       } catch (err: any) {
         console.error("Delete failed:", err.response?.data || err.message);
@@ -195,7 +196,7 @@ const TeacherResultsDashboard: React.FC = () => {
 
   const openModal = (result: Result | null = null) => {
     setSelectedResult(result);
-    setFormData(result ? { ...result } : { classId: selectedClass, sessionId: selectedSessionId });
+    setFormData(result ? { ...result } : { classId: selectedClass, branchId: selectedBranch });
     setShowModal(true);
   };
 
@@ -225,6 +226,9 @@ const TeacherResultsDashboard: React.FC = () => {
     if (!selectedFile) return;
     const importData = new FormData();
     importData.append('file', selectedFile);
+    importData.append('sessionId', selectedSessionId);
+    importData.append('classId', selectedClass);
+    importData.append('branchId', selectedBranch);
     try {
       await api.post('/results/import', importData, { headers: { 'Content-Type': 'multipart/form-data' } });
       fetchResults();
@@ -236,17 +240,11 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const getStudentName = (result: Result) => {
-    // Case 1: result.studentId is a populated Student object from the results endpoint
     if (typeof result.studentId === 'object' && result.studentId.userId?.name) {
       return result.studentId.userId.name;
     }
-    // Case 2: result.studentId is just an ID, find the student in the list fetched separately
     const student = students.find((s) => s._id === result.studentId);
-    if (student?.userId?.name) {
-      return student.userId.name;
-    }
-    // Fallback for non-populated or differently shaped student data
-    return 'N/A';
+    return student?.userId?.name || 'N/A';
   };
 
   const getSubjectName = (result: Result) => {
@@ -256,7 +254,6 @@ const TeacherResultsDashboard: React.FC = () => {
   };
 
   const academicYears = [...new Set(sessions.map(s => s.academicYear))].sort().reverse();
-  const availableTerms = selectedSession ? [...new Set(sessions.filter(s => s.academicYear === selectedSession).map(s => s.term))] : [];
 
   const handleBranchChange = (branchId: string) => {
     setSelectedBranch(branchId);
@@ -316,7 +313,7 @@ const TeacherResultsDashboard: React.FC = () => {
                   <IonLabel>Term</IonLabel>
                   <IonSelect value={selectedTerm} onIonChange={handleTermChange} disabled={!selectedSession}>
                     <IonSelectOption value="">Select Term</IonSelectOption>
-                    {availableTerms.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}
+                    {TERMS.map(term => <IonSelectOption key={term} value={term}>{term}</IonSelectOption>)}
                   </IonSelect>
                 </IonItem>
               </IonCol>
@@ -325,7 +322,7 @@ const TeacherResultsDashboard: React.FC = () => {
                 <IonCol>
                     <IonButton onClick={() => openModal()} disabled={!selectedClass || !selectedSessionId}><IonIcon slot="start" icon={add} />Add Result</IonButton>
                     <IonRouterLink routerLink="/results/bulk-add"><IonButton><IonIcon slot="start" icon={documentTextOutline} />Bulk Add</IonButton></IonRouterLink>
-                    <IonButton onClick={() => setShowImportModal(true)} color="secondary"><IonIcon slot="start" icon={cloudUploadOutline} />Import</IonButton>
+                    <IonButton onClick={() => setShowImportModal(true)} color="secondary" disabled={!selectedClass || !selectedSessionId}><IonIcon slot="start" icon={cloudUploadOutline} />Import</IonButton>
                 </IonCol>
             </IonRow>
             <IonRow>
@@ -375,8 +372,6 @@ const TeacherResultsDashboard: React.FC = () => {
               </IonCol>
             </IonRow>
           </IonGrid>
-
-          {/* Add/Edit Modal */}
           <IonModal isOpen={showModal} onDidDismiss={closeModal}>
             <IonCard>
               <IonCardHeader><IonCardTitle>{selectedResult ? 'Edit' : 'Add'} Result</IonCardTitle></IonCardHeader>
@@ -394,8 +389,6 @@ const TeacherResultsDashboard: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </IonModal>
-
-          {/* Import Modal */}
           <IonModal isOpen={showImportModal} onDidDismiss={() => setShowImportModal(false)}>
             <IonCard>
               <IonCardHeader><IonCardTitle>Import Results</IonCardTitle></IonCardHeader>
@@ -407,6 +400,7 @@ const TeacherResultsDashboard: React.FC = () => {
               </IonCardContent>
             </IonCard>
           </IonModal>
+          <IonToast isOpen={showToast.show} onDidDismiss={() => setShowToast({ ...showToast, show: false })} message={showToast.message} duration={3000} color={showToast.color as any} />
         </IonContent>
       </IonPage>
     </>
