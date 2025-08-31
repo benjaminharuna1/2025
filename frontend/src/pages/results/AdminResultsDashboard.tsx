@@ -187,7 +187,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this result?')) return;
     try {
-      await api.delete(`/results/${id}`, { data: { sessionId: selectedSessionId } });
+      await api.delete(`/results/${id}`);
       fetchResults();
       setToastInfo({ show: true, message: 'Result deleted successfully.', color: 'success' });
     } catch (err: any) {
@@ -198,7 +198,7 @@ const AdminResultsDashboard: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      await api.put(`/results/${id}/approve`, { sessionId: selectedSessionId });
+      await api.put(`/results/${id}/approve`);
       fetchResults();
       setToastInfo({ show: true, message: 'Result approved successfully.', color: 'success' });
     } catch (err: any) {
@@ -210,7 +210,7 @@ const AdminResultsDashboard: React.FC = () => {
   const handleRevertToDraft = async (id: string) => {
     if (!window.confirm('Are you sure you want to revert this result to Draft?')) return;
     try {
-      await api.put(`/results/${id}/revert-to-draft`, { sessionId: selectedSessionId });
+      await api.put(`/results/${id}/revert-to-draft`);
       fetchResults();
       setToastInfo({ show: true, message: 'Result reverted to draft.', color: 'success' });
     } catch (err: any) {

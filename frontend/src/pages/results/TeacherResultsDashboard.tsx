@@ -185,7 +185,7 @@ const TeacherResultsDashboard: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this result?')) {
       try {
-        await api.delete(`/results/${id}`, { data: { sessionId: selectedSessionId } });
+        await api.delete(`/results/${id}`);
         fetchResults();
       } catch (err: any) {
         console.error("Delete failed:", err.response?.data || err.message);
