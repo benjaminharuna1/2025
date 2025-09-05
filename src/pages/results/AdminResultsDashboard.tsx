@@ -143,43 +143,47 @@ const AdminResultsDashboard: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!selectedSessionId && !selectedResult?.sessionId) {
-      setToastInfo({ show: true, message: 'A session and term must be selected.', color: 'danger' });
+    if (!selectedSessionId && !selectedResult) {
+      setToastInfo({ show: true, message: 'A session must be selected to create a result.', color: 'danger' });
       return;
     }
 
     try {
-      const payload: Partial<Result> = {
+      setLoading(true);
+      const payload = {
         ...formData,
-        firstCA: Number(formData.firstCA),
-        secondCA: Number(formData.secondCA),
-        thirdCA: Number(formData.thirdCA),
-        exam: Number(formData.exam),
-        branchId: user?.role === 'Super Admin' ? formData.branchId : user?.branchId || '',
+        firstCA: Number(formData.firstCA) || 0,
+        secondCA: Number(formData.secondCA) || 0,
+        thirdCA: Number(formData.thirdCA) || 0,
+        exam: Number(formData.exam) || 0,
       };
 
-      // Clean up payload by removing properties that should not be sent
-      delete payload.session;
-      delete payload.term;
-
-      if (!selectedResult) {
-        payload.sessionId = selectedSessionId;
-      }
+      const currentSession = sessions.find(s => s._id === selectedSessionId);
 
       if (selectedResult) {
         await api.put(`/results/${selectedResult._id}`, payload);
       } else {
+        payload.classId = filters.class;
+        const currentClass = classes.find(c => c._id === filters.class);
+        payload.branchId = currentClass?.branchId;
+        payload.sessionId = selectedSessionId;
+        payload.session = currentSession?.academicYear;
+        payload.term = currentSession?.term;
+        
         await api.post('/results', payload);
       }
+
       fetchResults();
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
-    } catch (err: any) {
-      console.error('Save failed:', err.response?.data || err.message);
-      setToastInfo({ show: true, message: err.response?.data?.message || 'Failed to save result', color: 'danger' });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Failed to save result';
+      setToastInfo({ show: true, message: errorMsg, color: 'danger' });
+      console.error('Save failed:', errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
-
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this result?')) return;
     try {
