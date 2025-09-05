@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   IonPage,
   IonHeader,
@@ -11,43 +11,58 @@ import {
   IonIcon,
 } from '@ionic/react';
 import { useLocation } from 'react-router-dom';
-import { printOutline } from 'ionicons/icons';
-import ReportCard from '../../components/reports/ReportCard';
+import { printOutline, downloadOutline } from 'ionicons/icons';
 
 const ReportCardPreviewPage: React.FC = () => {
   const location = useLocation();
-  const { reportData } = (location.state as { reportData: any[] }) || { reportData: [] };
-  const reportContainerRef = useRef<HTMLDivElement>(null);
+  const { pdfUrl } = (location.state as { pdfUrl: string }) || { pdfUrl: '' };
 
   const handlePrint = () => {
-    window.print();
+    const iframe = document.getElementById('pdf-preview-iframe') as HTMLIFrameElement;
+    if (iframe) {
+      iframe.contentWindow?.print();
+    }
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = 'report_card.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <IonPage>
-      <IonHeader className="print-hide">
+      <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
             <IonBackButton defaultHref="/reports" />
           </IonButtons>
           <IonTitle>Report Card Preview</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={handlePrint} disabled={!reportData || reportData.length === 0}>
+            <IonButton onClick={handlePrint} disabled={!pdfUrl}>
               <IonIcon slot="icon-only" icon={printOutline} />
-              Print
+            </IonButton>
+            <IonButton onClick={handleDownload} disabled={!pdfUrl}>
+              <IonIcon slot="icon-only" icon={downloadOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
-        {!reportData || reportData.length === 0 ? (
-          <p>No report card data found. Please go back and generate the report first.</p>
+      <IonContent>
+        {pdfUrl ? (
+          <iframe
+            id="pdf-preview-iframe"
+            src={pdfUrl}
+            style={{ width: '100%', height: '100%', border: 'none' }}
+            title="Report Card Preview"
+          />
         ) : (
-          <div ref={reportContainerRef}>
-            {reportData.map((report, index) => (
-              <ReportCard key={index} report={report} id={`report-card-${index}`} />
-            ))}
-          </div>
+          <p style={{ textAlign: 'center', marginTop: '20px' }}>
+            No report card generated. Please go back and generate one.
+          </p>
         )}
       </IonContent>
     </IonPage>

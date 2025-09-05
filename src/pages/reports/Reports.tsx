@@ -86,8 +86,11 @@ const Reports: React.FC = () => {
     try {
       const response = await api.get('/reports/report-card-data', {
         params: { classId: selectedClass, sessionId: selectedSessionId },
+        responseType: 'blob', // This is the important part!
       });
-      history.push('/reports/report-card-preview', { reportData: response.data });
+      const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      history.push('/reports/report-card-preview', { pdfUrl });
     } catch (error) {
       console.error('Error fetching report card data:', error);
     } finally {
