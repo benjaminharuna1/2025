@@ -173,3 +173,18 @@ export interface Announcement {
   attachments?: { name: string; url: string }[];
   isRead?: boolean;
 }
+
+export interface Session {
+  _id: string;
+  academicYear: string;
+  term: string;
+  branchId?: string | null;
+  isResultEntryOpen: boolean;
+  resultPublicationStatus: 'Draft' | 'Published' | 'Archived';
+  createdBy: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}

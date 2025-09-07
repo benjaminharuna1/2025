@@ -206,7 +206,7 @@ const Reports: React.FC = () => {
                       <IonSelect
                         value={selectedBranch}
                         onIonChange={(e) => {
-                          setSelectedBranch(e.detail.value);
+                          setSelectedBranch(e.detail.value as string);
                           setSelectedClass('');
                         }}
                         disabled={!!admissionNumber.trim()}
@@ -223,7 +223,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Class</IonLabel>
                       <IonSelect
                         value={selectedClass}
-                        onIonChange={(e) => setSelectedClass(e.detail.value)}
+                        onIonChange={(e) => setSelectedClass(e.detail.value as string)}
                         disabled={!selectedBranch || !!admissionNumber.trim()}
                       >
                         <IonSelectOption value="">Select Class</IonSelectOption>
@@ -238,7 +238,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Session</IonLabel>
                       <IonSelect
                         value={selectedSessionId}
-                        onIonChange={(e) => setSelectedSessionId(e.detail.value)}
+                        onIonChange={(e) => setSelectedSessionId(e.detail.value as string)}
                       >
                         <IonSelectOption value="">Select Session</IonSelectOption>
                         {sessions.map((session) => (

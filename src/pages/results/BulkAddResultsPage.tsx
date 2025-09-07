@@ -59,23 +59,22 @@ const BulkAddResultsPage: React.FC = () => {
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        const promises = [
+        const corePromises = [
           api.get('/classes'),
           api.get('/subjects'),
           getSessions(),
-        ];
-        if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
-        }
-        const [classesData, subjectsData, sessionsData, branchesData] = await Promise.all(promises);
+        ] as const;
+
+        const [classesData, subjectsData, sessionsData] = await Promise.all(corePromises);
 
         setClasses(classesData.data.classes || classesData.data || []);
         setSubjects(subjectsData.data.subjects || subjectsData.data || []);
         setSessions(sessionsData);
-        if (branchesData) {
+
+        if (user?.role === 'Super Admin') {
+          const branchesData = await api.get('/branches');
           setBranches(branchesData.data.branches || branchesData.data || []);
         }
-
       } catch (error) {
         console.error('Error fetching initial data:', error);
         setShowToast({ show: true, message: 'Failed to load initial data.', color: 'danger' });
