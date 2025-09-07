@@ -43,6 +43,9 @@ const Reports: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [admissionNumber, setAdmissionNumber] = useState('');
 
+  // State for Fee Report Generator
+  const [feeAdmissionNumber, setFeeAdmissionNumber] = useState('');
+
   useEffect(() => {
     // This effect runs to set initial state from URL if available
     const queryParams = new URLSearchParams(location.search);
@@ -137,6 +140,33 @@ const Reports: React.FC = () => {
 
   const isButtonDisabled = !selectedSessionId || (!selectedClass && !admissionNumber.trim());
 
+  const handleGenerateFeeReport = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (feeAdmissionNumber.trim()) {
+        setLoading(true);
+        const studentRes = await api.get(`/students?admissionNumber=${feeAdmissionNumber.trim()}`);
+        const student = studentRes.data.students?.[0];
+        setLoading(false);
+
+        if (!student) {
+          setToastInfo({ show: true, message: `Student with admission number "${feeAdmissionNumber}" not found.`, color: 'danger' });
+          return;
+        }
+        queryParams.set('studentId', student._id);
+      }
+
+      history.push(`/reports/fee-report-preview?${queryParams.toString()}`);
+
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Error getting student data for fee report:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to find student.';
+      setToastInfo({ show: true, message: errorMsg, color: 'danger' });
+    }
+  };
+
   return (
     <>
       <SidebarMenu />
@@ -228,6 +258,33 @@ const Reports: React.FC = () => {
                     </IonButton>
                   </IonCardContent>
                 </IonCard>
+
+                <IonCard>
+                  <IonCardHeader>
+                    <IonCardTitle>Generate Fee Payment Report</IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent>
+                    <p className="ion-padding-bottom" style={{ opacity: 0.7 }}>
+                      Generate a fee payment report for all students, or for a single student by entering their admission number.
+                    </p>
+                    <IonItem>
+                      <IonLabel position="floating">Student Admission Number (Optional)</IonLabel>
+                      <IonInput
+                        value={feeAdmissionNumber}
+                        onIonChange={(e) => setFeeAdmissionNumber(e.target.value!)}
+                        placeholder="Leave blank for all students"
+                      />
+                    </IonItem>
+                    <IonButton
+                      expand="full"
+                      onClick={handleGenerateFeeReport}
+                      className="ion-margin-top"
+                    >
+                      Generate Fee Report
+                    </IonButton>
+                  </IonCardContent>
+                </IonCard>
+
               </IonCol>
             </IonRow>
           </IonGrid>
