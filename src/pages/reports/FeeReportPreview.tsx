@@ -23,50 +23,12 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { BlobProvider } from '@react-pdf/renderer';
 import FeeReportDocument from './FeeReportDocument';
 import api from '../../services/api';
+import { FeePayment } from '../../types';
 
-// Set up the PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-// Fee Payment Interface - can be moved to a types file later
-interface FeePayment {
-  _id: string;
-  studentId: { _id: string; userId: { _id: string; name: string; admissionNumber: string; } };
-  invoiceId: { _id: string; feeStructureId: { _id: string; name: string; description: string; fees: { feeType: string; amount: number; }[]; totalAmount: number; } };
-  amountPaid: number;
-  paymentDate: string;
-  paymentMethod: string;
-  status: string;
-}
-
-const FeeReportPreviewPage: React.FC = () => {
-  const [payments, setPayments] = useState<FeePayment[] | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [scale, setScale] = useState(1.0);
-  const location = useLocation();
-
-  // Fetch the fee report JSON data
-  useEffect(() => {
-    const fetchFeeData = async () => {
-      try {
-        const params = new URLSearchParams(location.search);
-        const { data } = await api.get('/reports/fees-json', { params });
-        setPayments(data);
-      } catch (error) {
-        console.error("Failed to fetch fee report data", error);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    fetchFeeData();
-  }, [location.search]);
-
-  const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
-  const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-
-  const Viewer = ({ blob, fileName }: { blob: Blob | null, fileName: string }) => {
-    if (!blob) {
-        return <IonSpinner />;
-    }
+const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
+    const [scale, setScale] = useState(1.0);
 
     const handlePrint = () => {
         const url = URL.createObjectURL(blob);
@@ -86,6 +48,9 @@ const FeeReportPreviewPage: React.FC = () => {
         a.click();
         document.body.removeChild(a);
     };
+
+    const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
+    const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
 
     return (
       <>
@@ -112,7 +77,28 @@ const FeeReportPreviewPage: React.FC = () => {
         </IonContent>
       </>
     );
-  };
+};
+
+const FeeReportPreviewPage: React.FC = () => {
+  const [payments, setPayments] = useState<FeePayment[] | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    const fetchFeeData = async () => {
+      try {
+        const params = new URLSearchParams(location.search);
+        const { data } = await api.get('/reports/fees-json', { params });
+        setPayments(data);
+      } catch (error) {
+        console.error("Failed to fetch fee report data", error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    fetchFeeData();
+  }, [location.search]);
 
   if (dataLoading) {
     return (
@@ -132,6 +118,14 @@ const FeeReportPreviewPage: React.FC = () => {
     );
   }
 
+  if (pdfBlob) {
+      return (
+          <IonPage>
+              <Viewer blob={pdfBlob} fileName="fee_payment_report.pdf" />
+          </IonPage>
+      )
+  }
+
   return (
     <IonPage>
       <BlobProvider document={<FeeReportDocument payments={payments} />}>
@@ -143,7 +137,10 @@ const FeeReportPreviewPage: React.FC = () => {
             console.error("PDF Generation Error:", error);
             return <IonContent className="ion-padding"><p>Failed to generate PDF.</p></IonContent>;
           }
-          return <Viewer blob={blob} fileName="fee_payment_report.pdf" />;
+          if (blob && !pdfBlob) {
+              setPdfBlob(blob);
+          }
+          return <IonContent className="ion-padding"><IonLoading isOpen={true} message="Preparing PDF..." /></IonContent>;
         }}
       </BlobProvider>
     </IonPage>

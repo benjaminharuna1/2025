@@ -32,37 +32,10 @@ interface ReceiptData {
   payments: FeePayment[];
 }
 
-const ReceiptPreviewPage: React.FC = () => {
-  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [scale, setScale] = useState(1.0);
-  const { id: invoiceId } = useParams<{ id: string }>(); // Get invoiceId from route params
-
-  useEffect(() => {
-    const fetchReceiptData = async () => {
-      if (!invoiceId) {
-        setDataLoading(false);
-        return;
-      }
-      try {
-        const { data } = await api.get(`/invoices/${invoiceId}/receipt-data`);
-        setReceiptData(data);
-      } catch (error) {
-        console.error("Failed to fetch receipt data", error);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-    fetchReceiptData();
-  }, [invoiceId]);
-
-  const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
-  const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-
-  const Viewer = ({ blob, fileName }: { blob: Blob | null, fileName: string }) => {
-    if (!blob) {
-        return <IonSpinner />;
-    }
+// Viewer component is defined outside the main component
+// to prevent it from being recreated on every render, which helps with performance.
+const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
+    const [scale, setScale] = useState(1.0);
 
     const handlePrint = () => {
         const url = URL.createObjectURL(blob);
@@ -82,6 +55,9 @@ const ReceiptPreviewPage: React.FC = () => {
         a.click();
         document.body.removeChild(a);
     };
+
+    const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
+    const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
 
     return (
       <>
@@ -108,7 +84,32 @@ const ReceiptPreviewPage: React.FC = () => {
         </IonContent>
       </>
     );
-  };
+};
+
+
+const ReceiptPreviewPage: React.FC = () => {
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const { id: invoiceId } = useParams<{ id: string }>();
+
+  useEffect(() => {
+    const fetchReceiptData = async () => {
+      if (!invoiceId) {
+        setDataLoading(false);
+        return;
+      }
+      try {
+        const { data } = await api.get(`/invoices/${invoiceId}/receipt-data`);
+        setReceiptData(data);
+      } catch (error) {
+        console.error("Failed to fetch receipt data", error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    fetchReceiptData();
+  }, [invoiceId]);
 
   if (dataLoading) {
     return (
@@ -128,6 +129,16 @@ const ReceiptPreviewPage: React.FC = () => {
     );
   }
 
+  // If we have a PDF blob, show the viewer.
+  if (pdfBlob) {
+      return (
+          <IonPage>
+              <Viewer blob={pdfBlob} fileName={`receipt_${invoiceId}.pdf`} />
+          </IonPage>
+      )
+  }
+
+  // Otherwise, render the BlobProvider to generate the PDF.
   return (
     <IonPage>
       <BlobProvider document={<ReceiptDocument data={receiptData} />}>
@@ -139,7 +150,13 @@ const ReceiptPreviewPage: React.FC = () => {
             console.error("PDF Generation Error:", error);
             return <IonContent className="ion-padding"><p>Failed to generate PDF receipt.</p></IonContent>;
           }
-          return <Viewer blob={blob} fileName={`receipt_${invoiceId}.pdf`} />;
+          // Once the blob is created, set it to state. This will cause a re-render
+          // and the `if (pdfBlob)` condition above will be met.
+          if (blob && !pdfBlob) {
+              setPdfBlob(blob);
+          }
+          // While the blob is being set, we can show a spinner or the loading message again.
+          return <IonContent className="ion-padding"><IonLoading isOpen={true} message="Preparing PDF..." /></IonContent>;
         }}
       </BlobProvider>
     </IonPage>
