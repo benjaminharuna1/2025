@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonPage,
   IonHeader,
@@ -31,6 +32,7 @@ import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
 const FeePayments: React.FC = () => {
+  const history = useHistory();
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -119,8 +121,10 @@ const FeePayments: React.FC = () => {
     }
   };
 
-  const downloadReceipt = (id: string) => {
-    window.open(`${api.defaults.baseURL}/feepayments/${id}/receipt`, '_blank');
+  const handleShowReport = (studentId: string) => {
+    if (studentId) {
+      history.push(`/reports/fee-report-preview?studentId=${studentId}`);
+    }
   };
 
   const openAddModal = () => {
@@ -233,7 +237,7 @@ const FeePayments: React.FC = () => {
                     <tbody>
                       {feePayments.map((fp) => (
                         <tr key={fp._id}>
-                          <td data-label="Student">{fp.studentId?.name}</td>
+                          <td data-label="Student">{fp.studentId?.userId?.name}</td>
                           <td data-label="Admission No.">{fp.studentId?.admissionNumber}</td>
                           <td data-label="Invoice ID">{fp.invoiceId?._id}</td>
                           <td data-label="Amount Paid">{fp.amountPaid}</td>
@@ -241,7 +245,7 @@ const FeePayments: React.FC = () => {
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
                           <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">
-                            <IonButton onClick={() => downloadReceipt(fp._id)}>
+                            <IonButton onClick={() => handleShowReport(fp.studentId?._id)}>
                               <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                           </td>
