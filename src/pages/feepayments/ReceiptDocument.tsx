@@ -127,21 +127,23 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             </View>
         </View>
 
-        <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Invoice Details</Text>
-            <View style={styles.table}>
-                <View style={styles.tableRow}>
-                    <Text style={[styles.tableColHeader, {width: '80%'}]}>Fee Type</Text>
-                    <Text style={[styles.tableColHeader, {width: '20%', textAlign: 'right'}]}>Amount</Text>
-                </View>
-                {invoice.feeStructureId.fees.map((fee, i) => (
-                    <View key={i} style={styles.tableRow}>
-                        <Text style={[styles.tableCol, {width: '80%'}]}>{fee.feeType}</Text>
-                        <Text style={[styles.tableCol, {width: '20%', textAlign: 'right'}]}>{fee.amount.toFixed(2)}</Text>
+        {invoice.feeStructureId?.fees && (
+            <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Invoice Details</Text>
+                <View style={styles.table}>
+                    <View style={styles.tableRow}>
+                        <Text style={[styles.tableColHeader, {width: '80%'}]}>Fee Type</Text>
+                        <Text style={[styles.tableColHeader, {width: '20%', textAlign: 'right'}]}>Amount</Text>
                     </View>
-                ))}
+                    {invoice.feeStructureId.fees.map((fee, i) => (
+                        <View key={i} style={styles.tableRow}>
+                            <Text style={[styles.tableCol, {width: '80%'}]}>{fee.feeType}</Text>
+                            <Text style={[styles.tableCol, {width: '20%', textAlign: 'right'}]}>{fee.amount.toFixed(2)}</Text>
+                        </View>
+                    ))}
+                </View>
             </View>
-        </View>
+        )}
 
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Payment History</Text>
