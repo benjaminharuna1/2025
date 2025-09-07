@@ -31,6 +31,18 @@ import { FeePayment, Student, Invoice, Branch } from '../../types';
 import SidebarMenu from '../../components/SidebarMenu';
 import './FeePayments.css';
 
+const initialAddFormData = {
+    studentId: '',
+    invoiceId: '',
+    amountPaid: '',
+    paymentMethod: 'Cash',
+    payerDetails: {
+        name: '',
+        phone: '',
+        email: '',
+    },
+};
+
 const FeePayments: React.FC = () => {
   const history = useHistory();
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
@@ -40,13 +52,7 @@ const FeePayments: React.FC = () => {
   const [filterStudent, setFilterStudent] = useState('');
   const [filterBranch, setFilterBranch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addFormData, setAddFormData] = useState({
-    studentId: '',
-    invoiceId: '',
-    amountPaid: '',
-    paymentMethod: 'Cash',
-    payerDetails: '',
-  });
+  const [addFormData, setAddFormData] = useState(initialAddFormData);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [page, setPage] = useState(1);
@@ -62,15 +68,12 @@ const FeePayments: React.FC = () => {
     if (addFormData.studentId) {
       const fetchStudentInvoices = async () => {
         try {
-          // Fetch unpaid and partially paid invoices for the selected student
           const [unpaidRes, partiallyPaidRes] = await Promise.all([
             api.get('/invoices', { params: { studentId: addFormData.studentId, status: 'Unpaid' } }),
             api.get('/invoices', { params: { studentId: addFormData.studentId, status: 'Partially Paid' } }),
           ]);
-
           const unpaidInvoices = unpaidRes.data.invoices || [];
           const partiallyPaidInvoices = partiallyPaidRes.data.invoices || [];
-
           setStudentInvoices([...unpaidInvoices, ...partiallyPaidInvoices]);
         } catch (error) {
           console.error('Error fetching student invoices:', error);
@@ -133,28 +136,38 @@ const FeePayments: React.FC = () => {
 
   const closeAddModal = () => {
     setShowAddModal(false);
-    setAddFormData({
-      studentId: '',
-      invoiceId: '',
-      amountPaid: '',
-      paymentMethod: 'Cash',
-      payerDetails: '',
-    });
+    setAddFormData(initialAddFormData);
     setStudentInvoices([]);
   };
 
   const handleAddFormChange = (e: any) => {
     const { name, value } = e.target;
-    setAddFormData({ ...addFormData, [name]: value });
+    if (name === 'payerName' || name === 'payerPhone' || name === 'payerEmail') {
+        const detailName = name.replace('payer', '').toLowerCase();
+        setAddFormData(prev => ({
+            ...prev,
+            payerDetails: {
+                ...prev.payerDetails,
+                [detailName]: value,
+            }
+        }));
+    } else {
+        setAddFormData({ ...addFormData, [name]: value });
+    }
   };
 
   const handleAddPayment = async () => {
     try {
+      // Ensure payerDetails are only included if they have values
+      const payerDetailsToSend = Object.values(addFormData.payerDetails).some(val => val)
+        ? addFormData.payerDetails
+        : undefined;
+
       const paymentData = {
         invoiceId: addFormData.invoiceId,
         amountPaid: Number(addFormData.amountPaid),
         paymentMethod: addFormData.paymentMethod,
-        payerDetails: addFormData.payerDetails,
+        payerDetails: payerDetailsToSend,
       };
       await api.post('/feepayments', paymentData);
       closeAddModal();
@@ -319,10 +332,26 @@ const FeePayments: React.FC = () => {
                   </IonSelect>
                 </IonItem>
                 <IonItem>
-                  <IonLabel position="floating">Payer Details (Optional)</IonLabel>
+                  <IonLabel position="floating">Payer Name (Optional)</IonLabel>
                   <IonInput
-                    name="payerDetails"
-                    value={addFormData.payerDetails}
+                    name="payerName"
+                    value={addFormData.payerDetails.name}
+                    onIonChange={handleAddFormChange}
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Payer Phone (Optional)</IonLabel>
+                  <IonInput
+                    name="payerPhone"
+                    value={addFormData.payerDetails.phone}
+                    onIonChange={handleAddFormChange}
+                  />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="floating">Payer Email (Optional)</IonLabel>
+                  <IonInput
+                    name="payerEmail"
+                    value={addFormData.payerDetails.email}
                     onIonChange={handleAddFormChange}
                   />
                 </IonItem>
