@@ -243,7 +243,7 @@ const FeePayments: React.FC = () => {
                           <td data-label="Amount Paid">{fp.amountPaid}</td>
                           <td data-label="Payment Date">{new Date(fp.paymentDate).toLocaleDateString()}</td>
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
-                          <td data-label="Recorded By">{fp.receivedBy}</td>
+                          <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">
                             <IonButton onClick={() => handleShowReport(fp.studentId?._id)}>
                               <IonIcon slot="icon-only" icon={documentText} />

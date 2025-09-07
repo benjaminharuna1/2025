@@ -1,54 +1,6 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-
-// Interfaces based on the LATEST API guide
-interface Fee {
-  feeType: string;
-  amount: number;
-}
-
-interface FeeStructure {
-  _id: string;
-  name: string;
-  description: string;
-  fees: Fee[];
-  totalAmount: number;
-}
-
-interface Invoice {
-  _id: string;
-  feeStructureId: FeeStructure;
-}
-
-interface User {
-    _id: string;
-    name: string;
-    admissionNumber: string;
-}
-
-interface Student {
-    _id: string;
-    userId: User;
-}
-
-interface PayerDetails {
-    name: string;
-    phone: string;
-    email: string;
-}
-
-interface FeePayment {
-  _id: string;
-  studentId: Student;
-  invoiceId: Invoice;
-  amountPaid: number;
-  paymentDate: string;
-  paymentMethod: string;
-  payerDetails?: PayerDetails;
-  receivedBy: string; // This is an ID
-  createdAt: string;
-  updatedAt: string;
-}
+import { FeePayment } from '../../types'; // Import from global types
 
 interface FeeReportDocumentProps {
   payments: FeePayment[];
@@ -127,13 +79,13 @@ const FeeReportDocument: React.FC<FeeReportDocumentProps> = ({ payments }) => (
         {/* Table Body */}
         {payments.map((payment) => (
           <View key={payment._id} style={styles.tableRow}>
-            <Text style={[styles.tableCol, styles.colStudent]}>{payment.studentId.userId.name}</Text>
-            <Text style={[styles.tableCol, styles.colAdmission]}>{payment.studentId.userId.admissionNumber}</Text>
-            <Text style={[styles.tableCol, styles.colInvoice]}>{payment.invoiceId.feeStructureId.name}</Text>
+            <Text style={[styles.tableCol, styles.colStudent]}>{payment.studentId.name}</Text>
+            <Text style={[styles.tableCol, styles.colAdmission]}>{payment.studentId.admissionNumber}</Text>
+            <Text style={[styles.tableCol, styles.colInvoice]}>{payment.invoiceId._id}</Text>
             <Text style={[styles.tableCol, styles.colAmount]}>{payment.amountPaid.toFixed(2)}</Text>
             <Text style={[styles.tableCol, styles.colDate]}>{new Date(payment.paymentDate).toLocaleDateString()}</Text>
             <Text style={[styles.tableCol, styles.colMethod]}>{payment.paymentMethod}</Text>
-            <Text style={[styles.tableCol, styles.colReceiver]}>{payment.receivedBy}</Text>
+            <Text style={[styles.tableCol, styles.colReceiver]}>{payment.receivedBy?.name}</Text>
           </View>
         ))}
       </View>
