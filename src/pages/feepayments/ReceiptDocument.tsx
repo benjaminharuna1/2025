@@ -103,6 +103,7 @@ const styles = StyleSheet.create({
 
 const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
   const { invoice, payments } = data;
+  const firstPayment = payments?.[0];
 
   return (
     <Document>
@@ -116,7 +117,7 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             <View style={styles.grid}>
                 <View style={styles.gridItem}>
                     <Text style={styles.label}>Billed To:</Text>
-                    <Text>{invoice.studentId.name}</Text>
+                    <Text>{invoice.studentId?.userId?.name || invoice.studentId?.name}</Text>
                 </View>
                 <View style={styles.gridItem}>
                     <Text style={styles.textRow}><Text style={styles.label}>Invoice #:</Text> {invoice._id}</Text>
@@ -126,6 +127,15 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
                 </View>
             </View>
         </View>
+
+        {firstPayment?.payerDetails && (
+             <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Payer Information</Text>
+                <Text>Name: {firstPayment.payerDetails.name}</Text>
+                <Text>Phone: {firstPayment.payerDetails.phone}</Text>
+                <Text>Email: {firstPayment.payerDetails.email}</Text>
+            </View>
+        )}
 
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Invoice Details</Text>
