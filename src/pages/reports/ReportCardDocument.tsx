@@ -160,19 +160,19 @@ const ReportCardDocument: React.FC<ReportCardDocumentProps> = ({ reports }) => (
     {reports.map((report, index) => (
       <Page key={index} size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.schoolName}>{report.schoolName}</Text>
-          <Text style={styles.schoolAddress}>{report.schoolAddress}</Text>
-          <Text style={styles.reportTitle}>ACADEMIC REPORT - {report.term} {report.academicYear}</Text>
+          <Text style={styles.schoolName}>{report.schoolName || 'N/A'}</Text>
+          <Text style={styles.schoolAddress}>{report.schoolAddress || 'N/A'}</Text>
+          <Text style={styles.reportTitle}>ACADEMIC REPORT - {report.term || 'N/A'} {report.academicYear || 'N/A'}</Text>
         </View>
 
         <View style={styles.studentDetails}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailItem}>Student Name: {report.studentName}</Text>
-            <Text style={styles.detailItem}>Admission No: {report.admissionNumber}</Text>
+            <Text style={styles.detailItem}>Student Name: {report.studentName || 'N/A'}</Text>
+            <Text style={styles.detailItem}>Admission No: {report.admissionNumber || 'N/A'}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailItem}>Class: {report.className}</Text>
-            <Text style={styles.detailItem}>Gender: {report.gender}</Text>
+            <Text style={styles.detailItem}>Class: {report.className || 'N/A'}</Text>
+            <Text style={styles.detailItem}>Gender: {report.gender || 'N/A'}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailItem}>Report Date: {new Date(report.reportDate).toLocaleDateString()}</Text>
