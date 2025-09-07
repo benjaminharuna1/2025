@@ -96,63 +96,43 @@ const Reports: React.FC = () => {
   }, [selectedBranch]);
 
   const handleGeneratePreview = async () => {
-  if (!selectedSessionId) {
-    setToastInfo({ show: true, message: 'A session must be selected.', color: 'warning' });
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const params: { sessionId: string; classId?: string; studentId?: string; branchId?: string } = {
-      sessionId: selectedSessionId,
-    };
-
-    if (admissionNumber.trim()) {
-      // Single student report
-      const studentRes = await api.get(`/students?admissionNumber=${admissionNumber.trim()}`);
-      const student = studentRes.data.students?.[0];
-      if (!student) {
-        setToastInfo({ show: true, message: `Student with admission number "${admissionNumber}" not found.`, color: 'danger' });
-        setLoading(false);
-        return;
-      }
-      params.studentId = student._id;
-    } else if (selectedClass && selectedBranch) {
-      // Class report
-      params.classId = selectedClass;
-      params.branchId = selectedBranch; // ✅ ensure branchId is included
-    } else {
-      setToastInfo({ show: true, message: 'Please select a class and branch, or enter a student admission number.', color: 'warning' });
-      setLoading(false);
+    if (!selectedSessionId) {
+      setToastInfo({ show: true, message: 'A session must be selected.', color: 'warning' });
       return;
     }
 
-    const endpoint = params.studentId 
-      ? '/reports/report-card-data' 
-      : '/reports/combined-report-card';
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set('sessionId', selectedSessionId);
 
-    const response = await api.get(endpoint, {
-      params,
-      responseType: 'blob',
-    });
+      if (admissionNumber.trim()) {
+        setLoading(true);
+        const studentRes = await api.get(`/students?admissionNumber=${admissionNumber.trim()}`);
+        const student = studentRes.data.students?.[0];
+        setLoading(false);
 
-    const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
-    const pdfUrl = URL.createObjectURL(pdfBlob);
+        if (!student) {
+          setToastInfo({ show: true, message: `Student with admission number "${admissionNumber}" not found.`, color: 'danger' });
+          return;
+        }
+        queryParams.set('studentId', student._id);
+      } else if (selectedClass && selectedBranch) {
+        queryParams.set('classId', selectedClass);
+        queryParams.set('branchId', selectedBranch);
+      } else {
+        setToastInfo({ show: true, message: 'Please select a class and branch, or enter a student admission number.', color: 'warning' });
+        return;
+      }
 
-    // Keep URL in sessionStorage so preview survives refresh
-    sessionStorage.setItem('reportCardPdfUrl', pdfUrl);
+      history.push(`/reports/report-card-preview?${queryParams.toString()}`);
 
-    history.push('/reports/report-card-preview');
-
-  } catch (error: any) {
-    console.error('Error fetching report card data:', error);
-    const errorMsg = error.response?.data?.message || 'Failed to generate report card.';
-    setToastInfo({ show: true, message: errorMsg, color: 'danger' });
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Error getting student data:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to find student.';
+      setToastInfo({ show: true, message: errorMsg, color: 'danger' });
+    }
+  };
 
 
   const isButtonDisabled = !selectedSessionId || (!selectedClass && !admissionNumber.trim());
