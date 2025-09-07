@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 
-// Interfaces based on the API guide
+// Interfaces based on the LATEST API guide
 interface Fee {
   feeType: string;
   amount: number;
@@ -31,6 +31,12 @@ interface Student {
     userId: User;
 }
 
+interface PayerDetails {
+    name: string;
+    phone: string;
+    email: string;
+}
+
 interface FeePayment {
   _id: string;
   studentId: Student;
@@ -38,7 +44,10 @@ interface FeePayment {
   amountPaid: number;
   paymentDate: string;
   paymentMethod: string;
-  status: string;
+  payerDetails?: PayerDetails;
+  receivedBy: string; // This is an ID
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface FeeReportDocumentProps {
@@ -49,12 +58,12 @@ interface FeeReportDocumentProps {
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 10,
+    fontSize: 9,
     padding: 30,
     backgroundColor: '#ffffff',
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
     textDecoration: 'underline',
@@ -64,43 +73,39 @@ const styles = StyleSheet.create({
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
-    borderColor: '#000',
+    borderColor: '#bfbfbf',
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
   },
   tableRow: {
     flexDirection: 'row',
+    borderBottomStyle: 'solid',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfbfbf',
+    alignItems: 'center',
   },
   tableColHeader: {
-    width: '16.66%',
-    borderStyle: 'solid',
-    borderBottomWidth: 1,
-    borderColor: '#000',
     backgroundColor: '#f2f2f2',
     padding: 5,
-    textAlign: 'center',
+    borderRightStyle: 'solid',
+    borderRightWidth: 1,
+    borderRightColor: '#bfbfbf',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   tableCol: {
-    width: '16.66%',
-    borderStyle: 'solid',
-    borderRightWidth: 1,
-    borderColor: '#000',
     padding: 5,
+    borderRightStyle: 'solid',
+    borderRightWidth: 1,
+    borderRightColor: '#bfbfbf',
   },
-  nameCol: {
-      width: '25%',
-  },
-  invoiceCol: {
-      width: '25%',
-  },
-  smallCol: {
-      width: '12.5%',
-  },
-  dateCol: {
-      width: '20%'
-  },
-  noBorder: {
-      borderRightWidth: 0,
-  }
+  colStudent: { width: '20%' },
+  colAdmission: { width: '15%' },
+  colInvoice: { width: '20%' },
+  colAmount: { width: '10%', textAlign: 'right' },
+  colDate: { width: '15%' },
+  colMethod: { width: '10%' },
+  colReceiver: { width: '10%' },
 });
 
 const FeeReportDocument: React.FC<FeeReportDocumentProps> = ({ payments }) => (
@@ -110,23 +115,25 @@ const FeeReportDocument: React.FC<FeeReportDocumentProps> = ({ payments }) => (
       <View style={styles.table}>
         {/* Table Header */}
         <View style={styles.tableRow}>
-          <Text style={[styles.tableColHeader, styles.nameCol]}>Student Name</Text>
-          <Text style={[styles.tableColHeader, styles.smallCol]}>Admission No.</Text>
-          <Text style={[styles.tableColHeader, styles.invoiceCol]}>Invoice</Text>
-          <Text style={[styles.tableColHeader, styles.smallCol]}>Amount Paid</Text>
-          <Text style={[styles.tableColHeader, styles.dateCol]}>Payment Date</Text>
-          <Text style={[styles.tableColHeader, styles.smallCol, styles.noBorder]}>Status</Text>
+          <Text style={[styles.tableColHeader, styles.colStudent]}>Student Name</Text>
+          <Text style={[styles.tableColHeader, styles.colAdmission]}>Admission No.</Text>
+          <Text style={[styles.tableColHeader, styles.colInvoice]}>Invoice</Text>
+          <Text style={[styles.tableColHeader, styles.colAmount]}>Amount Paid</Text>
+          <Text style={[styles.tableColHeader, styles.colDate]}>Payment Date</Text>
+          <Text style={[styles.tableColHeader, styles.colMethod]}>Method</Text>
+          <Text style={[styles.tableColHeader, styles.colReceiver]}>Recorded By</Text>
         </View>
 
         {/* Table Body */}
         {payments.map((payment) => (
           <View key={payment._id} style={styles.tableRow}>
-            <Text style={[styles.tableCol, styles.nameCol]}>{payment.studentId.userId.name}</Text>
-            <Text style={[styles.tableCol, styles.smallCol]}>{payment.studentId.userId.admissionNumber}</Text>
-            <Text style={[styles.tableCol, styles.invoiceCol]}>{payment.invoiceId.feeStructureId.name}</Text>
-            <Text style={[styles.tableCol, styles.smallCol]}>{payment.amountPaid.toFixed(2)}</Text>
-            <Text style={[styles.tableCol, styles.dateCol]}>{new Date(payment.paymentDate).toLocaleDateString()}</Text>
-            <Text style={[styles.tableCol, styles.smallCol, styles.noBorder]}>{payment.status}</Text>
+            <Text style={[styles.tableCol, styles.colStudent]}>{payment.studentId.userId.name}</Text>
+            <Text style={[styles.tableCol, styles.colAdmission]}>{payment.studentId.userId.admissionNumber}</Text>
+            <Text style={[styles.tableCol, styles.colInvoice]}>{payment.invoiceId.feeStructureId.name}</Text>
+            <Text style={[styles.tableCol, styles.colAmount]}>{payment.amountPaid.toFixed(2)}</Text>
+            <Text style={[styles.tableCol, styles.colDate]}>{new Date(payment.paymentDate).toLocaleDateString()}</Text>
+            <Text style={[styles.tableCol, styles.colMethod]}>{payment.paymentMethod}</Text>
+            <Text style={[styles.tableCol, styles.colReceiver]}>{payment.receivedBy}</Text>
           </View>
         ))}
       </View>

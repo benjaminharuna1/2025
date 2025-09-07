@@ -102,15 +102,23 @@ export interface Invoice {
   lateFee: number;
 }
 
+export interface PayerDetails {
+    name: string;
+    phone: string;
+    email: string;
+}
+
 export interface FeePayment {
   _id: string;
-  studentId: { _id: string; name: string; admissionNumber?: string; userId?: { name: string } };
-  invoiceId: { _id: string; session: string; term: string };
+  studentId: Student;
+  invoiceId: Invoice;
   amountPaid: number;
   paymentDate: string;
   paymentMethod: string;
-  receivedBy: { _id: string; name: string };
-  payerDetails?: string;
+  payerDetails?: PayerDetails;
+  receivedBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Attendance {
