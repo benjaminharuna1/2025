@@ -25,6 +25,10 @@ import ReportCardPreviewPage from './pages/reports/ReportCardPreview';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
+import "react-pdf/dist/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+
+
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
 
@@ -68,7 +72,8 @@ const App: React.FC = () => {
             <Route exact path="/login" component={Login} />
             <Route exact path="/register" component={Register} />
             <ProtectedRoute path="/dashboard/promotions" component={PromotionPage} />
-            <ProtectedRoute path="/reports/report-card/:classId/:sessionId" component={ReportCardPreviewPage} />
+            {/* <ProtectedRoute path="/reports/report-card/:classId/:sessionId" component={ReportCardPreviewPage} /> */}
+            <ProtectedRoute path="/reports/report-card-preview" component={ReportCardPreviewPage} />
             <ProtectedRoute path="/dashboard/reports" component={Reports} />
             <ProtectedRoute path="/results/bulk-add" component={BulkAddResultsPage} />
             <ProtectedRoute path="/dashboard/results" component={Results} />

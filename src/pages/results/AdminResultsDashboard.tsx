@@ -478,7 +478,7 @@ const AdminResultsDashboard: React.FC = () => {
                 <IonButton onClick={handleExport} color="success" disabled={!canPerformActions}>
                   <IonIcon slot="start" icon={downloadOutline} /> Export
                 </IonButton>
-                <IonRouterLink routerLink={`/reports/report-card-preview?classId=${selectedClass}&sessionId=${selectedSessionId}`}>
+                <IonRouterLink routerLink={`reports`}>
                   <IonButton color="dark" disabled={!canPerformActions}>
                     <IonIcon slot="start" icon={documentTextOutline} /> Generate Report Cards
                   </IonButton>
