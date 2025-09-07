@@ -121,9 +121,9 @@ const FeePayments: React.FC = () => {
     }
   };
 
-  const handleShowReport = (studentId: string) => {
-    if (studentId) {
-      history.push(`/reports/fee-report-preview?studentId=${studentId}`);
+  const handleShowReceipt = (invoiceId: string) => {
+    if (invoiceId) {
+      history.push(`/receipt-preview/${invoiceId}`);
     }
   };
 
@@ -245,7 +245,7 @@ const FeePayments: React.FC = () => {
                           <td data-label="Payment Method">{fp.paymentMethod}</td>
                           <td data-label="Recorded By">{fp.receivedBy?.name}</td>
                           <td data-label="Actions">
-                            <IonButton onClick={() => handleShowReport(fp.studentId?._id)}>
+                            <IonButton onClick={() => handleShowReceipt(fp.invoiceId?._id)}>
                               <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                           </td>
