@@ -44,6 +44,7 @@ export interface Student {
         email: string;
     };
     admissionNumber?: string;
+    classId?: { _id: string; name: string };
     dateOfBirth?: string;
     gender?: string;
     phoneNumber?: string;

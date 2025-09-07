@@ -1,10 +1,10 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
-import { Invoice, FeePayment } from '../../types'; // Assuming global types are sufficient
+import { Invoice, FeePayment, Student } from '../../types';
 
 // The API returns a consolidated object.
 interface ReceiptData {
-    invoice: Invoice;
+    invoice: Omit<Invoice, 'studentId'> & { studentId: Student }; // Ensure studentId is the full Student object
     payments: FeePayment[];
 }
 
@@ -15,7 +15,7 @@ interface ReceiptDocumentProps {
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'Helvetica',
-    fontSize: 11,
+    fontSize: 10,
     padding: 40,
     backgroundColor: '#ffffff',
   },
@@ -24,23 +24,24 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   schoolName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   receiptTitle: {
-    fontSize: 18,
+    fontSize: 16,
     marginTop: 10,
     textDecoration: 'underline',
   },
   section: {
-    marginBottom: 15,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 8,
-    backgroundColor: '#f2f2f2',
-    padding: 5,
+    marginBottom: 6,
+    backgroundColor: '#e9e9e9',
+    padding: 4,
+    textTransform: 'uppercase',
   },
   grid: {
     flexDirection: 'row',
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   textRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 3,
+      marginBottom: 4,
   },
   label: {
       fontWeight: 'bold',
@@ -73,6 +74,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#bfbfbf',
     alignItems: 'center',
+    minHeight: 24,
   },
   tableColHeader: {
     backgroundColor: '#f2f2f2',
@@ -84,7 +86,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tableCol: {
-    padding: 5,
+    padding: 4,
     borderRightStyle: 'solid',
     borderRightWidth: 1,
     borderRightColor: '#bfbfbf',
@@ -92,18 +94,26 @@ const styles = StyleSheet.create({
   summarySection: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      marginTop: 20,
+      marginTop: 15,
   },
   summaryBox: {
       border: '1px solid #000',
-      padding: 10,
-      width: '50%',
+      padding: 8,
+      width: '45%',
+  },
+  footer: {
+      position: 'absolute',
+      bottom: 30,
+      left: 40,
+      right: 40,
+      textAlign: 'center',
+      fontSize: 8,
+      color: 'grey',
   }
 });
 
 const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
   const { invoice, payments } = data;
-  const firstPayment = payments?.[0];
 
   return (
     <Document>
@@ -117,25 +127,18 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             <View style={styles.grid}>
                 <View style={styles.gridItem}>
                     <Text style={styles.label}>Billed To:</Text>
-                    <Text>{invoice.studentId?.userId?.name || invoice.studentId?.name}</Text>
+                    <Text>{invoice.studentId?.userId?.name}</Text>
+                    <Text>Admission No: {invoice.studentId?.admissionNumber}</Text>
+                    <Text>Class: {invoice.studentId?.classId?.name}</Text>
                 </View>
                 <View style={styles.gridItem}>
                     <Text style={styles.textRow}><Text style={styles.label}>Invoice #:</Text> {invoice._id}</Text>
-                    <Text style={styles.textRow}><Text style={styles.label}>Date:</Text> {new Date().toLocaleDateString()}</Text>
-                    <Text style={styles.textRow}><Text style={styles.label}>Due Date:</Text> {new Date(invoice.dueDate).toLocaleDateString()}</Text>
+                    <Text style={styles.textRow}><Text style={styles.label}>Session:</Text> {invoice.feeStructureId?.session}</Text>
+                    <Text style={styles.textRow}><Text style={styles.label}>Term:</Text> {invoice.feeStructureId?.term}</Text>
                     <Text style={styles.textRow}><Text style={styles.label}>Status:</Text> {invoice.status}</Text>
                 </View>
             </View>
         </View>
-
-        {firstPayment?.payerDetails && (
-             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Payer Information</Text>
-                <Text>Name: {firstPayment.payerDetails.name}</Text>
-                <Text>Phone: {firstPayment.payerDetails.phone}</Text>
-                <Text>Email: {firstPayment.payerDetails.email}</Text>
-            </View>
-        )}
 
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Invoice Details</Text>
@@ -161,17 +164,19 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             <Text style={styles.sectionTitle}>Payment History</Text>
             <View style={styles.table}>
                 <View style={styles.tableRow}>
-                    <Text style={[styles.tableColHeader, {width: '25%'}]}>Payment ID</Text>
-                    <Text style={[styles.tableColHeader, {width: '25%'}]}>Payment Date</Text>
-                    <Text style={[styles.tableColHeader, {width: '25%'}]}>Method</Text>
-                    <Text style={[styles.tableColHeader, {width: '25%', textAlign: 'right'}]}>Amount Paid</Text>
+                    <Text style={[styles.tableColHeader, {width: '20%'}]}>Payment Date</Text>
+                    <Text style={[styles.tableColHeader, {width: '15%'}]}>Method</Text>
+                    <Text style={[styles.tableColHeader, {width: '25%'}]}>Payer Name</Text>
+                    <Text style={[styles.tableColHeader, {width: '25%'}]}>Payer Email</Text>
+                    <Text style={[styles.tableColHeader, {width: '15%', textAlign: 'right'}]}>Amount Paid</Text>
                 </View>
                 {payments.map((p, i) => (
                     <View key={i} style={styles.tableRow}>
-                        <Text style={[styles.tableCol, {width: '25%'}]}>{p._id}</Text>
-                        <Text style={[styles.tableCol, {width: '25%'}]}>{new Date(p.paymentDate).toLocaleDateString()}</Text>
-                        <Text style={[styles.tableCol, {width: '25%'}]}>{p.paymentMethod}</Text>
-                        <Text style={[styles.tableCol, {width: '25%', textAlign: 'right'}]}>{p.amountPaid.toFixed(2)}</Text>
+                        <Text style={[styles.tableCol, {width: '20%'}]}>{new Date(p.paymentDate).toLocaleDateString()}</Text>
+                        <Text style={[styles.tableCol, {width: '15%'}]}>{p.paymentMethod}</Text>
+                        <Text style={[styles.tableCol, {width: '25%'}]}>{p.payerDetails?.name || 'N/A'}</Text>
+                        <Text style={[styles.tableCol, {width: '25%'}]}>{p.payerDetails?.email || 'N/A'}</Text>
+                        <Text style={[styles.tableCol, {width: '15%', textAlign: 'right'}]}>{p.amountPaid.toFixed(2)}</Text>
                     </View>
                 ))}
             </View>
@@ -185,6 +190,7 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             </View>
         </View>
 
+        <Text style={styles.footer}>Thank you for your payment.</Text>
       </Page>
     </Document>
   );
