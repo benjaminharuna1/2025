@@ -127,9 +127,9 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
             </View>
         </View>
 
-        {invoice.feeStructureId?.fees && (
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Invoice Details</Text>
+        <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Invoice Details</Text>
+            {(invoice.feeStructureId?.fees && invoice.feeStructureId.fees.length > 0) ? (
                 <View style={styles.table}>
                     <View style={styles.tableRow}>
                         <Text style={[styles.tableColHeader, {width: '80%'}]}>Fee Type</Text>
@@ -142,8 +142,10 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
                         </View>
                     ))}
                 </View>
-            </View>
-        )}
+            ) : (
+                <Text>No itemized fee breakdown available for this invoice.</Text>
+            )}
+        </View>
 
         <View style={styles.section}>
             <Text style={styles.sectionTitle}>Payment History</Text>
