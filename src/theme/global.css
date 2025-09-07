@@ -73,74 +73,10 @@
 
 /* Print-specific styles */
 @media print {
-  /* Hide everything except the report card container */
-  body * {
-    visibility: hidden;
-  }
-  #report-card-container,
-  #report-card-container * {
-    visibility: visible;
-  }
+  /* This is now handled by printing the PDF blob directly. */
+  /* We can keep some basic rules to hide the main UI just in case. */
 
-  /* Ensure each report card starts on a new page */
-  .report-card-page {
-    page-break-after: always;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Remove headers and toolbars from the print view */
-  .no-print,
-  ion-header,
-  ion-toolbar {
+  .no-print, ion-header, ion-toolbar {
     display: none !important;
-  }
-
-  /* Add your custom styles for the report card here */
-  .report-card-page header,
-  .report-card-page footer {
-    /* ... your styles ... */
-  }
-  .report-card-page table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  .report-card-page th,
-  .report-card-page td {
-    border: 1px solid #ccc;
-    padding: 8px;
-  }
-
-  /* Hide UI elements that should not be printed */
-  .print-hide,
-  ion-menu-button,
-  ion-back-button {
-    display: none !important;
-  }
-
-  /* Ensure the main content area is what gets printed */
-  ion-app > *:not(.ion-page),
-  .ion-page > ion-header,
-  .ion-page > ion-footer {
-    display: none;
-  }
-
-  /* Reset padding and margins for the content area to use the full page */
-  .ion-content.ion-padding {
-    --padding-start: 0;
-    --padding-end: 0;
-    --padding-top: 0;
-    --padding-bottom: 0;
-  }
-
-  /* Ensure the report card container itself has no extra margin and handles page breaks */
-  #report-card-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    border: none;
-    box-shadow: none;
   }
 }
