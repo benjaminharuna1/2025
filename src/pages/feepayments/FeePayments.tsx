@@ -237,6 +237,7 @@ const FeePayments: React.FC = () => {
                   <table className="responsive-table">
                     <thead>
                       <tr>
+                        <th>S/N</th>
                         <th>Student</th>
                         <th>Admission No.</th>
                         <th>Invoice ID</th>
@@ -248,8 +249,9 @@ const FeePayments: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {feePayments.map((fp) => (
+                      {feePayments.map((fp, index) => (
                         <tr key={fp._id}>
+                          <td data-label="S/N">{index + 1}</td>
                           <td data-label="Student">{fp.studentId?.userId?.name}</td>
                           <td data-label="Admission No.">{fp.studentId?.admissionNumber}</td>
                           <td data-label="Invoice ID">{fp.invoiceId?._id}</td>

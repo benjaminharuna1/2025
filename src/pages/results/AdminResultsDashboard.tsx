@@ -499,6 +499,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <table className="responsive-table">
                     <thead>
                       <tr>
+                        <th>S/N</th>
                         <th>Student</th>
                         <th>Admission No.</th>
                         <th>Subject</th>
@@ -514,8 +515,9 @@ const AdminResultsDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {results.map((result) => (
+                      {results.map((result, index) => (
                         <tr key={result._id}>
+                          <td data-label="S/N"><span>{index + 1}</span></td>
                           <td data-label="Student"><span>{getStudentName(result)}</span></td>
                           <td data-label="Admission No."><span>{getAdmissionNumber(result)}</span></td>
                           <td data-label="Subject"><span>{getSubjectName(result)}</span></td>

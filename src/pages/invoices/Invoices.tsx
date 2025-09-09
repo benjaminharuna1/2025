@@ -343,6 +343,7 @@ const Invoices: React.FC = () => {
                   <table className="responsive-table">
                     <thead>
                       <tr>
+                        <th>S/N</th>
                         <th>Student</th>
                         <th>Admission No.</th>
                         <th>Branch</th>
@@ -357,8 +358,9 @@ const Invoices: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.map((invoice) => (
+                      {invoices.map((invoice, index) => (
                         <tr key={invoice._id}>
+                          <td data-label="S/N">{index + 1}</td>
                           <td data-label="Student">{invoice.studentId?.userId?.name}</td>
                           <td data-label="Admission No.">{invoice.studentId?.admissionNumber}</td>
                           <td data-label="Branch">{invoice.branchId?.name}</td>
