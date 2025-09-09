@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonPage,
   IonHeader,
@@ -31,6 +32,7 @@ import SidebarMenu from '../../components/SidebarMenu';
 import './Invoices.css';
 
 const Invoices: React.FC = () => {
+  const history = useHistory();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
@@ -244,8 +246,8 @@ const Invoices: React.FC = () => {
     setGenerateFormData({ branchId: '', session: '', term: '', dueDate: '' });
   };
 
-  const downloadPDF = (id: string) => {
-    window.open(`${api.defaults.baseURL}/invoices/${id}/pdf`, '_blank');
+  const handleShowReceipt = (invoiceId: string) => {
+    history.push(`/receipt-preview/${invoiceId}`);
   };
 
   return (
@@ -344,7 +346,7 @@ const Invoices: React.FC = () => {
                             <IonButton onClick={() => openFinancialsModal(invoice)}>
                               <IonIcon slot="icon-only" icon={wallet} />
                             </IonButton>
-                            <IonButton onClick={() => downloadPDF(invoice._id)}>
+                            <IonButton onClick={() => handleShowReceipt(invoice._id)}>
                               <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                             <IonButton onClick={() => openPaymentModal(invoice)}>
