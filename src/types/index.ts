@@ -84,7 +84,7 @@ export interface FeeStructure {
 
 export interface Invoice {
   _id: string;
-  studentId: { _id: string; name: string };
+  studentId: Student;
   branchId: { _id: string; name: string };
   session: string;
   term: string;
