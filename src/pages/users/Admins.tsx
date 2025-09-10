@@ -94,7 +94,7 @@ const AdminsPage: React.FC = () => {
                 branchId: data.user.branchId || "",
                 phoneNumber: data.profile?.phoneNumber || "",
                 gender: data.profile?.gender || "",
-                profilePictureUrl: data.profile?.profilePictureUrl || "",
+                profilePictureUrl: data.user?.profilePicture || "",
             });
         } catch (error) {
             console.error("Failed to fetch admin details", error);
