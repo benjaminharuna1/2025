@@ -281,11 +281,25 @@ const UsersPage: React.FC = () => {
                 phoneNumber: formData.phoneNumber
             };
             break;
-        // Branch Admin and Super Admin profiles might be handled differently or not have separate endpoints
+        case 'Branch Admin':
+        case 'Super Admin':
+            profileEndpoint = `/admins/${selectedUser._id}`; // Uses user ID as per guide
+            profilePayload = {
+                gender: formData.gender,
+                phoneNumber: formData.phoneNumber
+            };
+            break;
       }
 
-      if (profileEndpoint && formData.profileId) {
-        await api.put(profileEndpoint, profilePayload);
+      if (profileEndpoint) {
+        // For Admins, we don't use profileId, but the user ID
+        const finalEndpoint = (formData.role === 'Branch Admin' || formData.role === 'Super Admin')
+            ? `/admins/${selectedUser._id}`
+            : profileEndpoint;
+
+        if (finalEndpoint) {
+            await api.put(finalEndpoint, profilePayload);
+        }
       }
       setLoading(false);
 
