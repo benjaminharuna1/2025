@@ -146,7 +146,15 @@ const AdminsPage: React.FC = () => {
       let adminId = selectedAdmin?._id;
 
       if (selectedAdmin) {
-        await updateAdmin(selectedAdmin._id, formData);
+        const updatePayload = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          branchId: formData.branchId,
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+        };
+        await updateAdmin(selectedAdmin._id, updatePayload);
         showToast("Admin updated successfully");
       } else {
         const response = await createAdmin(formData);
