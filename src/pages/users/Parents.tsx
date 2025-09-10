@@ -15,7 +15,6 @@ import {
   IonModal,
   IonLoading,
   IonToast,
-  IonSearchbar,
   IonButtons,
   IonMenuButton,
 } from "@ionic/react";
@@ -50,7 +49,7 @@ const ParentsPage: React.FC = () => {
   const fetchParents = async () => {
     setLoading(true);
     try {
-      const res = await getParents({});
+      const res = await getParents();
       setParents(res.data.parents || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
