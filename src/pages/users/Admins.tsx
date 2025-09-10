@@ -85,11 +85,11 @@ const AdminsPage: React.FC = () => {
                 email: data.user.email,
                 role: data.user.role,
                 branchId: data.user.branchId || "",
-                fullName: data.profile.fullName || "",
-                phoneNumber: data.profile.phoneNumber || "",
-                bio: data.profile.bio || "",
-                officeLocation: data.profile.officeLocation || "",
-                profilePictureUrl: data.profile.profilePictureUrl || "",
+                fullName: data.profile?.fullName || "",
+                phoneNumber: data.profile?.phoneNumber || "",
+                bio: data.profile?.bio || "",
+                officeLocation: data.profile?.officeLocation || "",
+                profilePictureUrl: data.profile?.profilePictureUrl || "",
             });
         } catch (error) {
             console.error("Failed to fetch admin details", error);
