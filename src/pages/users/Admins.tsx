@@ -39,8 +39,8 @@ const AdminsPage: React.FC = () => {
     password: "",
     role: "Branch Admin",
     branchId: "",
-    fullName: "",
     phoneNumber: "",
+    gender: "",
   });
 
   useEffect(() => {
@@ -83,8 +83,8 @@ const AdminsPage: React.FC = () => {
                 email: data.user.email,
                 role: data.user.role,
                 branchId: data.user.branchId || "",
-                fullName: data.profile?.fullName || "",
                 phoneNumber: data.profile?.phoneNumber || "",
+                gender: data.profile?.gender || "",
                 profilePictureUrl: data.profile?.profilePictureUrl || "",
             });
         } catch (error) {
@@ -147,8 +147,8 @@ const AdminsPage: React.FC = () => {
           email: formData.email,
           role: formData.role,
           branchId: formData.branchId,
-          fullName: formData.fullName,
           phoneNumber: formData.phoneNumber,
+          gender: formData.gender,
         };
         await updateAdmin(selectedAdmin._id, updatePayload);
         showToast("Admin updated successfully");
@@ -263,13 +263,16 @@ const AdminsPage: React.FC = () => {
                     </IonSelect>
                   </IonItem>
                 )}
-                 <IonItem>
-                    <IonLabel position="stacked">Full Name</IonLabel>
-                    <IonInput name="fullName" value={formData.fullName} onIonChange={handleInputChange} />
-                </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Gender</IonLabel>
+                  <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange("gender", e.detail.value)}>
+                    <IonSelectOption value="Male">Male</IonSelectOption>
+                    <IonSelectOption value="Female">Female</IonSelectOption>
+                  </IonSelect>
                 </IonItem>
                 <IonItem>
                   <IonLabel position="stacked">Profile Picture</IonLabel>
