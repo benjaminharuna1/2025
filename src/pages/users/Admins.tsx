@@ -202,7 +202,7 @@ const AdminsPage: React.FC = () => {
             {admins.map((admin) => (
               <IonItem key={admin._id}>
                 <IonAvatar slot="start">
-                  <img src={admin.profile?.profilePictureUrl || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={`https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{admin.name}</h2>
