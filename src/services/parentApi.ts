@@ -1,6 +1,6 @@
 import api from './api';
 
-export const getParents = (params: any) => api.get('/parents', { params });
+export const getParents = () => api.get('/parents');
 
 export const getParentById = (id: string) => api.get(`/parents/${id}`);
 
