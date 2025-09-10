@@ -240,7 +240,12 @@ const UsersPage: React.FC = () => {
 
       if (selectedUser) {
         // --- Two-Step Update ---
-        const userPayload = { name: formData.name, email: formData.email, role: formData.role };
+        const userPayload = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          branchId: formData.role === 'Super Admin' ? null : formData.branchId,
+        };
         await api.put(`/users/${selectedUser._id}`, userPayload);
 
         if (profileEndpoint) {
@@ -248,14 +253,11 @@ const UsersPage: React.FC = () => {
           await api.put(finalProfileEndpoint, profilePayload);
         }
 
-        // --- Handle Parent-Student Link/Unlink ---
         if (formData.role === 'Parent' && formData.profileId) {
             const newStudentIds = new Set(formData.students);
             const oldStudentIds = new Set(originalStudents);
-
             const toLink = formData.students.filter((id: string) => !oldStudentIds.has(id));
             const toUnlink = originalStudents.filter((id: string) => !newStudentIds.has(id));
-
             for (const studentId of toLink) {
                 await api.put(`/parents/${formData.profileId}/link`, { studentId });
             }
