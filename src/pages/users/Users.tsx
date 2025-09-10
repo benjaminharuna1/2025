@@ -33,7 +33,7 @@ const UsersPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
@@ -56,6 +56,7 @@ const UsersPage: React.FC = () => {
     students: [],
     profileId: null,
   });
+  const [originalStudents, setOriginalStudents] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUsers();
@@ -150,7 +151,9 @@ const UsersPage: React.FC = () => {
         const fullUser = data.user;
         const profile = data.profile;
 
-        setSelectedUser(fullUser);
+        setSelectedUser({ ...fullUser, profile }); // Store original profile data
+        setOriginalStudents(profile?.students || []); // Store original student links
+
         setFormData({
           ...fullUser,
           profileId: profile?._id,
@@ -173,20 +176,11 @@ const UsersPage: React.FC = () => {
       }
     } else {
       setSelectedUser(null);
+      setOriginalStudents([]);
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "",
-        gender: "",
-        phoneNumber: "",
-        branchId: "",
-        classId: "",
-        dateOfBirth: "",
-        admissionNumber: "",
-        classes: [],
-        subjects: [],
-        students: [],
+        name: "", email: "", password: "", role: "", gender: "", phoneNumber: "",
+        branchId: "", classId: "", dateOfBirth: "", admissionNumber: "",
+        classes: [], subjects: [], students: [], profileId: null,
       });
     }
     setShowModal(true);
@@ -222,69 +216,58 @@ const UsersPage: React.FC = () => {
         return;
       }
 
-      // Determine profile payload and endpoint based on role
       let profilePayload: any = {};
       let profileEndpoint = '';
       switch(formData.role) {
         case 'Student':
           profileEndpoint = `/students`;
-          profilePayload = {
-              admissionNumber: formData.admissionNumber,
-              dateOfBirth: formData.dateOfBirth,
-              gender: formData.gender,
-              phoneNumber: formData.phoneNumber,
-              classId: formData.classId
-          };
+          profilePayload = { admissionNumber: formData.admissionNumber, dateOfBirth: formData.dateOfBirth, gender: formData.gender, phoneNumber: formData.phoneNumber, classId: formData.classId };
           break;
         case 'Teacher':
-            profileEndpoint = `/teachers`;
-            profilePayload = {
-                classes: formData.classes,
-                subjects: formData.subjects,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-            break;
+          profileEndpoint = `/teachers`;
+          profilePayload = { classes: formData.classes, subjects: formData.subjects, gender: formData.gender, phoneNumber: formData.phoneNumber };
+          break;
         case 'Parent':
-            profileEndpoint = `/parents`;
-            profilePayload = {
-                students: formData.students,
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-            break;
+          profileEndpoint = `/parents`;
+          profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber }; // Students handled separately
+          break;
         case 'Branch Admin':
         case 'Super Admin':
-            profileEndpoint = `/admins`;
-            profilePayload = {
-                gender: formData.gender,
-                phoneNumber: formData.phoneNumber
-            };
-            break;
+          profileEndpoint = `/admins`;
+          profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber };
+          break;
       }
 
       if (selectedUser) {
         // --- Two-Step Update ---
-        // 1. Update core user
         const userPayload = { name: formData.name, email: formData.email, role: formData.role };
         await api.put(`/users/${selectedUser._id}`, userPayload);
 
-        // 2. Update profile
         if (profileEndpoint) {
-          const finalProfileEndpoint = formData.role === 'Branch Admin' || formData.role === 'Super Admin'
-            ? `${profileEndpoint}/${selectedUser._id}`
-            : `${profileEndpoint}/${formData.profileId}`;
+          const finalProfileEndpoint = formData.role.includes('Admin') ? `${profileEndpoint}/${selectedUser._id}` : `${profileEndpoint}/${formData.profileId}`;
           await api.put(finalProfileEndpoint, profilePayload);
+        }
+
+        // --- Handle Parent-Student Link/Unlink ---
+        if (formData.role === 'Parent' && formData.profileId) {
+            const newStudentIds = new Set(formData.students);
+            const oldStudentIds = new Set(originalStudents);
+
+            const toLink = formData.students.filter((id: string) => !oldStudentIds.has(id));
+            const toUnlink = originalStudents.filter((id: string) => !newStudentIds.has(id));
+
+            for (const studentId of toLink) {
+                await api.put(`/parents/${formData.profileId}/link`, { studentId });
+            }
+            for (const studentId of toUnlink) {
+                await api.put(`/parents/${formData.profileId}/unlink`, { studentId });
+            }
         }
 
       } else {
         // --- Two-Step Create ---
-        // 1. Create user
         const userPayload = {
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            role: formData.role,
+            name: formData.name, email: formData.email, password: formData.password, role: formData.role,
             branchId: formData.role !== 'Super Admin' ? formData.branchId : undefined,
             classId: formData.role === 'Student' ? formData.classId : undefined,
         };
@@ -292,11 +275,8 @@ const UsersPage: React.FC = () => {
         const newProfileId = response.data.profile._id;
         const newUserId = response.data.user._id;
 
-        // 2. Update profile
         if (profileEndpoint) {
-            const finalProfileEndpoint = formData.role === 'Branch Admin' || formData.role === 'Super Admin'
-            ? `${profileEndpoint}/${newUserId}`
-            : `${profileEndpoint}/${newProfileId}`;
+            const finalProfileEndpoint = formData.role.includes('Admin') ? `${profileEndpoint}/${newUserId}` : `${profileEndpoint}/${newProfileId}`;
             await api.put(finalProfileEndpoint, profilePayload);
         }
       }
@@ -342,18 +322,6 @@ const UsersPage: React.FC = () => {
             <IonTitle>User Management</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent>
-          {/* ... a lot of JSX that is unchanged ... */}
-        </IonContent>
-      </IonPage>
-    </>
-  );
-};
-
-// I will copy the full JSX from the file content to avoid losing it.
-// The JSX is very long so I am omitting it here for brevity, but I will use the full content
-// in the overwrite_file_with_block tool.
-const FullJSX = `
         <IonContent>
           <IonSearchbar
             value={searchText}
@@ -580,5 +548,9 @@ const FullJSX = `
           duration={2000}
         />
       </IonContent>
-`
+    </IonPage>
+    </>
+  );
+};
+
 export default UsersPage;
