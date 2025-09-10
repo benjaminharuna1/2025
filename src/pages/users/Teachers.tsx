@@ -57,7 +57,7 @@ const TeachersPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getTeachers({ keyword: searchText });
-      setTeachers(res.data.teachers);
+      setTeachers(res.data.teachers || []);
     } catch (error) {
       console.error("Error fetching teachers:", error);
       showToast("Error fetching teachers");

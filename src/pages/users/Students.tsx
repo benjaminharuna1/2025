@@ -59,7 +59,7 @@ const StudentsPage: React.FC = () => {
       const res = await getStudents({
         keyword: searchText,
       });
-      setStudents(res.data.students);
+      setStudents(res.data.students || []);
     } catch (error) {
       console.error("Error fetching students:", error);
       showToast("Error fetching students");

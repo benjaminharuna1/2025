@@ -48,7 +48,7 @@ const AdminsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getAdmins();
-      setAdmins(res.data.admins);
+      setAdmins(res.data.admins || []);
     } catch (error) {
       console.error("Error fetching admins:", error);
       showToast("Error fetching admins");

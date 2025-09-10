@@ -52,7 +52,7 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getParents({ keyword: searchText });
-      setParents(res.data.parents);
+      setParents(res.data.parents || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
       showToast("Error fetching parents");
@@ -76,13 +76,13 @@ const ParentsPage: React.FC = () => {
         try {
             const { data } = await getParentById(parent._id);
             setSelectedParent(data);
-            setOriginalStudents(data.students);
+            setOriginalStudents(data.students || []);
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
                 gender: data.gender,
                 phoneNumber: data.phoneNumber,
-                students: data.students,
+                students: data.students || [],
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
