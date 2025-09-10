@@ -17,8 +17,9 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
-import { getAdmins, createAdmin, updateAdmin, deleteAdmin, getAdminById } from "../../services/adminApi";
+import { getAdmins, createAdmin, updateAdmin, deleteAdmin, getAdminById, uploadAdminProfilePicture } from "../../services/adminApi";
 import { Branch } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
@@ -31,12 +32,17 @@ const AdminsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
     password: "",
     role: "Branch Admin",
     branchId: "",
+    fullName: "",
+    phoneNumber: "",
+    bio: "",
+    officeLocation: "",
   });
 
   useEffect(() => {
@@ -68,6 +74,7 @@ const AdminsPage: React.FC = () => {
   };
 
   const openModal = async (admin: any = null) => {
+    setSelectedFile(null);
     if (admin) {
         setLoading(true);
         try {
@@ -78,8 +85,11 @@ const AdminsPage: React.FC = () => {
                 email: data.user.email,
                 role: data.user.role,
                 branchId: data.user.branchId || "",
-                fullName: data.profile.fullName,
-                phoneNumber: data.profile.phoneNumber,
+                fullName: data.profile.fullName || "",
+                phoneNumber: data.profile.phoneNumber || "",
+                bio: data.profile.bio || "",
+                officeLocation: data.profile.officeLocation || "",
+                profilePictureUrl: data.profile.profilePictureUrl || "",
             });
         } catch (error) {
             console.error("Failed to fetch admin details", error);
@@ -98,6 +108,8 @@ const AdminsPage: React.FC = () => {
         branchId: "",
         fullName: "",
         phoneNumber: "",
+        bio: "",
+        officeLocation: "",
       });
     }
     setShowModal(true);
@@ -117,6 +129,12 @@ const AdminsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -125,13 +143,22 @@ const AdminsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      let adminId = selectedAdmin?._id;
+
       if (selectedAdmin) {
         await updateAdmin(selectedAdmin._id, formData);
         showToast("Admin updated successfully");
       } else {
-        await createAdmin(formData);
+        const response = await createAdmin(formData);
+        adminId = response.data.user._id; // Get ID from response
         showToast("Admin created successfully");
       }
+
+      if (selectedFile && adminId) {
+        await uploadAdminProfilePicture(adminId, selectedFile);
+        showToast("Profile picture updated");
+      }
+
       fetchAdmins();
       closeModal();
     } catch (error) {
@@ -174,6 +201,9 @@ const AdminsPage: React.FC = () => {
           <IonList>
             {admins.map((admin) => (
               <IonItem key={admin._id}>
+                <IonAvatar slot="start">
+                  <img src={admin.profile?.profilePictureUrl || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
                   <h2>{admin.name}</h2>
                   <p>{admin.email} - {admin.role}</p>
@@ -190,6 +220,11 @@ const AdminsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                  <img src={formData.profilePictureUrl || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
+              </div>
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
@@ -231,6 +266,18 @@ const AdminsPage: React.FC = () => {
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Bio</IonLabel>
+                    <IonInput name="bio" value={formData.bio} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Office Location</IonLabel>
+                    <IonInput name="officeLocation" value={formData.officeLocation} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Profile Picture</IonLabel>
+                  <input type="file" accept="image/*" onChange={handleFileChange} />
                 </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>

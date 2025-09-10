@@ -9,3 +9,13 @@ export const createAdmin = (data: any) => api.post('/admins', data);
 export const updateAdmin = (id: string, data: any) => api.put(`/admins/${id}`, data);
 
 export const deleteAdmin = (id: string) => api.delete(`/admins/${id}`);
+
+export const uploadAdminProfilePicture = (id: string, file: File) => {
+  const formData = new FormData();
+  formData.append('profilePicture', file);
+  return api.post(`/admins/${id}/profile-picture`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
