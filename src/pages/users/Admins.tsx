@@ -41,8 +41,6 @@ const AdminsPage: React.FC = () => {
     branchId: "",
     fullName: "",
     phoneNumber: "",
-    bio: "",
-    officeLocation: "",
   });
 
   useEffect(() => {
@@ -87,8 +85,6 @@ const AdminsPage: React.FC = () => {
                 branchId: data.user.branchId || "",
                 fullName: data.profile?.fullName || "",
                 phoneNumber: data.profile?.phoneNumber || "",
-                bio: data.profile?.bio || "",
-                officeLocation: data.profile?.officeLocation || "",
                 profilePictureUrl: data.profile?.profilePictureUrl || "",
             });
         } catch (error) {
@@ -274,14 +270,6 @@ const AdminsPage: React.FC = () => {
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Bio</IonLabel>
-                    <IonInput name="bio" value={formData.bio} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Office Location</IonLabel>
-                    <IonInput name="officeLocation" value={formData.officeLocation} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                   <IonLabel position="stacked">Profile Picture</IonLabel>
