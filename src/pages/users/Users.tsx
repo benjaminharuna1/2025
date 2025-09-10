@@ -73,7 +73,13 @@ const UsersPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/users');
-      setUsers(res.data.users || res.data || []);
+      const usersData = res.data?.users;
+      if (Array.isArray(usersData)) {
+        setUsers(usersData);
+      } else {
+        console.error("API response for users is not in the expected format:", res.data);
+        setUsers([]);
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
       setUsers([]);
