@@ -32,7 +32,6 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -51,7 +50,7 @@ const ParentsPage: React.FC = () => {
   const fetchParents = async () => {
     setLoading(true);
     try {
-      const res = await getParents({ keyword: searchText });
+      const res = await getParents({});
       setParents(res.data.parents || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
@@ -129,8 +128,8 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       if (selectedParent) {
+        // --- This update logic is already correct! ---
         await updateParent(selectedParent._id, formData);
-
         const newStudentIds = new Set(formData.students);
         const oldStudentIds = new Set(originalStudents);
         const toLink = formData.students.filter((id: string) => !oldStudentIds.has(id));
@@ -141,10 +140,20 @@ const ParentsPage: React.FC = () => {
         for (const studentId of toUnlink) {
             await unlinkStudent(selectedParent._id, studentId);
         }
-
         showToast("Parent updated successfully");
       } else {
-        await createParent(formData);
+        // --- This is the modified create logic ---
+        // 1. Create the parent first
+        const response = await createParent(formData);
+        const newParent = response.data; // Assuming the API returns the new parent object
+
+        // 2. If students were selected, link them now using the new parent's ID
+        if (newParent && newParent._id && formData.students.length > 0) {
+          for (const studentId of formData.students) {
+            // No need to await each one if you don't need to stop for errors
+            linkStudent(newParent._id, studentId);
+          }
+        }
         showToast("Parent created successfully");
       }
       fetchParents();
@@ -185,17 +194,6 @@ const ParentsPage: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-        <IonSearchbar
-            value={searchText}
-            onIonChange={(e) => setSearchText(e.detail.value!)}
-            onIonClear={() => setSearchText("")}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                fetchParents();
-              }
-            }}
-            placeholder="Search by name"
-          />
           <IonButton expand="block" onClick={() => openModal()}>Add Parent</IonButton>
           <IonList>
             {parents.map((parent) => (

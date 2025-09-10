@@ -34,7 +34,6 @@ const TeachersPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
-  const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -56,7 +55,7 @@ const TeachersPage: React.FC = () => {
   const fetchTeachers = async () => {
     setLoading(true);
     try {
-      const res = await getTeachers({ keyword: searchText });
+      const res = await getTeachers({});
       setTeachers(res.data.teachers || []);
     } catch (error) {
       console.error("Error fetching teachers:", error);
@@ -198,17 +197,6 @@ const TeachersPage: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-        <IonSearchbar
-            value={searchText}
-            onIonChange={(e) => setSearchText(e.detail.value!)}
-            onIonClear={() => setSearchText("")}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                fetchTeachers();
-              }
-            }}
-            placeholder="Search by name"
-          />
           <IonButton expand="block" onClick={() => openModal()}>Add Teacher</IonButton>
           <IonList>
             {teachers.map((teacher) => (
