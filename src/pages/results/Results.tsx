@@ -57,7 +57,6 @@ const Results: React.FC = () => {
       return <StudentResultsPage />;
     case 'Teacher':
       return <TeacherResultsDashboard />;
-    case 'Admin':
     case 'Super Admin':
     case 'Branch Admin':
       return <AdminResultsDashboard />;

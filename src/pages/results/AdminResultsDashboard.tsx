@@ -75,20 +75,20 @@ const AdminResultsDashboard: React.FC = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const promises = [
+        const corePromises = [
           getSessions(),
           api.get('/classes'),
           api.get('/subjects'),
-        ];
-        if (user?.role === 'Super Admin') {
-          promises.push(api.get('/branches'));
-        }
-        const [sessionsData, classesData, subjectsData, branchesData] = await Promise.all(promises);
+        ] as const;
+
+        const [sessionsData, classesData, subjectsData] = await Promise.all(corePromises);
 
         setSessions(sessionsData);
         setClasses(classesData.data.classes || classesData.data || []);
         setSubjects(subjectsData.data.subjects || []);
-        if (branchesData) {
+
+        if (user?.role === 'Super Admin') {
+          const branchesData = await api.get('/branches');
           setBranches(branchesData.data.branches || branchesData.data || []);
         }
       } catch (error) {
@@ -163,12 +163,12 @@ const AdminResultsDashboard: React.FC = () => {
       if (selectedResult) {
         await api.put(`/results/${selectedResult._id}`, payload);
       } else {
-        payload.classId = filters.class;
-        const currentClass = classes.find(c => c._id === filters.class);
+        payload.classId = selectedClass;
+        const currentClass = classes.find(c => c._id === selectedClass);
         payload.branchId = currentClass?.branchId;
         payload.sessionId = selectedSessionId;
         payload.session = currentSession?.academicYear;
-        payload.term = currentSession?.term;
+        payload.term = currentSession?.term as 'First' | 'Second' | 'Third';
         
         await api.post('/results', payload);
       }
@@ -176,7 +176,7 @@ const AdminResultsDashboard: React.FC = () => {
       fetchResults();
       closeModal();
       setToastInfo({ show: true, message: 'Result saved successfully.', color: 'success' });
-    } catch (err) {
+    } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Failed to save result';
       setToastInfo({ show: true, message: errorMsg, color: 'danger' });
       console.error('Save failed:', errorMsg);
@@ -499,6 +499,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <table className="responsive-table">
                     <thead>
                       <tr>
+                        <th>S/N</th>
                         <th>Student</th>
                         <th>Admission No.</th>
                         <th>Subject</th>
@@ -514,8 +515,9 @@ const AdminResultsDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {results.map((result) => (
+                      {results.map((result, index) => (
                         <tr key={result._id}>
+                          <td data-label="S/N"><span>{index + 1}</span></td>
                           <td data-label="Student"><span>{getStudentName(result)}</span></td>
                           <td data-label="Admission No."><span>{getAdmissionNumber(result)}</span></td>
                           <td data-label="Subject"><span>{getSubjectName(result)}</span></td>
@@ -593,7 +595,7 @@ const AdminResultsDashboard: React.FC = () => {
                   <IonInput
                     readonly
                     value={
-                      (typeof formData.studentId === 'object' && formData.studentId.name) || ''
+                      (typeof formData.studentId === 'object' && formData.studentId.userId.name) || ''
                     }
                   />
                 </IonItem>

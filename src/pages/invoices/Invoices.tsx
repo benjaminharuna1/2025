@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   IonPage,
   IonHeader,
@@ -25,15 +26,17 @@ import {
 } from '@ionic/react';
 import { eye, documentText, cash, wallet, add, card } from 'ionicons/icons';
 import api from '../../services/api';
-import { Invoice, Branch, Student } from '../../types';
+import { Invoice, Branch, Student, Class } from '../../types';
 import { TERMS, SESSIONS } from '../../constants';
 import SidebarMenu from '../../components/SidebarMenu';
 import './Invoices.css';
 
 const Invoices: React.FC = () => {
+  const history = useHistory();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showFinancialsModal, setShowFinancialsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -57,6 +60,7 @@ const Invoices: React.FC = () => {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterStudent, setFilterStudent] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterClass, setFilterClass] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -64,7 +68,19 @@ const Invoices: React.FC = () => {
     fetchInvoices();
     fetchBranches();
     fetchStudents();
-  }, [filterBranch, filterStudent, filterStatus, page]);
+    fetchClasses();
+  }, [filterBranch, filterStudent, filterStatus, filterClass, page]);
+
+  const fetchClasses = async () => {
+    try {
+      const { data } = await api.get('/classes');
+      if (data && Array.isArray(data.classes)) {
+        setClasses(data.classes);
+      }
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
 
   const fetchInvoices = async () => {
     try {
@@ -73,6 +89,7 @@ const Invoices: React.FC = () => {
           branchId: filterBranch,
           studentId: filterStudent,
           status: filterStatus,
+          classId: filterClass,
           page,
         },
       });
@@ -244,8 +261,8 @@ const Invoices: React.FC = () => {
     setGenerateFormData({ branchId: '', session: '', term: '', dueDate: '' });
   };
 
-  const downloadPDF = (id: string) => {
-    window.open(`${api.defaults.baseURL}/invoices/${id}/pdf`, '_blank');
+  const handleShowReceipt = (invoiceId: string) => {
+    history.push(`/receipt-preview/${invoiceId}`);
   };
 
   return (
@@ -300,6 +317,19 @@ const Invoices: React.FC = () => {
                   </IonSelect>
                 </IonItem>
               </IonCol>
+              <IonCol>
+                <IonItem>
+                  <IonLabel>Filter by Class</IonLabel>
+                  <IonSelect value={filterClass} onIonChange={(e) => setFilterClass(e.detail.value)}>
+                    <IonSelectOption value="">All</IonSelectOption>
+                    {classes.map((c) => (
+                      <IonSelectOption key={c._id} value={c._id}>
+                        {c.name}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonCol>
               <IonCol size="auto">
                 <IonButton onClick={openGenerateModal}>
                   <IonIcon slot="start" icon={add} />
@@ -313,7 +343,9 @@ const Invoices: React.FC = () => {
                   <table className="responsive-table">
                     <thead>
                       <tr>
+                        <th>S/N</th>
                         <th>Student</th>
+                        <th>Admission No.</th>
                         <th>Branch</th>
                         <th>Session</th>
                         <th>Term</th>
@@ -326,9 +358,11 @@ const Invoices: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.map((invoice) => (
+                      {invoices.map((invoice, index) => (
                         <tr key={invoice._id}>
-                          <td data-label="Student">{invoice.studentId?.name}</td>
+                          <td data-label="S/N">{index + 1}</td>
+                          <td data-label="Student">{invoice.studentId?.userId?.name}</td>
+                          <td data-label="Admission No.">{invoice.studentId?.admissionNumber}</td>
                           <td data-label="Branch">{invoice.branchId?.name}</td>
                           <td data-label="Session">{invoice.session}</td>
                           <td data-label="Term">{invoice.term}</td>
@@ -344,7 +378,7 @@ const Invoices: React.FC = () => {
                             <IonButton onClick={() => openFinancialsModal(invoice)}>
                               <IonIcon slot="icon-only" icon={wallet} />
                             </IonButton>
-                            <IonButton onClick={() => downloadPDF(invoice._id)}>
+                            <IonButton onClick={() => handleShowReceipt(invoice._id)}>
                               <IonIcon slot="icon-only" icon={documentText} />
                             </IonButton>
                             <IonButton onClick={() => openPaymentModal(invoice)}>
@@ -379,7 +413,7 @@ const Invoices: React.FC = () => {
                 <IonList>
                   <IonItem>
                     <IonLabel>Student:</IonLabel>
-                    <p>{selectedInvoice.studentId.name}</p>
+                    <p>{selectedInvoice.studentId.userId.name}</p>
                   </IonItem>
                   <IonItem>
                     <IonLabel>Branch:</IonLabel>

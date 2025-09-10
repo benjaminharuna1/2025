@@ -21,26 +21,14 @@ import {
 } from "ionicons/icons";
 import { Document, Page, pdfjs } from "react-pdf";
 import { BlobProvider } from '@react-pdf/renderer';
-import ReportCardDocument from './ReportCardDocument';
+import FeeReportDocument from './FeeReportDocument';
 import api from '../../services/api';
+import { FeePayment } from '../../types';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-interface ReportData {
-  schoolName: string; schoolAddress: string; studentName: string; admissionNumber: string; className: string; classTeacher: string; gender: string; term: string; academicYear: string; reportDate: string;
-  subjects: { subjectName: string; firstCA: number; secondCA: number; thirdCA: number; exam: number; total: number; grade: string; remarks: string; subjectTeacher: string; }[];
-  subjectsPassed: number; subjectsFailed: number; positionInClass: string;
-  attendance: { present: number; absent: number; late: number; excused: number; };
-  promotionStatus: string; promotionComment: string; nextTermBegins: string;
-}
-
 const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
     const [scale, setScale] = useState(1.0);
-    const [numPages, setNumPages] = useState<number | null>(null);
-
-    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-        setNumPages(numPages);
-    }
 
     const handlePrint = () => {
         const url = URL.createObjectURL(blob);
@@ -71,10 +59,10 @@ const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
             <IonButtons slot="start">
               <IonBackButton defaultHref="/reports" />
             </IonButtons>
-            <IonTitle>Report Card Preview</IonTitle>
+            <IonTitle>Fee Report Preview</IonTitle>
             <IonButtons slot="end">
-              <IonButton onClick={zoomOut} disabled={scale <= 0.5}><IonIcon icon={removeCircleOutline} /></IonButton>
-              <IonButton onClick={zoomIn} disabled={scale >= 3.0}><IonIcon icon={addCircleOutline} /></IonButton>
+              <IonButton onClick={zoomOut}><IonIcon icon={removeCircleOutline} /></IonButton>
+              <IonButton onClick={zoomIn}><IonIcon icon={addCircleOutline} /></IonButton>
               <IonButton onClick={handlePrint}><IonIcon icon={printOutline} /></IonButton>
               <IonButton onClick={handleDownload}><IonIcon icon={downloadOutline} /></IonButton>
             </IonButtons>
@@ -82,10 +70,8 @@ const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
         </IonHeader>
         <IonContent className="ion-padding" scrollY={false}>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', overflow: 'auto' }}>
-                <Document file={blob} onLoadSuccess={onDocumentLoadSuccess}>
-                    {Array.from(new Array(numPages), (el, index) => (
-                        <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={scale} renderTextLayer={false} />
-                    ))}
+                <Document file={blob}>
+                    <Page pageNumber={1} scale={scale} />
                 </Document>
             </div>
         </IonContent>
@@ -93,25 +79,25 @@ const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
     );
 };
 
-const ReportCardPreviewPage: React.FC = () => {
-  const [reportData, setReportData] = useState<ReportData[] | null>(null);
+const FeeReportPreviewPage: React.FC = () => {
+  const [payments, setPayments] = useState<FeePayment[] | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const location = useLocation();
 
   useEffect(() => {
-    const fetchReportData = async () => {
+    const fetchFeeData = async () => {
       try {
         const params = new URLSearchParams(location.search);
-        const { data } = await api.get('/reports/report-card-json', { params });
-        setReportData(Array.isArray(data) ? data : [data]);
+        const { data } = await api.get('/reports/fees-json', { params });
+        setPayments(data);
       } catch (error) {
-        console.error("Failed to fetch report card data", error);
+        console.error("Failed to fetch fee report data", error);
       } finally {
         setDataLoading(false);
       }
     };
-    fetchReportData();
+    fetchFeeData();
   }, [location.search]);
 
   if (dataLoading) {
@@ -123,11 +109,11 @@ const ReportCardPreviewPage: React.FC = () => {
     );
   }
 
-  if (!reportData) {
+  if (!payments || payments.length === 0) {
     return (
       <IonPage>
-        <IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/reports" /></IonButtons><IonTitle>Error</IonTitle></IonToolbar></IonHeader>
-        <IonContent className="ion-padding"><p>Could not load report card data.</p></IonContent>
+        <IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/reports" /></IonButtons><IonTitle>No Data</IonTitle></IonToolbar></IonHeader>
+        <IonContent className="ion-padding"><p>No fee payment data found for the selected criteria.</p></IonContent>
       </IonPage>
     );
   }
@@ -135,14 +121,14 @@ const ReportCardPreviewPage: React.FC = () => {
   if (pdfBlob) {
       return (
           <IonPage>
-              <Viewer blob={pdfBlob} fileName="report_card.pdf" />
+              <Viewer blob={pdfBlob} fileName="fee_payment_report.pdf" />
           </IonPage>
       )
   }
 
   return (
     <IonPage>
-      <BlobProvider document={<ReportCardDocument reports={reportData} />}>
+      <BlobProvider document={<FeeReportDocument payments={payments} />}>
         {({ blob, url, loading, error }) => {
           if (loading) {
             return <IonContent className="ion-padding"><IonLoading isOpen={true} message="Generating PDF..." /></IonContent>;
@@ -161,4 +147,4 @@ const ReportCardPreviewPage: React.FC = () => {
   );
 };
 
-export default ReportCardPreviewPage;
+export default FeeReportPreviewPage;

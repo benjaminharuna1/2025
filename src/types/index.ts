@@ -44,6 +44,7 @@ export interface Student {
         email: string;
     };
     admissionNumber?: string;
+    classId?: { _id: string; name: string };
     dateOfBirth?: string;
     gender?: string;
     phoneNumber?: string;
@@ -83,7 +84,7 @@ export interface FeeStructure {
 
 export interface Invoice {
   _id: string;
-  studentId: { _id: string; name: string };
+  studentId: Student;
   branchId: { _id: string; name: string };
   session: string;
   term: string;
@@ -111,6 +112,7 @@ export interface FeePayment {
   paymentMethod: string;
   receivedBy: { _id: string; name: string };
   payerDetails?: string;
+  status?: 'Success' | 'Failed' | 'Pending';
 }
 
 export interface Attendance {
@@ -172,4 +174,19 @@ export interface Announcement {
   createdBy?: string | User;
   attachments?: { name: string; url: string }[];
   isRead?: boolean;
+}
+
+export interface Session {
+  _id: string;
+  academicYear: string;
+  term: string;
+  branchId?: string | null;
+  isResultEntryOpen: boolean;
+  resultPublicationStatus: 'Draft' | 'Published' | 'Archived';
+  createdBy: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }

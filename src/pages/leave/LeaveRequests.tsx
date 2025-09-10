@@ -153,7 +153,7 @@ const LeaveRequestManagement: React.FC = () => {
             </IonRow>
             {leaveRequests.map(req => (
               <IonRow key={req._id}>
-                <IonCol>{typeof req.studentId === 'object' ? req.studentId.name : req.studentId}</IonCol>
+                <IonCol>{typeof req.studentId === 'object' ? req.studentId.userId.name : req.studentId}</IonCol>
                 <IonCol>{new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}</IonCol>
                 <IonCol>{req.reason}</IonCol>
                 <IonCol>{req.status}</IonCol>

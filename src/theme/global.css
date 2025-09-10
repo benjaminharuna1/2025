@@ -73,32 +73,10 @@
 
 /* Print-specific styles */
 @media print {
-  /* Hide UI elements that should not be printed */
-  .print-hide,
-  ion-menu-button,
-  ion-back-button {
+  /* This is now handled by printing the PDF blob directly. */
+  /* We can keep some basic rules to hide the main UI just in case. */
+
+  .no-print, ion-header, ion-toolbar {
     display: none !important;
-  }
-
-  /* Ensure the main content area is what gets printed */
-  ion-app > *:not(.ion-page),
-  .ion-page > ion-header,
-  .ion-page > ion-footer {
-    display: none;
-  }
-
-  /* Reset padding and margins for the content area to use the full page */
-  .ion-content.ion-padding {
-    --padding-start: 0;
-    --padding-end: 0;
-    --padding-top: 0;
-    --padding-bottom: 0;
-  }
-
-  /* Ensure the report card container itself has no extra margin and handles page breaks */
-  .report-card-container {
-    margin: 0;
-    border: none;
-    box-shadow: none;
   }
 }

@@ -161,21 +161,21 @@ const AttendanceReports: React.FC = () => {
             {user?.role === 'Super Admin' && (
                 <IonItem>
                     <IonLabel>Branch</IonLabel>
-                    <IonSelect value={selectedBranch} onIonChange={e => setSelectedBranch(e.detail.value)}>
+                    <IonSelect value={selectedBranch} onIonChange={e => setSelectedBranch(e.detail.value as string)}>
                         {branches.map(b => <IonSelectOption key={b._id} value={b._id}>{b.name}</IonSelectOption>)}
                     </IonSelect>
                 </IonItem>
             )}
             <IonItem>
                 <IonLabel>Class Level</IonLabel>
-                <IonSelect value={selectedClassLevel} onIonChange={e => setSelectedClassLevel(e.detail.value)}>
+                <IonSelect value={selectedClassLevel} onIonChange={e => setSelectedClassLevel(e.detail.value as string)}>
                     <IonSelectOption value="">All Levels</IonSelectOption>
                     {classLevels.map(cl => <IonSelectOption key={cl._id} value={cl._id}>{cl.name}</IonSelectOption>)}
                 </IonSelect>
             </IonItem>
             <IonItem>
                 <IonLabel>Class</IonLabel>
-                <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value)}>
+                <IonSelect value={selectedClass} onIonChange={e => setSelectedClass(e.detail.value as string)}>
                     {classes.map(c => <IonSelectOption key={c._id} value={c._id}>{c.name}</IonSelectOption>)}
                 </IonSelect>
             </IonItem>
@@ -201,7 +201,7 @@ const AttendanceReports: React.FC = () => {
                     id="fromDate"
                     presentation="date"
                     value={fromDate}
-                    onIonChange={e => setFromDate(e.detail.value!)}
+                    onIonChange={e => setFromDate(e.detail.value as string)}
                   ></IonDatetime>
                 </IonModal>
             </IonItem>
@@ -213,7 +213,7 @@ const AttendanceReports: React.FC = () => {
                     id="toDate"
                     presentation="date"
                     value={toDate}
-                    onIonChange={e => setToDate(e.detail.value!)}
+                    onIonChange={e => setToDate(e.detail.value as string)}
                   ></IonDatetime>
                 </IonModal>
             </IonItem>
@@ -244,7 +244,7 @@ const AttendanceReports: React.FC = () => {
             {attendanceRecords.map(record => (
               <IonRow key={record._id}>
                 <IonCol>{new Date(record.date).toLocaleDateString()}</IonCol>
-                <IonCol>{(typeof record.studentId === 'object' && (record.studentId.name || record.studentId.userId?.name)) || 'N/A'}</IonCol>
+                <IonCol>{(typeof record.studentId === 'object' && record.studentId.userId?.name) || 'N/A'}</IonCol>
                 <IonCol>{record.status}</IonCol>
                 <IonCol>{record.subjectId && typeof record.subjectId === 'object' ? record.subjectId.name : 'General'}</IonCol>
                 <IonCol>{record.remarks}</IonCol>

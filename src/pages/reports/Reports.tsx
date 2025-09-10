@@ -43,6 +43,9 @@ const Reports: React.FC = () => {
   const [selectedSessionId, setSelectedSessionId] = useState('');
   const [admissionNumber, setAdmissionNumber] = useState('');
 
+  // State for Fee Report Generator
+  const [feeAdmissionNumber, setFeeAdmissionNumber] = useState('');
+
   useEffect(() => {
     // This effect runs to set initial state from URL if available
     const queryParams = new URLSearchParams(location.search);
@@ -96,66 +99,73 @@ const Reports: React.FC = () => {
   }, [selectedBranch]);
 
   const handleGeneratePreview = async () => {
-  if (!selectedSessionId) {
-    setToastInfo({ show: true, message: 'A session must be selected.', color: 'warning' });
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const params: { sessionId: string; classId?: string; studentId?: string; branchId?: string } = {
-      sessionId: selectedSessionId,
-    };
-
-    if (admissionNumber.trim()) {
-      // Single student report
-      const studentRes = await api.get(`/students?admissionNumber=${admissionNumber.trim()}`);
-      const student = studentRes.data.students?.[0];
-      if (!student) {
-        setToastInfo({ show: true, message: `Student with admission number "${admissionNumber}" not found.`, color: 'danger' });
-        setLoading(false);
-        return;
-      }
-      params.studentId = student._id;
-    } else if (selectedClass && selectedBranch) {
-      // Class report
-      params.classId = selectedClass;
-      params.branchId = selectedBranch; // ✅ ensure branchId is included
-    } else {
-      setToastInfo({ show: true, message: 'Please select a class and branch, or enter a student admission number.', color: 'warning' });
-      setLoading(false);
+    if (!selectedSessionId) {
+      setToastInfo({ show: true, message: 'A session must be selected.', color: 'warning' });
       return;
     }
 
-    const endpoint = params.studentId 
-      ? '/reports/report-card-data' 
-      : '/reports/combined-report-card';
+    try {
+      const queryParams = new URLSearchParams();
+      queryParams.set('sessionId', selectedSessionId);
 
-    const response = await api.get(endpoint, {
-      params,
-      responseType: 'blob',
-    });
+      if (admissionNumber.trim()) {
+        setLoading(true);
+        const studentRes = await api.get(`/students?admissionNumber=${admissionNumber.trim()}`);
+        const student = studentRes.data.students?.[0];
+        setLoading(false);
 
-    const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
-    const pdfUrl = URL.createObjectURL(pdfBlob);
+        if (!student) {
+          setToastInfo({ show: true, message: `Student with admission number "${admissionNumber}" not found.`, color: 'danger' });
+          return;
+        }
+        queryParams.set('studentId', student._id);
+      } else if (selectedClass && selectedBranch) {
+        queryParams.set('classId', selectedClass);
+        queryParams.set('branchId', selectedBranch);
+      } else {
+        setToastInfo({ show: true, message: 'Please select a class and branch, or enter a student admission number.', color: 'warning' });
+        return;
+      }
 
-    // Keep URL in sessionStorage so preview survives refresh
-    sessionStorage.setItem('reportCardPdfUrl', pdfUrl);
+      history.push(`/reports/report-card-preview?${queryParams.toString()}`);
 
-    history.push('/reports/report-card-preview');
-
-  } catch (error: any) {
-    console.error('Error fetching report card data:', error);
-    const errorMsg = error.response?.data?.message || 'Failed to generate report card.';
-    setToastInfo({ show: true, message: errorMsg, color: 'danger' });
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Error getting student data:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to find student.';
+      setToastInfo({ show: true, message: errorMsg, color: 'danger' });
+    }
+  };
 
 
   const isButtonDisabled = !selectedSessionId || (!selectedClass && !admissionNumber.trim());
+
+  const handleGenerateFeeReport = async () => {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (feeAdmissionNumber.trim()) {
+        setLoading(true);
+        const studentRes = await api.get(`/students?admissionNumber=${feeAdmissionNumber.trim()}`);
+        const student = studentRes.data.students?.[0];
+        setLoading(false);
+
+        if (!student) {
+          setToastInfo({ show: true, message: `Student with admission number "${feeAdmissionNumber}" not found.`, color: 'danger' });
+          return;
+        }
+        queryParams.set('studentId', student._id);
+      }
+
+      history.push(`/reports/fee-report-preview?${queryParams.toString()}`);
+
+    } catch (error: any) {
+      setLoading(false);
+      console.error('Error getting student data for fee report:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to find student.';
+      setToastInfo({ show: true, message: errorMsg, color: 'danger' });
+    }
+  };
 
   return (
     <>
@@ -196,7 +206,7 @@ const Reports: React.FC = () => {
                       <IonSelect
                         value={selectedBranch}
                         onIonChange={(e) => {
-                          setSelectedBranch(e.detail.value);
+                          setSelectedBranch(e.detail.value as string);
                           setSelectedClass('');
                         }}
                         disabled={!!admissionNumber.trim()}
@@ -213,7 +223,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Class</IonLabel>
                       <IonSelect
                         value={selectedClass}
-                        onIonChange={(e) => setSelectedClass(e.detail.value)}
+                        onIonChange={(e) => setSelectedClass(e.detail.value as string)}
                         disabled={!selectedBranch || !!admissionNumber.trim()}
                       >
                         <IonSelectOption value="">Select Class</IonSelectOption>
@@ -228,7 +238,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Session</IonLabel>
                       <IonSelect
                         value={selectedSessionId}
-                        onIonChange={(e) => setSelectedSessionId(e.detail.value)}
+                        onIonChange={(e) => setSelectedSessionId(e.detail.value as string)}
                       >
                         <IonSelectOption value="">Select Session</IonSelectOption>
                         {sessions.map((session) => (
@@ -248,6 +258,33 @@ const Reports: React.FC = () => {
                     </IonButton>
                   </IonCardContent>
                 </IonCard>
+
+                <IonCard>
+                  <IonCardHeader>
+                    <IonCardTitle>Generate Fee Payment Report</IonCardTitle>
+                  </IonCardHeader>
+                  <IonCardContent>
+                    <p className="ion-padding-bottom" style={{ opacity: 0.7 }}>
+                      Generate a fee payment report for all students, or for a single student by entering their admission number.
+                    </p>
+                    <IonItem>
+                      <IonLabel position="floating">Student Admission Number (Optional)</IonLabel>
+                      <IonInput
+                        value={feeAdmissionNumber}
+                        onIonChange={(e) => setFeeAdmissionNumber(e.target.value!)}
+                        placeholder="Leave blank for all students"
+                      />
+                    </IonItem>
+                    <IonButton
+                      expand="full"
+                      onClick={handleGenerateFeeReport}
+                      className="ion-margin-top"
+                    >
+                      Generate Fee Report
+                    </IonButton>
+                  </IonCardContent>
+                </IonCard>
+
               </IonCol>
             </IonRow>
           </IonGrid>

@@ -22,6 +22,8 @@ import LeaveRequestManagement from './pages/leave/LeaveRequests';
 import LeaveRequestForm from './pages/leave/LeaveRequestForm';
 import PromotionPage from './pages/promotions/PromotionPage';
 import ReportCardPreviewPage from './pages/reports/ReportCardPreview';
+import FeeReportPreviewPage from './pages/reports/FeeReportPreview';
+import ReceiptPreviewPage from './pages/feepayments/ReceiptPreview';
 import ProtectedRoute from './routes/ProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
 
@@ -74,6 +76,8 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/promotions" component={PromotionPage} />
             {/* <ProtectedRoute path="/reports/report-card/:classId/:sessionId" component={ReportCardPreviewPage} /> */}
             <ProtectedRoute path="/reports/report-card-preview" component={ReportCardPreviewPage} />
+            <ProtectedRoute path="/reports/fee-report-preview" component={FeeReportPreviewPage} />
+            <ProtectedRoute path="/receipt-preview/:id" component={ReceiptPreviewPage} />
             <ProtectedRoute path="/dashboard/reports" component={Reports} />
             <ProtectedRoute path="/results/bulk-add" component={BulkAddResultsPage} />
             <ProtectedRoute path="/dashboard/results" component={Results} />

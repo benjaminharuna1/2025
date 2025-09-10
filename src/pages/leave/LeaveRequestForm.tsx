@@ -125,7 +125,7 @@ const LeaveRequestForm: React.FC = () => {
                 id="startDate"
                 presentation="date"
                 value={startDate}
-                onIonChange={e => setStartDate(e.detail.value!)}
+                onIonChange={e => setStartDate(e.detail.value as string)}
               ></IonDatetime>
             </IonModal>
           </IonItem>
@@ -137,7 +137,7 @@ const LeaveRequestForm: React.FC = () => {
                 id="endDate"
                 presentation="date"
                 value={endDate}
-                onIonChange={e => setEndDate(e.detail.value!)}
+                onIonChange={e => setEndDate(e.detail.value as string)}
               ></IonDatetime>
             </IonModal>
           </IonItem>

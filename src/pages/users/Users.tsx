@@ -33,7 +33,7 @@ const UsersPage: React.FC = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
@@ -54,7 +54,9 @@ const UsersPage: React.FC = () => {
     classes: [],
     subjects: [],
     students: [],
+    profileId: null,
   });
+  const [originalStudents, setOriginalStudents] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUsers();
@@ -72,7 +74,13 @@ const UsersPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/users');
-      setUsers(res.data.users || res.data || []);
+      const usersData = res.data?.users;
+      if (Array.isArray(usersData)) {
+        setUsers(usersData);
+      } else {
+        console.error("API response for users is not in the expected format:", res.data);
+        setUsers([]);
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
       setUsers([]);
@@ -135,47 +143,44 @@ const UsersPage: React.FC = () => {
     setFilteredUsers(temp);
   };
 
-  const openModal = (user: any = null) => {
+  const openModal = async (user: any = null) => {
     if (user) {
-      setSelectedUser(user);
-      setFormData({
-        ...user,
-        branchId: user.branchId || "",
-        classId: user.student?.classId || "",
-        dateOfBirth: user.student?.dateOfBirth || "",
-        admissionNumber: user.student?.admissionNumber || "",
-        gender:
-          user.student?.gender ||
-          user.teacher?.gender ||
-          user.parent?.gender ||
-          user.adminProfile?.gender ||
-          "",
-        phoneNumber:
-          user.student?.phoneNumber ||
-          user.teacher?.phoneNumber ||
-          user.parent?.phoneNumber ||
-          user.adminProfile?.phoneNumber ||
-          "",
-        classes: user.teacher?.classes || [],
-        subjects: user.teacher?.subjects || [],
-        students: user.parent?.students || [],
-      });
+      setLoading(true);
+      try {
+        const { data } = await api.get(`/users/${user._id}`);
+        const fullUser = data.user;
+        const profile = data.profile;
+
+        setSelectedUser({ ...fullUser, profile }); // Store original profile data
+        setOriginalStudents(profile?.students || []); // Store original student links
+
+        setFormData({
+          ...fullUser,
+          profileId: profile?._id,
+          branchId: fullUser.branchId || "",
+          classId: profile?.classId || "",
+          dateOfBirth: profile?.dateOfBirth || "",
+          admissionNumber: profile?.admissionNumber || "",
+          gender: profile?.gender || "",
+          phoneNumber: profile?.phoneNumber || "",
+          classes: profile?.classes || [],
+          subjects: profile?.subjects || [],
+          students: profile?.students || [],
+        });
+      } catch (error) {
+        console.error("Failed to fetch user details", error);
+        showToast("Could not load user details.");
+        return;
+      } finally {
+        setLoading(false);
+      }
     } else {
       setSelectedUser(null);
+      setOriginalStudents([]);
       setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "",
-        gender: "",
-        phoneNumber: "",
-        branchId: "",
-        classId: "",
-        dateOfBirth: "",
-        admissionNumber: "",
-        classes: [],
-        subjects: [],
-        students: [],
+        name: "", email: "", password: "", role: "", gender: "", phoneNumber: "",
+        branchId: "", classId: "", dateOfBirth: "", admissionNumber: "",
+        classes: [], subjects: [], students: [], profileId: null,
       });
     }
     setShowModal(true);
@@ -201,141 +206,99 @@ const UsersPage: React.FC = () => {
     setToastOpen(true);
   };
 
-  /** Build payload based on role so backend updates/creates the correct profile table */
-  const buildPayload = () => {
-    const payload: any = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
-    if (!selectedUser) payload.password = formData.password;
-
-    switch (formData.role) {
-      case "Student":
-        payload.branchId = formData.branchId;
-        payload.classId = formData.classId;
-        payload.dateOfBirth = formData.dateOfBirth;
-        payload.admissionNumber = formData.admissionNumber;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
-      case "Teacher":
-        payload.branchId = formData.branchId;
-        payload.classes = formData.classes;
-        payload.subjects = formData.subjects;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
-      case "Parent":
-        payload.students = formData.students;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
-      case "Branch Admin":
-        payload.branchId = formData.branchId;
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-
-      case "Super Admin":
-        payload.gender = formData.gender;
-        payload.phoneNumber = formData.phoneNumber;
-        break;
-    }
-
-    return payload;
-  };
-
   const handleSave = async () => {
-  try {
-    if (!formData.name || !formData.email || (!selectedUser && !formData.password) || !formData.role) {
-      setToastMessage("Please fill all required fields");
+    setLoading(true);
+    try {
+      if (!formData.name || !formData.email || (!selectedUser && !formData.password) || !formData.role) {
+        setToastMessage("Please fill all required fields");
+        setToastOpen(true);
+        setLoading(false);
+        return;
+      }
+
+      let profilePayload: any = {};
+      let profileEndpoint = '';
+      switch(formData.role) {
+        case 'Student':
+          profileEndpoint = `/students`;
+          profilePayload = { admissionNumber: formData.admissionNumber, dateOfBirth: formData.dateOfBirth, gender: formData.gender, phoneNumber: formData.phoneNumber, classId: formData.classId };
+          break;
+        case 'Teacher':
+          profileEndpoint = `/teachers`;
+          profilePayload = { classes: formData.classes, subjects: formData.subjects, gender: formData.gender, phoneNumber: formData.phoneNumber };
+          break;
+        case 'Parent':
+          profileEndpoint = `/parents`;
+          profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber }; // Students handled separately
+          break;
+        case 'Branch Admin':
+        case 'Super Admin':
+          profileEndpoint = `/admins`;
+          profilePayload = { gender: formData.gender, phoneNumber: formData.phoneNumber };
+          break;
+      }
+
+      if (selectedUser) {
+        // --- Two-Step Update ---
+        const userPayload = {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          branchId: formData.role === 'Super Admin' ? null : formData.branchId,
+        };
+        await api.put(`/users/${selectedUser._id}`, userPayload);
+
+        if (profileEndpoint) {
+          const finalProfileEndpoint = formData.role.includes('Admin') ? `${profileEndpoint}/${selectedUser._id}` : `${profileEndpoint}/${formData.profileId}`;
+          await api.put(finalProfileEndpoint, profilePayload);
+        }
+
+        if (formData.role === 'Parent' && formData.profileId) {
+            const newStudentIds = new Set(formData.students);
+            const oldStudentIds = new Set(originalStudents);
+            const toLink = formData.students.filter((id: string) => !oldStudentIds.has(id));
+            const toUnlink = originalStudents.filter((id: string) => !newStudentIds.has(id));
+            for (const studentId of toLink) {
+                await api.put(`/parents/${formData.profileId}/link`, { studentId });
+            }
+            for (const studentId of toUnlink) {
+                await api.put(`/parents/${formData.profileId}/unlink`, { studentId });
+            }
+        }
+
+      } else {
+        // --- Two-Step Create ---
+        const userPayload = {
+            name: formData.name, email: formData.email, password: formData.password, role: formData.role,
+            branchId: formData.role !== 'Super Admin' ? formData.branchId : undefined,
+            classId: formData.role === 'Student' ? formData.classId : undefined,
+        };
+        const response = await api.post('/users', userPayload);
+        const newProfileId = response.data.profile._id;
+        const newUserId = response.data.user._id;
+
+        if (profileEndpoint) {
+            const finalProfileEndpoint = formData.role.includes('Admin') ? `${profileEndpoint}/${newUserId}` : `${profileEndpoint}/${newProfileId}`;
+            await api.put(finalProfileEndpoint, profilePayload);
+        }
+      }
+
+      fetchUsers();
+      closeModal();
+      setToastMessage("User saved successfully");
       setToastOpen(true);
-      return;
+
+    } catch (error) {
+      console.error("Error saving user:", error);
+      setToastMessage("Failed to save user");
+      setToastOpen(true);
+    } finally {
+        setLoading(false);
     }
-
-    // Build the payload according to role
-    const payload: any = {
-      name: formData.name,
-      email: formData.email,
-      role: formData.role,
-    };
-
-    if (!selectedUser) payload.password = formData.password; // Only when creating
-
-    switch (formData.role) {
-      case "Student":
-        payload.branchId = formData.branchId;
-        payload.student = {
-          classId: formData.classId,
-          dateOfBirth: formData.dateOfBirth,
-          admissionNumber: formData.admissionNumber,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Teacher":
-        payload.branchId = formData.branchId;
-        payload.teacher = {
-          classes: formData.classes,
-          subjects: formData.subjects,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Parent":
-        payload.parent = {
-          students: formData.students,
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Branch Admin":
-        payload.branchId = formData.branchId;
-        payload.adminProfile = {
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-
-      case "Super Admin":
-        payload.adminProfile = {
-          gender: formData.gender,
-          phoneNumber: formData.phoneNumber,
-        };
-        break;
-    }
-
-    if (selectedUser) {
-      // Update
-      await api.put(`/users/${selectedUser._id}`, payload);
-    } else {
-      // Create
-      await api.post('/users', payload);
-    }
-
-    fetchUsers();
-    closeModal();
-    setToastMessage("User saved successfully");
-    setToastOpen(true);
-
-  } catch (error) {
-    console.error("Error saving user:", error);
-    setToastMessage("Failed to save user");
-    setToastOpen(true);
-  }
-};
-
+  };
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete ${name}?`)) return;
-
     setLoading(true);
     try {
       await api.delete(`/users/${id}`);
