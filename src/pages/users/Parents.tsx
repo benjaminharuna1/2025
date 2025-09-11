@@ -76,13 +76,14 @@ const ParentsPage: React.FC = () => {
         try {
             const { data } = await getParentById(parent._id);
             setSelectedParent(data);
-            setOriginalStudents(data.students || []);
+            const studentIds = (data.students || []).map((s: any) => s._id);
+            setOriginalStudents(studentIds);
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                gender: data.gender,
-                phoneNumber: data.phoneNumber,
-                students: data.students || [],
+                gender: data.userId.gender || "",
+                phoneNumber: data.phoneNumber || "",
+                students: studentIds,
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
