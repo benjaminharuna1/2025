@@ -196,7 +196,7 @@ const Reports: React.FC = () => {
                       <IonLabel position="floating">Student Admission Number (Optional)</IonLabel>
                       <IonInput
                         value={admissionNumber}
-                        onIonChange={(e) => setAdmissionNumber(String(e.target.value || ''))}
+                        onIonChange={(e) => setAdmissionNumber(e.target.value!)}
                         placeholder="Overrides class selection"
                       />
                     </IonItem>
@@ -206,7 +206,7 @@ const Reports: React.FC = () => {
                       <IonSelect
                         value={selectedBranch}
                         onIonChange={(e) => {
-                          setSelectedBranch(String(e.detail.value));
+                          setSelectedBranch(e.detail.value as string);
                           setSelectedClass('');
                         }}
                         disabled={!!admissionNumber.trim()}
@@ -223,7 +223,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Class</IonLabel>
                       <IonSelect
                         value={selectedClass}
-                        onIonChange={(e) => setSelectedClass(String(e.detail.value))}
+                        onIonChange={(e) => setSelectedClass(e.detail.value as string)}
                         disabled={!selectedBranch || !!admissionNumber.trim()}
                       >
                         <IonSelectOption value="">Select Class</IonSelectOption>
@@ -238,7 +238,7 @@ const Reports: React.FC = () => {
                       <IonLabel>Session</IonLabel>
                       <IonSelect
                         value={selectedSessionId}
-                        onIonChange={(e) => setSelectedSessionId(String(e.detail.value))}
+                        onIonChange={(e) => setSelectedSessionId(e.detail.value as string)}
                       >
                         <IonSelectOption value="">Select Session</IonSelectOption>
                         {sessions.map((session) => (
@@ -271,7 +271,7 @@ const Reports: React.FC = () => {
                       <IonLabel position="floating">Student Admission Number (Optional)</IonLabel>
                       <IonInput
                         value={feeAdmissionNumber}
-                        onIonChange={(e) => setFeeAdmissionNumber(String(e.target.value || ''))}
+                        onIonChange={(e) => setFeeAdmissionNumber(e.target.value!)}
                         placeholder="Leave blank for all students"
                       />
                     </IonItem>

@@ -111,11 +111,7 @@ export interface FeePayment {
   paymentDate: string;
   paymentMethod: string;
   receivedBy: { _id: string; name: string };
-  payerDetails?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  };
+  payerDetails?: string;
   status?: 'Success' | 'Failed' | 'Pending';
 }
 
