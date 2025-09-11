@@ -17,13 +17,11 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
-  IonAvatar,
 } from "@ionic/react";
-import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent, uploadParentProfilePicture } from "../../services/parentApi";
+import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
 import { Student } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
-import { getImageUrl } from "../../utils/url";
 
 const ParentsPage: React.FC = () => {
   const [parents, setParents] = useState<any[]>([]);
@@ -33,7 +31,6 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -53,7 +50,7 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getParents();
-      setParents(res.data || []);
+      setParents(res.data.parents || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
       showToast("Error fetching parents");
@@ -75,20 +72,15 @@ const ParentsPage: React.FC = () => {
     if (parent) {
         setLoading(true);
         try {
-            const { data: parentData } = await getParentById(parent._id);
-
-            // Fetch the full user object to get all details
-            const { data: userData } = await api.get(`/users/${parentData.userId._id}`);
-
-            const studentIds = (parentData.students || []).map((s: any) => s._id);
-            setSelectedParent({ ...parentData, userId: userData }); // Store the full user object
-            setOriginalStudents(studentIds);
+            const { data } = await getParentById(parent._id);
+            setSelectedParent(data);
+            setOriginalStudents(data.students || []);
             setFormData({
-                name: userData.name,
-                email: userData.email,
-                gender: userData.gender || "",
-                phoneNumber: parentData.phoneNumber || "",
-                students: studentIds,
+                name: data.userId.name,
+                email: data.userId.email,
+                gender: data.gender,
+                phoneNumber: data.phoneNumber,
+                students: data.students || [],
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
@@ -126,12 +118,6 @@ const ParentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -153,12 +139,6 @@ const ParentsPage: React.FC = () => {
         for (const studentId of toUnlink) {
             await unlinkStudent(selectedParent._id, studentId);
         }
-
-        if (selectedFile) {
-            await uploadParentProfilePicture(selectedParent._id, selectedFile);
-            showToast("Profile picture uploaded successfully");
-        }
-
         showToast("Parent updated successfully");
       } else {
         // --- This is the modified create logic ---
@@ -217,9 +197,6 @@ const ParentsPage: React.FC = () => {
           <IonList>
             {parents.map((parent) => (
               <IonItem key={parent._id}>
-                <IonAvatar slot="start">
-                  <img src={getImageUrl(parent.userId.profilePicture) || `https://ui-avatars.com/api/?name=${parent.userId.name.replace(/\s/g, '+')}`} alt="profile" />
-                </IonAvatar>
                 <IonLabel>
                   <h2>{parent.userId.name}</h2>
                   <p>{parent.userId.email}</p>
@@ -236,13 +213,6 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
-              {selectedParent && (
-                <div style={{ textAlign: 'center', padding: '10px' }}>
-                  <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
-                    <img src={getImageUrl(selectedParent.userId?.profilePicture) || `https://ui-avatars.com/api/?name=${selectedParent.userId?.name.replace(/\s/g, '+')}`} alt="profile" />
-                  </IonAvatar>
-                </div>
-              )}
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
@@ -269,24 +239,16 @@ const ParentsPage: React.FC = () => {
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
                 </IonItem>
-                {selectedParent && (
-                  <IonItem>
-                    <IonLabel position="stacked">Profile Picture</IonLabel>
-                    <input type="file" accept="image/*" onChange={handleFileChange} />
-                  </IonItem>
-                )}
-                {selectedParent && (
-                    <IonItem>
-                        <IonLabel>Students</IonLabel>
-                        <IonSelect multiple name="students" value={formData.students} onIonChange={(e) => handleSelectChange("students", e.detail.value)}>
-                            {students.map((stu) => (
-                                <IonSelectOption key={stu._id} value={stu._id}>
-                                    {stu.userId.name}
-                                </IonSelectOption>
-                            ))}
-                        </IonSelect>
-                    </IonItem>
-                )}
+                <IonItem>
+                    <IonLabel>Students</IonLabel>
+                    <IonSelect multiple name="students" value={formData.students} onIonChange={(e) => handleSelectChange("students", e.detail.value)}>
+                        {students.map((stu) => (
+                            <IonSelectOption key={stu._id} value={stu._id}>
+                                {stu.userId.name}
+                            </IonSelectOption>
+                        ))}
+                    </IonSelect>
+                </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>
               <IonButton expand="block" color="medium" onClick={closeModal}>Cancel</IonButton>
