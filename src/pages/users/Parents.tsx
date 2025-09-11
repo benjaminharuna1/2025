@@ -33,6 +33,7 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -52,7 +53,7 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getParents();
-      setParents(res.data.parents || []);
+      setParents(res.data || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
       showToast("Error fetching parents");
@@ -121,6 +122,12 @@ const ParentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setProfilePictureFile(e.target.files[0]);
+    }
+  };
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -129,8 +136,10 @@ const ParentsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      let parentId = selectedParent?._id;
+
       if (selectedParent) {
-        // --- This update logic is already correct! ---
+        // Update existing parent
         await updateParent(selectedParent._id, formData);
         const newStudentIds = new Set(formData.students);
         const oldStudentIds = new Set(originalStudents);
@@ -144,20 +153,29 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent updated successfully");
       } else {
-        // --- This is the modified create logic ---
-        // 1. Create the parent first
+        // Create new parent
         const response = await createParent(formData);
-        const newParent = response.data; // Assuming the API returns the new parent object
+        const newParent = response.data;
+        parentId = newParent._id;
 
-        // 2. If students were selected, link them now using the new parent's ID
         if (newParent && newParent._id && formData.students.length > 0) {
           for (const studentId of formData.students) {
-            // No need to await each one if you don't need to stop for errors
             linkStudent(newParent._id, studentId);
           }
         }
         showToast("Parent created successfully");
       }
+
+      // Upload profile picture if one was selected
+      if (profilePictureFile && parentId) {
+        const picFormData = new FormData();
+        picFormData.append("profilePicture", profilePictureFile);
+        await api.put(`/parents/${parentId}/profile-picture`, picFormData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        showToast("Profile picture uploaded successfully.");
+      }
+
       fetchParents();
       closeModal();
     } catch (error) {
@@ -244,6 +262,14 @@ const ParentsPage: React.FC = () => {
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Profile Picture</IonLabel>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e)}
+                  />
                 </IonItem>
                 <IonItem>
                     <IonLabel>Students</IonLabel>
