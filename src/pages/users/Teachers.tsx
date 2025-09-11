@@ -24,7 +24,6 @@ import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherByI
 import { Branch, Class, Subject } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
-import { getImageUrl } from "../../utils/url";
 
 const TeachersPage: React.FC = () => {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -223,7 +222,7 @@ const TeachersPage: React.FC = () => {
             {teachers.map((teacher) => (
               <IonItem key={teacher._id}>
                 <IonAvatar slot="start">
-                  <img src={getImageUrl(teacher.userId?.profilePicture) || `https://ui-avatars.com/api/?name=${teacher.userId?.name?.replace(/\s/g, '+') || 'Teacher'}`} alt="profile" />
+                  <img src={teacher.userId?.profilePicture || `https://ui-avatars.com/api/?name=${teacher.userId?.name?.replace(/\s/g, '+') || 'Teacher'}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{teacher.userId.name}</h2>

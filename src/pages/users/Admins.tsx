@@ -23,7 +23,6 @@ import { getAdmins, createAdmin, updateAdmin, deleteAdmin, getAdminById, uploadA
 import { Branch } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
-import { getImageUrl } from "../../utils/url";
 
 const AdminsPage: React.FC = () => {
   const [admins, setAdmins] = useState<any[]>([]);
@@ -208,7 +207,7 @@ const AdminsPage: React.FC = () => {
             {admins.map((admin) => (
               <IonItem key={admin._id}>
                 <IonAvatar slot="start">
-                  <img src={getImageUrl(admin.profilePicture) || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={admin.profilePicture || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{admin.name}</h2>
@@ -228,7 +227,7 @@ const AdminsPage: React.FC = () => {
             <IonContent>
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
-                  <img src={getImageUrl(formData.profilePictureUrl) || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={formData.profilePictureUrl || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
               </div>
               <IonList>

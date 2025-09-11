@@ -23,7 +23,6 @@ import { getParents, createParent, updateParent, deleteParent, getParentById, li
 import { Student } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
-import { getImageUrl } from "../../utils/url";
 
 const ParentsPage: React.FC = () => {
   const [parents, setParents] = useState<any[]>([]);
@@ -219,7 +218,7 @@ const ParentsPage: React.FC = () => {
             {parents.map((parent) => (
               <IonItem key={parent._id}>
                 <IonAvatar slot="start">
-                  <img src={getImageUrl(parent.userId?.profilePicture) || `https://ui-avatars.com/api/?name=${parent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
+                  <img src={parent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${parent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{parent.userId?.name || 'N/A'}</h2>
@@ -237,6 +236,13 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              {selectedParent && (
+                <div style={{ textAlign: 'center', padding: '10px' }}>
+                  <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                    <img src={selectedParent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${selectedParent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
+                  </IonAvatar>
+                </div>
+              )}
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>

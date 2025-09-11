@@ -28,8 +28,6 @@ import {
   megaphoneOutline,
   barChartOutline,
 } from 'ionicons/icons';
-import { getImageUrl } from '../utils/url';
-
 const SidebarMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const history = useHistory();
@@ -88,7 +86,7 @@ const SidebarMenu: React.FC = () => {
         {user && (
           <div style={{ padding: '16px', display: 'flex', alignItems: 'center' }}>
             <IonAvatar style={{ marginRight: '16px' }}>
-              <img src={getImageUrl(user.profilePicture) || `https://ui-avatars.com/api/?name=${user.name.replace(/\s/g, '+')}`} alt="profile" />
+              <img src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name.replace(/\s/g, '+')}`} alt="profile" />
             </IonAvatar>
             <IonLabel>
               <h2>{user.name}</h2>

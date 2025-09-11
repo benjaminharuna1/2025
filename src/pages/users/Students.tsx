@@ -26,7 +26,6 @@ import { getStudents, createStudent, updateStudent, deleteStudent, getStudentByI
 import { Branch, Class } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
-import { getImageUrl } from "../../utils/url";
 
 const StudentsPage: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
@@ -233,7 +232,7 @@ const StudentsPage: React.FC = () => {
             {students.map((student) => (
               <IonItem key={student._id}>
                 <IonAvatar slot="start">
-                  <img src={getImageUrl(student.userId.profilePicture) || `https://ui-avatars.com/api/?name=${student.userId.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={student.userId.profilePicture || `https://ui-avatars.com/api/?name=${student.userId.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{student.userId.name}</h2>
