@@ -28,7 +28,7 @@ import {
   megaphoneOutline,
   barChartOutline,
 } from 'ionicons/icons';
-import { getImageUrl } from '../../utils/url';
+import { getImageUrl } from '../utils/url';
 
 const SidebarMenu: React.FC = () => {
   const { user, logout } = useAuth();

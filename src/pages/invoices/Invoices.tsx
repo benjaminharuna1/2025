@@ -53,7 +53,11 @@ const Invoices: React.FC = () => {
   const [paymentData, setPaymentData] = useState({
     amountPaid: 0,
     paymentMethod: 'Bank Transfer',
-    payerDetails: '',
+    payerDetails: {
+      name: '',
+      email: '',
+      phone: '',
+    },
   });
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -234,7 +238,11 @@ const Invoices: React.FC = () => {
   const closePaymentModal = () => {
     setShowPaymentModal(false);
     setSelectedInvoice(null);
-    setPaymentData({ amountPaid: 0, paymentMethod: 'Bank Transfer', payerDetails: '' });
+    setPaymentData({
+      amountPaid: 0,
+      paymentMethod: 'Bank Transfer',
+      payerDetails: { name: '', email: '', phone: '' },
+    });
   };
 
   const handleFinancialsChange = (e: any) => {
@@ -244,7 +252,14 @@ const Invoices: React.FC = () => {
 
   const handlePaymentChange = (e: any) => {
     const { name, value } = e.target;
-    setPaymentData({ ...paymentData, [name]: value });
+    if (name === 'payerDetails') {
+      setPaymentData({
+        ...paymentData,
+        payerDetails: { ...paymentData.payerDetails, name: value },
+      });
+    } else {
+      setPaymentData({ ...paymentData, [name]: value });
+    }
   };
 
   const handleGenerateFormChange = (e: any) => {
@@ -519,8 +534,8 @@ const Invoices: React.FC = () => {
                 </IonSelect>
               </IonItem>
               <IonItem>
-                <IonLabel position="floating">Payer Details (Optional)</IonLabel>
-                <IonInput name="payerDetails" value={paymentData.payerDetails} onIonChange={handlePaymentChange} />
+                <IonLabel position="floating">Payer Name (Optional)</IonLabel>
+                <IonInput name="payerDetails" value={paymentData.payerDetails.name} onIonChange={handlePaymentChange} />
               </IonItem>
               <IonButton expand="full" onClick={handleMakePayment} className="ion-margin-top">
                 Record Payment

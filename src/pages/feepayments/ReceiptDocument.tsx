@@ -133,8 +133,8 @@ const ReceiptDocument: React.FC<ReceiptDocumentProps> = ({ data }) => {
                 </View>
                 <View style={styles.gridItem}>
                     <Text style={styles.textRow}><Text style={styles.label}>Invoice #:</Text> {invoice._id}</Text>
-                    <Text style={styles.textRow}><Text style={styles.label}>Session:</Text> {invoice.feeStructureId?.session}</Text>
-                    <Text style={styles.textRow}><Text style={styles.label}>Term:</Text> {invoice.feeStructureId?.term}</Text>
+                    <Text style={styles.textRow}><Text style={styles.label}>Session:</Text> {invoice.session}</Text>
+                    <Text style={styles.textRow}><Text style={styles.label}>Term:</Text> {invoice.term}</Text>
                     <Text style={styles.textRow}><Text style={styles.label}>Status:</Text> {invoice.status}</Text>
                 </View>
             </View>
