@@ -17,11 +17,13 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
 import { Student } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
+import { getImageUrl } from "../../utils/url";
 
 const ParentsPage: React.FC = () => {
   const [parents, setParents] = useState<any[]>([]);
@@ -197,9 +199,12 @@ const ParentsPage: React.FC = () => {
           <IonList>
             {parents.map((parent) => (
               <IonItem key={parent._id}>
+                <IonAvatar slot="start">
+                  <img src={getImageUrl(parent.userId?.profilePicture) || `https://ui-avatars.com/api/?name=${parent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
-                  <h2>{parent.userId.name}</h2>
-                  <p>{parent.userId.email}</p>
+                  <h2>{parent.userId?.name || 'N/A'}</h2>
+                  <p>{parent.userId?.email || 'No email'}</p>
                 </IonLabel>
                 <IonButton onClick={() => openModal(parent)}>Edit</IonButton>
                 <IonButton color="danger" onClick={() => handleDelete(parent._id)}>Delete</IonButton>
