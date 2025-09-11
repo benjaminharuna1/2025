@@ -20,9 +20,8 @@ import {
   IonSearchbar,
   IonButtons,
   IonMenuButton,
-  IonAvatar,
 } from "@ionic/react";
-import { getStudents, createStudent, updateStudent, deleteStudent, getStudentById, uploadStudentProfilePicture } from "../../services/studentApi";
+import { getStudents, createStudent, updateStudent, deleteStudent, getStudentById } from "../../services/studentApi";
 import { Branch, Class } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
@@ -37,7 +36,6 @@ const StudentsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -47,10 +45,6 @@ const StudentsPage: React.FC = () => {
     admissionNumber: "",
     gender: "",
     dateOfBirth: "",
-    phoneNumber: "",
-    address: "",
-    bloodGroup: "",
-    sponsor: "",
   });
 
   useEffect(() => {
@@ -101,15 +95,11 @@ const StudentsPage: React.FC = () => {
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                branchId: data.branchId?._id,
-                classId: data.classId?._id,
+                branchId: data.branchId,
+                classId: data.classId,
                 admissionNumber: data.admissionNumber,
                 gender: data.gender,
                 dateOfBirth: data.dateOfBirth,
-                phoneNumber: data.phoneNumber,
-                address: data.address,
-                bloodGroup: data.bloodGroup,
-                sponsor: data.sponsor,
             });
         } catch (error) {
             console.error("Failed to fetch student details", error);
@@ -129,10 +119,6 @@ const StudentsPage: React.FC = () => {
         admissionNumber: "",
         gender: "",
         dateOfBirth: "",
-        phoneNumber: "",
-        address: "",
-        bloodGroup: "",
-        sponsor: "",
       });
     }
     setShowModal(true);
@@ -152,12 +138,6 @@ const StudentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -168,16 +148,11 @@ const StudentsPage: React.FC = () => {
     try {
       if (selectedStudent) {
         await updateStudent(selectedStudent._id, formData);
-        if (selectedFile) {
-          await uploadStudentProfilePicture(selectedStudent._id, selectedFile);
-          showToast("Profile picture uploaded successfully");
-        }
         showToast("Student updated successfully");
       } else {
         await createStudent(formData);
         showToast("Student created successfully");
       }
-
       fetchStudents();
       closeModal();
     } catch (error) {
@@ -225,15 +200,12 @@ const StudentsPage: React.FC = () => {
                 fetchStudents();
               }
             }}
-            placeholder="Search by admission number"
+            placeholder="Search by name or admission number"
           />
           <IonButton expand="block" onClick={() => openModal()}>Add Student</IonButton>
           <IonList>
             {students.map((student) => (
               <IonItem key={student._id}>
-                <IonAvatar slot="start">
-                  <img src={student.userId.profilePicture || `https://ui-avatars.com/api/?name=${student.userId.name.replace(/\s/g, '+')}`} alt="profile" />
-                </IonAvatar>
                 <IonLabel>
                   <h2>{student.userId.name}</h2>
                   <p>{student.admissionNumber}</p>
@@ -303,28 +275,6 @@ const StudentsPage: React.FC = () => {
                       <IonDatetime id="dateOfBirth" name="dateOfBirth" value={formData.dateOfBirth} presentation="date" onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}></IonDatetime>
                     </IonModal>
                 </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Phone Number</IonLabel>
-                    <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Address</IonLabel>
-                    <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Blood Group</IonLabel>
-                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Sponsor</IonLabel>
-                    <IonInput name="sponsor" value={formData.sponsor} onIonChange={handleInputChange} />
-                </IonItem>
-                {selectedStudent && (
-                  <IonItem>
-                    <IonLabel position="stacked">Profile Picture</IonLabel>
-                    <input type="file" accept="image/*" onChange={handleFileChange} />
-                  </IonItem>
-                )}
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>
               <IonButton expand="block" color="medium" onClick={closeModal}>Cancel</IonButton>

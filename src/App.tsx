@@ -1,6 +1,7 @@
 import { Redirect, Route, Switch } from 'react-router-dom';
 import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
+import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
@@ -75,10 +76,11 @@ const App: React.FC = () => {
       <IonReactRouter>
         <IonRouterOutlet>
           <Switch>
-            <Route exact path="/login" component={Login} />
-            <Route exact path="/register" component={Register} />
+            <Route exact path="/" render={() => user ? <Redirect to="/dashboard" /> : <Home />} />
+            <Route exact path="/login" render={() => user ? <Redirect to="/dashboard" /> : <Login />} />
+            <Route exact path="/register" render={() => user ? <Redirect to="/dashboard" /> : <Register />} />
+
             <ProtectedRoute path="/dashboard/promotions" component={PromotionPage} />
-            {/* <ProtectedRoute path="/reports/report-card/:classId/:sessionId" component={ReportCardPreviewPage} /> */}
             <ProtectedRoute path="/reports/report-card-preview" component={ReportCardPreviewPage} />
             <ProtectedRoute path="/reports/fee-report-preview" component={FeeReportPreviewPage} />
             <ProtectedRoute path="/receipt-preview/:id" component={ReceiptPreviewPage} />
@@ -103,15 +105,9 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/users" component={Users} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />
             <ProtectedRoute path="/dashboard" component={Dashboard} />
-            <Route exact path="/">
-              {loading ? (
-                <div>Loading...</div>
-              ) : user ? (
-                <Redirect to="/dashboard" />
-              ) : (
-                <Redirect to="/login" />
-              )}
-            </Route>
+
+            {/* Fallback redirect */}
+            <Redirect to="/" />
           </Switch>
         </IonRouterOutlet>
       </IonReactRouter>

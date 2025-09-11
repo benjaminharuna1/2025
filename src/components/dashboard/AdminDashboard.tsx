@@ -25,17 +25,21 @@ const AdminDashboard: React.FC = () => {
           api.get('/subjects'),
         ]);
 
-        const users = usersRes.data.users || usersRes.data;
+        const branches = branchesRes.data?.branches || [];
+        const users = usersRes.data?.users || [];
+        const classes = classesRes.data?.classes || [];
+        const subjects = subjectsRes.data?.subjects || [];
+
         const students = users.filter((u: User) => u.role === 'Student').length;
         const teachers = users.filter((u: User) => u.role === 'Teacher').length;
 
         setStats({
-          branches: (branchesRes.data.branches || branchesRes.data).length,
+          branches: branches.length,
           users: users.length,
           students,
           teachers,
-          classes: (classesRes.data.classes || classesRes.data).length,
-          subjects: (subjectsRes.data.subjects || subjectsRes.data).length,
+          classes: classes.length,
+          subjects: subjects.length,
         });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
