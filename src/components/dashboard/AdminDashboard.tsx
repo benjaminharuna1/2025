@@ -18,26 +18,27 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [branchesRes, usersRes, classesRes, subjectsRes] = await Promise.all([
+        const [branchesRes, usersRes, classesRes, subjectsRes, studentsRes, teachersRes] = await Promise.all([
           api.get('/branches'),
           api.get('/users'),
           api.get('/classes'),
           api.get('/subjects'),
+          api.get('/students'),
+          api.get('/teachers'),
         ]);
 
         const branches = branchesRes.data?.branches || [];
         const users = usersRes.data?.users || [];
         const classes = classesRes.data?.classes || [];
         const subjects = subjectsRes.data?.subjects || [];
-
-        const students = users.filter((u: User) => u.role === 'Student').length;
-        const teachers = users.filter((u: User) => u.role === 'Teacher').length;
+        const students = studentsRes.data?.students || [];
+        const teachers = teachersRes.data?.teachers || [];
 
         setStats({
           branches: branches.length,
           users: users.length,
-          students,
-          teachers,
+          students: students.length,
+          teachers: teachers.length,
           classes: classes.length,
           subjects: subjects.length,
         });

@@ -45,6 +45,14 @@ const StudentsPage: React.FC = () => {
     admissionNumber: "",
     gender: "",
     dateOfBirth: "",
+    religion: "",
+    state: "",
+    localGovernment: "",
+    country: "",
+    genotype: "",
+    nextOfKinName: "",
+    nextOfKinPhoneNumber: "",
+    nextOfKinAddress: "",
   });
 
   useEffect(() => {
@@ -95,11 +103,19 @@ const StudentsPage: React.FC = () => {
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                branchId: data.branchId,
-                classId: data.classId,
+                branchId: data.branchId?._id,
+                classId: data.classId?._id,
                 admissionNumber: data.admissionNumber,
-                gender: data.gender,
-                dateOfBirth: data.dateOfBirth,
+                gender: data.userId.gender || "",
+                dateOfBirth: data.dateOfBirth || "",
+                religion: data.religion || "",
+                state: data.state || "",
+                localGovernment: data.localGovernment || "",
+                country: data.country || "",
+                genotype: data.genotype || "",
+                nextOfKinName: data.nextOfKinName || "",
+                nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
+                nextOfKinAddress: data.nextOfKinAddress || "",
             });
         } catch (error) {
             console.error("Failed to fetch student details", error);
@@ -119,6 +135,14 @@ const StudentsPage: React.FC = () => {
         admissionNumber: "",
         gender: "",
         dateOfBirth: "",
+        religion: "",
+        state: "",
+        localGovernment: "",
+        country: "",
+        genotype: "",
+        nextOfKinName: "",
+        nextOfKinPhoneNumber: "",
+        nextOfKinAddress: "",
       });
     }
     setShowModal(true);
@@ -274,6 +298,38 @@ const StudentsPage: React.FC = () => {
                     <IonModal keepContentsMounted={true}>
                       <IonDatetime id="dateOfBirth" name="dateOfBirth" value={formData.dateOfBirth} presentation="date" onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}></IonDatetime>
                     </IonModal>
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Religion</IonLabel>
+                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">State</IonLabel>
+                    <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Local Government</IonLabel>
+                    <IonInput name="localGovernment" value={formData.localGovernment} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Country</IonLabel>
+                    <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Genotype</IonLabel>
+                    <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Name</IonLabel>
+                    <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Phone Number</IonLabel>
+                    <IonInput name="nextOfKinPhoneNumber" value={formData.nextOfKinPhoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Address</IonLabel>
+                    <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>

@@ -38,6 +38,18 @@ const ParentsPage: React.FC = () => {
     gender: "",
     phoneNumber: "",
     students: [],
+    parentId: "",
+    address: "",
+    religion: "",
+    dateOfBirth: "",
+    state: "",
+    localGovernment: "",
+    country: "",
+    bloodGroup: "",
+    genotype: "",
+    nextOfKinName: "",
+    nextOfKinPhoneNumber: "",
+    nextOfKinAddress: "",
   });
   const [originalStudents, setOriginalStudents] = useState<string[]>([]);
 
@@ -74,13 +86,26 @@ const ParentsPage: React.FC = () => {
         try {
             const { data } = await getParentById(parent._id);
             setSelectedParent(data);
-            setOriginalStudents(data.students || []);
+            const studentIds = (data.students || []).map((s: any) => s._id);
+            setOriginalStudents(studentIds);
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                gender: data.gender,
-                phoneNumber: data.phoneNumber,
-                students: data.students || [],
+                gender: data.userId.gender || "",
+                phoneNumber: data.phoneNumber || "",
+                students: studentIds,
+                parentId: data.parentId || "",
+                address: data.address || "",
+                religion: data.religion || "",
+                dateOfBirth: data.dateOfBirth || "",
+                state: data.state || "",
+                localGovernment: data.localGovernment || "",
+                country: data.country || "",
+                bloodGroup: data.bloodGroup || "",
+                genotype: data.genotype || "",
+                nextOfKinName: data.nextOfKinName || "",
+                nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
+                nextOfKinAddress: data.nextOfKinAddress || "",
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
@@ -99,6 +124,18 @@ const ParentsPage: React.FC = () => {
         gender: "",
         phoneNumber: "",
         students: [],
+        parentId: "",
+        address: "",
+        religion: "",
+        dateOfBirth: "",
+        state: "",
+        localGovernment: "",
+        country: "",
+        bloodGroup: "",
+        genotype: "",
+        nextOfKinName: "",
+        nextOfKinPhoneNumber: "",
+        nextOfKinAddress: "",
       });
     }
     setShowModal(true);
@@ -127,7 +164,6 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       if (selectedParent) {
-        // --- This update logic is already correct! ---
         await updateParent(selectedParent._id, formData);
         const newStudentIds = new Set(formData.students);
         const oldStudentIds = new Set(originalStudents);
@@ -141,15 +177,10 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent updated successfully");
       } else {
-        // --- This is the modified create logic ---
-        // 1. Create the parent first
         const response = await createParent(formData);
-        const newParent = response.data; // Assuming the API returns the new parent object
-
-        // 2. If students were selected, link them now using the new parent's ID
+        const newParent = response.data;
         if (newParent && newParent._id && formData.students.length > 0) {
           for (const studentId of formData.students) {
-            // No need to await each one if you don't need to stop for errors
             linkStudent(newParent._id, studentId);
           }
         }
@@ -238,6 +269,54 @@ const ParentsPage: React.FC = () => {
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Parent ID</IonLabel>
+                    <IonInput name="parentId" value={formData.parentId} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Address</IonLabel>
+                    <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Religion</IonLabel>
+                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Date of Birth</IonLabel>
+                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">State</IonLabel>
+                    <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Local Government</IonLabel>
+                    <IonInput name="localGovernment" value={formData.localGovernment} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Country</IonLabel>
+                    <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Blood Group</IonLabel>
+                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Genotype</IonLabel>
+                    <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Name</IonLabel>
+                    <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Phone Number</IonLabel>
+                    <IonInput name="nextOfKinPhoneNumber" value={formData.nextOfKinPhoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Address</IonLabel>
+                    <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                     <IonLabel>Students</IonLabel>

@@ -27,6 +27,7 @@ import LeaveRequestManagement from './pages/leave/LeaveRequests';
 import LeaveRequestForm from './pages/leave/LeaveRequestForm';
 import PromotionPage from './pages/promotions/PromotionPage';
 import ReportCardPreviewPage from './pages/reports/ReportCardPreview';
+import ProfilePage from './pages/profile/ProfilePage';
 import FeeReportPreviewPage from './pages/reports/FeeReportPreview';
 import ReceiptPreviewPage from './pages/feepayments/ReceiptPreview';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -105,6 +106,7 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/users" component={Users} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />
             <ProtectedRoute path="/dashboard" component={Dashboard} />
+            <ProtectedRoute path="/profile" component={ProfilePage} />
 
             {/* Fallback redirect */}
             <Redirect to="/" />

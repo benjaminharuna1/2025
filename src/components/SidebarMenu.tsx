@@ -26,6 +26,7 @@ import {
   documentTextOutline,
   megaphoneOutline,
   barChartOutline,
+  personCircleOutline,
 } from 'ionicons/icons';
 
 const SidebarMenu: React.FC = () => {
@@ -42,6 +43,7 @@ const SidebarMenu: React.FC = () => {
 
     const allLinks = [
       { text: 'Dashboard', icon: homeOutline, path: '/dashboard', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Accountant', 'Student', 'Parent'] },
+      { text: 'My Profile', icon: personCircleOutline, path: '/profile', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Accountant', 'Student', 'Parent'] },
       { text: 'Branches', icon: businessOutline, path: '/dashboard/branches', roles: ['Super Admin'] },
       { text: 'Admins', icon: peopleOutline, path: '/dashboard/admins', roles: ['Super Admin'] },
       { text: 'Students', icon: schoolOutline, path: '/dashboard/students', roles: ['Super Admin', 'Branch Admin'] },
