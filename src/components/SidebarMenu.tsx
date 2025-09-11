@@ -11,6 +11,7 @@ import {
   IonLabel,
   IonMenuToggle,
   IonButton,
+  IonAvatar,
 } from '@ionic/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useHistory } from 'react-router-dom';
@@ -27,6 +28,7 @@ import {
   megaphoneOutline,
   barChartOutline,
 } from 'ionicons/icons';
+import { getImageUrl } from '../../utils/url';
 
 const SidebarMenu: React.FC = () => {
   const { user, logout } = useAuth();
@@ -83,6 +85,17 @@ const SidebarMenu: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
+        {user && (
+          <div style={{ padding: '16px', display: 'flex', alignItems: 'center' }}>
+            <IonAvatar style={{ marginRight: '16px' }}>
+              <img src={getImageUrl(user.profilePicture) || `https://ui-avatars.com/api/?name=${user.name.replace(/\s/g, '+')}`} alt="profile" />
+            </IonAvatar>
+            <IonLabel>
+              <h2>{user.name}</h2>
+              <p>{user.role}</p>
+            </IonLabel>
+          </div>
+        )}
         <IonList>
           {renderMenuItems()}
         </IonList>
