@@ -6,6 +6,10 @@ import Register from './pages/auth/Register';
 import Dashboard from './pages/dashboard/Dashboard';
 import Branches from './pages/branches/Branches';
 import Users from './pages/users/Users';
+import AdminsPage from './pages/users/Admins';
+import StudentsPage from './pages/users/Students';
+import TeachersPage from './pages/users/Teachers';
+import ParentsPage from './pages/users/Parents';
 import ClassLevels from './pages/classlevels/ClassLevels';
 import Classes from './pages/classes/Classes';
 import Subjects from './pages/subjects/Subjects';
@@ -92,6 +96,10 @@ const App: React.FC = () => {
             <ProtectedRoute path="/dashboard/subjects" component={Subjects} />
             <ProtectedRoute path="/dashboard/classes" component={Classes} />
             <ProtectedRoute path="/dashboard/classlevels" component={ClassLevels} />
+            <ProtectedRoute path="/dashboard/parents" component={ParentsPage} />
+            <ProtectedRoute path="/dashboard/teachers" component={TeachersPage} />
+            <ProtectedRoute path="/dashboard/students" component={StudentsPage} />
+            <ProtectedRoute path="/dashboard/admins" component={AdminsPage} />
             <ProtectedRoute path="/dashboard/users" component={Users} />
             <ProtectedRoute path="/dashboard/branches" component={Branches} />
             <ProtectedRoute path="/dashboard" component={Dashboard} />
