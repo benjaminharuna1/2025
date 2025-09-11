@@ -17,6 +17,7 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
 import { Student } from "../../types";
@@ -31,6 +32,7 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -50,7 +52,7 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getParents();
-      setParents(res.data.parents || []);
+      setParents(res.data || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
       showToast("Error fetching parents");
@@ -74,13 +76,14 @@ const ParentsPage: React.FC = () => {
         try {
             const { data } = await getParentById(parent._id);
             setSelectedParent(data);
-            setOriginalStudents(data.students || []);
+            const studentIds = (data.students || []).map((s: any) => s._id);
+            setOriginalStudents(studentIds);
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                gender: data.gender,
-                phoneNumber: data.phoneNumber,
-                students: data.students || [],
+                gender: data.userId.gender || "",
+                phoneNumber: data.phoneNumber || "",
+                students: studentIds,
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
@@ -118,6 +121,12 @@ const ParentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setProfilePictureFile(e.target.files[0]);
+    }
+  };
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -126,8 +135,10 @@ const ParentsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      let parentId = selectedParent?._id;
+
       if (selectedParent) {
-        // --- This update logic is already correct! ---
+        // Update existing parent
         await updateParent(selectedParent._id, formData);
         const newStudentIds = new Set(formData.students);
         const oldStudentIds = new Set(originalStudents);
@@ -141,20 +152,29 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent updated successfully");
       } else {
-        // --- This is the modified create logic ---
-        // 1. Create the parent first
+        // Create new parent
         const response = await createParent(formData);
-        const newParent = response.data; // Assuming the API returns the new parent object
+        const newParent = response.data;
+        parentId = newParent._id;
 
-        // 2. If students were selected, link them now using the new parent's ID
         if (newParent && newParent._id && formData.students.length > 0) {
           for (const studentId of formData.students) {
-            // No need to await each one if you don't need to stop for errors
             linkStudent(newParent._id, studentId);
           }
         }
         showToast("Parent created successfully");
       }
+
+      // Upload profile picture if one was selected
+      if (profilePictureFile && parentId) {
+        const picFormData = new FormData();
+        picFormData.append("profilePicture", profilePictureFile);
+        await api.put(`/parents/${parentId}/profile-picture`, picFormData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        showToast("Profile picture uploaded successfully.");
+      }
+
       fetchParents();
       closeModal();
     } catch (error) {
@@ -197,9 +217,12 @@ const ParentsPage: React.FC = () => {
           <IonList>
             {parents.map((parent) => (
               <IonItem key={parent._id}>
+                <IonAvatar slot="start">
+                  <img src={parent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${parent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
-                  <h2>{parent.userId.name}</h2>
-                  <p>{parent.userId.email}</p>
+                  <h2>{parent.userId?.name || 'N/A'}</h2>
+                  <p>{parent.userId?.email || 'No email'}</p>
                 </IonLabel>
                 <IonButton onClick={() => openModal(parent)}>Edit</IonButton>
                 <IonButton color="danger" onClick={() => handleDelete(parent._id)}>Delete</IonButton>
@@ -213,6 +236,13 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              {selectedParent && (
+                <div style={{ textAlign: 'center', padding: '10px' }}>
+                  <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                    <img src={selectedParent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${selectedParent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
+                  </IonAvatar>
+                </div>
+              )}
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
@@ -238,6 +268,14 @@ const ParentsPage: React.FC = () => {
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Profile Picture</IonLabel>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e)}
+                  />
                 </IonItem>
                 <IonItem>
                     <IonLabel>Students</IonLabel>
@@ -268,3 +306,5 @@ const ParentsPage: React.FC = () => {
 };
 
 export default ParentsPage;
+
+// Re-submitting to trigger publish.

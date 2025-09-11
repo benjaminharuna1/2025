@@ -18,6 +18,7 @@ import {
   IonSearchbar,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherById } from "../../services/teacherApi";
 import { Branch, Class, Subject } from "../../types";
@@ -144,6 +145,25 @@ const TeachersPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && selectedTeacher) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        await api.put(`/teachers/${selectedTeacher._id}/profile-picture`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
+        showToast("Profile picture updated successfully.");
+        fetchTeachers(); // refresh list
+      } catch (error) {
+        console.error("Error uploading profile picture:", error);
+        showToast("Failed to upload profile picture.");
+      }
+    }
+  };
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -201,6 +221,9 @@ const TeachersPage: React.FC = () => {
           <IonList>
             {teachers.map((teacher) => (
               <IonItem key={teacher._id}>
+                <IonAvatar slot="start">
+                  <img src={teacher.userId?.profilePicture || `https://ui-avatars.com/api/?name=${teacher.userId?.name?.replace(/\s/g, '+') || 'Teacher'}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
                   <h2>{teacher.userId.name}</h2>
                   <p>{teacher.userId.email}</p>
@@ -253,6 +276,16 @@ const TeachersPage: React.FC = () => {
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
                 </IonItem>
+                {selectedTeacher && (
+                  <IonItem>
+                    <IonLabel position="stacked">Profile Picture</IonLabel>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
+                  </IonItem>
+                )}
                 <IonItem>
                     <IonLabel>Classes</IonLabel>
                     <IonSelect multiple name="classes" value={formData.classes} onIonChange={(e) => handleSelectChange("classes", e.detail.value)}>

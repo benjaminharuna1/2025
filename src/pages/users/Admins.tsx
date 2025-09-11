@@ -24,8 +24,6 @@ import { Branch } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
 
-const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
-
 const AdminsPage: React.FC = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -35,12 +33,6 @@ const AdminsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  const getImageUrl = (path?: string) => {
-    if (!path) return '';
-    const imagePath = path.replace('public/', '');
-    return `${BACKEND_URL}/${imagePath}`;
-  };
 
   const [formData, setFormData] = useState<any>({
     name: "",
@@ -215,7 +207,7 @@ const AdminsPage: React.FC = () => {
             {admins.map((admin) => (
               <IonItem key={admin._id}>
                 <IonAvatar slot="start">
-                  <img src={`https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={admin.profilePicture || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{admin.name}</h2>
@@ -235,7 +227,7 @@ const AdminsPage: React.FC = () => {
             <IonContent>
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
-                  <img src={getImageUrl(formData.profilePictureUrl) || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={formData.profilePictureUrl || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
               </div>
               <IonList>
