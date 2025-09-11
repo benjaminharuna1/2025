@@ -75,15 +75,19 @@ const ParentsPage: React.FC = () => {
     if (parent) {
         setLoading(true);
         try {
-            const { data } = await getParentById(parent._id);
-            const studentIds = (data.students || []).map((s: any) => s._id);
-            setSelectedParent(data);
+            const { data: parentData } = await getParentById(parent._id);
+
+            // Fetch the full user object to get all details
+            const { data: userData } = await api.get(`/users/${parentData.userId._id}`);
+
+            const studentIds = (parentData.students || []).map((s: any) => s._id);
+            setSelectedParent({ ...parentData, userId: userData }); // Store the full user object
             setOriginalStudents(studentIds);
             setFormData({
-                name: data.userId.name,
-                email: data.userId.email,
-                gender: data.gender || "",
-                phoneNumber: data.phoneNumber || "",
+                name: userData.name,
+                email: userData.email,
+                gender: userData.gender || "",
+                phoneNumber: parentData.phoneNumber || "",
                 students: studentIds,
             });
         } catch (error) {
