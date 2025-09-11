@@ -102,8 +102,8 @@ const StudentsPage: React.FC = () => {
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                branchId: data.branchId,
-                classId: data.classId,
+                branchId: data.branchId?._id,
+                classId: data.classId?._id,
                 admissionNumber: data.admissionNumber,
                 gender: data.gender,
                 dateOfBirth: data.dateOfBirth,
