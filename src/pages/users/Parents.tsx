@@ -82,8 +82,8 @@ const ParentsPage: React.FC = () => {
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                gender: data.gender,
-                phoneNumber: data.phoneNumber,
+                gender: data.gender || "",
+                phoneNumber: data.phoneNumber || "",
                 students: studentIds,
             });
         } catch (error) {
@@ -232,6 +232,13 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              {selectedParent && (
+                <div style={{ textAlign: 'center', padding: '10px' }}>
+                  <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                    <img src={getImageUrl(selectedParent.userId?.profilePicture) || `https://ui-avatars.com/api/?name=${selectedParent.userId?.name.replace(/\s/g, '+')}`} alt="profile" />
+                  </IonAvatar>
+                </div>
+              )}
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
