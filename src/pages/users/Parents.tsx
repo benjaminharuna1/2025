@@ -50,7 +50,7 @@ const ParentsPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await getParents();
-      setParents(res.data.parents || []);
+      setParents(res.data || []);
     } catch (error) {
       console.error("Error fetching parents:", error);
       showToast("Error fetching parents");
