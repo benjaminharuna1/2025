@@ -27,78 +27,80 @@ const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const [profileData, setProfileData] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const userRole = user?.role;
-  const userId = user?._id;
-
-  const getProfileEndpoint = () => {
-    if (!userId) return null;
-    switch (userRole) {
-      case 'Super Admin':
-      case 'Branch Admin':
-        return `/admins/${userId}`;
-      case 'Teacher':
-        return `/teachers/${userId}`;
-      case 'Student':
-        return `/students/${userId}`;
-      case 'Parent':
-        return `/parents/${userId}`;
-      default:
-        return null;
-    }
-  };
-
   const fetchProfile = async () => {
-    const endpoint = getProfileEndpoint();
-    if (!endpoint) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
-      const { data } = await api.get(endpoint);
-      // The response for a single profile might be nested under `user` and `profile` or be flat
-      const fullProfileData = data.user ? { ...data.profile, userId: data.user, _id: data.profile._id } : data;
-      setProfileData(fullProfileData);
-      setFormData(fullProfileData);
+      const { data } = await api.get('/profiles/me');
+      setProfileData(data);
+      // Combine user and profile data into a single flat object for the form
+      setFormData({ ...(data.profile || {}), ...data });
       setError(null);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setError('Could not load profile data. Please try again later.');
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Could not load your profile. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user && userId) {
+    if (user) {
       fetchProfile();
-    } else {
-      setLoading(false);
     }
-  }, [user, userId]);
+  }, [user]);
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSave = async () => {
-    const endpoint = getProfileEndpoint();
-    if (!endpoint) return;
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setProfilePictureFile(e.target.files[0]);
+    }
+  };
 
+  const handleSave = async () => {
     setLoading(true);
     try {
-      await api.put(endpoint, formData);
+      const dataToUpdate = new FormData();
+
+      // Append all form fields that the user can edit
+      dataToUpdate.append('email', formData.email);
+      dataToUpdate.append('gender', formData.gender);
+      dataToUpdate.append('phoneNumber', formData.phoneNumber);
+      dataToUpdate.append('address', formData.address);
+      dataToUpdate.append('state', formData.state);
+      dataToUpdate.append('localGovernment', formData.localGovernment);
+      dataToUpdate.append('country', formData.country);
+      dataToUpdate.append('religion', formData.religion);
+      dataToUpdate.append('bloodGroup', formData.bloodGroup);
+      dataToUpdate.append('genotype', formData.genotype);
+      dataToUpdate.append('dateOfBirth', formData.dateOfBirth);
+      dataToUpdate.append('nextOfKinName', formData.nextOfKinName);
+      dataToUpdate.append('nextOfKinPhoneNumber', formData.nextOfKinPhoneNumber);
+      dataToUpdate.append('nextOfKinAddress', formData.nextOfKinAddress);
+
+      if (profilePictureFile) {
+        dataToUpdate.append('profilePicture', profilePictureFile);
+      }
+
+      await api.put('/profiles/me', dataToUpdate, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
       setShowToast(true);
       setIsEditing(false);
       fetchProfile(); // Refetch data
-    } catch (error) {
-      console.error('Error updating profile:', error);
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setError('Failed to update profile.');
     } finally {
       setLoading(false);
     }
@@ -122,6 +124,7 @@ const ProfilePage: React.FC = () => {
     );
   };
 
+  const userRole = user?.role;
   const isStudent = userRole === 'Student';
   const isStaff = userRole === 'Super Admin' || userRole === 'Branch Admin' || userRole === 'Teacher';
   const isParent = userRole === 'Parent';
@@ -150,17 +153,17 @@ const ProfilePage: React.FC = () => {
             <IonCardHeader>
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '120px', height: '120px', margin: 'auto' }}>
-                  <img src={profileData.userId?.profilePicture || `https://ui-avatars.com/api/?name=${profileData.userId?.name || 'User'}`} alt="profile" />
+                  <img src={profileData.profilePicture || `https://ui-avatars.com/api/?name=${profileData.name || 'User'}`} alt="profile" />
                 </IonAvatar>
-                <IonCardTitle style={{ marginTop: '10px' }}>{profileData.userId?.name}</IonCardTitle>
+                <IonCardTitle style={{ marginTop: '10px' }}>{profileData.name}</IonCardTitle>
               </div>
             </IonCardHeader>
             <IonCardContent>
               <IonList>
-                {renderProfileField("Name", formData.userId?.name, "name", true)}
-                {renderProfileField("Email", formData.userId?.email, "email")}
-                {isStudent && renderProfileField("Admission Number", formData.admissionNumber, "admissionNumber", true)}
+                {renderProfileField("Name", formData.name, "name", true)}
+                {renderProfileField("Email", formData.email, "email")}
 
+                {isStudent && renderProfileField("Admission Number", formData.admissionNumber, "admissionNumber", true)}
                 {isStaff && renderProfileField("Staff ID", formData.staffId, "staffId", true)}
                 {isParent && renderProfileField("Parent ID", formData.parentId, "parentId", true)}
 
@@ -178,6 +181,13 @@ const ProfilePage: React.FC = () => {
                 {renderProfileField("Next of Kin Name", formData.nextOfKinName, "nextOfKinName")}
                 {renderProfileField("Next of Kin Phone", formData.nextOfKinPhoneNumber, "nextOfKinPhoneNumber")}
                 {renderProfileField("Next of Kin Address", formData.nextOfKinAddress, "nextOfKinAddress")}
+
+                {isEditing && (
+                  <IonItem>
+                    <IonLabel position="stacked">Update Profile Picture</IonLabel>
+                    <input type="file" accept="image/*" onChange={handleFileChange} />
+                  </IonItem>
+                )}
               </IonList>
             </IonCardContent>
           </IonCard>
