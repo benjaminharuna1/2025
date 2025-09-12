@@ -36,7 +36,7 @@ const ProfilePage: React.FC = () => {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/profiles/me');
+      const { data } = await api.get('/v1/profiles/me');
       setProfileData(data);
       setFormData({ ...data, ...(data.profile || {}) });
       setError(null);
@@ -67,43 +67,71 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setLoading(true);
-    try {
-      const dataToUpdate = new FormData();
+  setLoading(true);
+  try {
+    const dataToUpdate = new FormData();
 
-      // User model fields
-      if (formData.name) dataToUpdate.append('name', formData.name);
-      if (formData.email) dataToUpdate.append('email', formData.email);
-      if (formData.gender) dataToUpdate.append('gender', formData.gender);
-      if (profilePictureFile) dataToUpdate.append('profilePicture', profilePictureFile);
+    // ✅ Only append if values are non-empty
+    if (formData.name?.trim()) dataToUpdate.append("name", formData.name.trim());
+    if (formData.email?.trim()) dataToUpdate.append("email", formData.email.trim());
+    if (formData.gender?.trim()) dataToUpdate.append("gender", formData.gender.trim());
+    if (profilePictureFile) dataToUpdate.append("profilePicture", profilePictureFile);
 
-      // Profile model fields
-      const profileFields = [
-        'phoneNumber','address','state','localGovernment','country',
-        'religion','bloodGroup','genotype','dateOfBirth',
-        'nextOfKinName','nextOfKinPhoneNumber','nextOfKinAddress'
-      ];
+    // Role-specific identifiers
+if (user?.role === "Student" && formData.admissionNumber) {
+  dataToUpdate.append("admissionNumber", formData.admissionNumber);
+}
+if (user?.role === "Parent" && formData.parentNumber) {
+  dataToUpdate.append("parentNumber", formData.parentNumber);
+}
+if (
+  (user?.role === "Teacher" || user?.role === "Branch Admin" || user?.role === "Super Admin") &&
+  formData.staffId
+) {
+  dataToUpdate.append("staffId", formData.staffId);
+}
+  
 
-      profileFields.forEach(field => {
-        if (formData[field] !== undefined && formData[field] !== null) {
-          dataToUpdate.append(field, formData[field]);
-        }
-      });
+    // ✅ Profile model fields
+    const profileFields = [
+      "phoneNumber",
+      "address",
+      "state",
+      "localGovernment",
+      "country",
+      "religion",
+      "bloodGroup",
+      "genotype",
+      "dateOfBirth",
+      "nextOfKinName",
+      "nextOfKinPhoneNumber",
+      "nextOfKinAddress",
+    ];
 
-      await api.put('/profiles/me', dataToUpdate, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+    profileFields.forEach((field) => {
+      if (formData[field]?.toString().trim()) {
+        dataToUpdate.append(field, formData[field]);
+      }
+    });
 
-      setShowToast(true);
-      setIsEditing(false);
-      fetchProfile();
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      setError('Failed to update profile.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Make the request
+    await api.put("/v1/profiles/me", dataToUpdate, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    // Refresh UI
+    setShowToast(true);
+    setIsEditing(false);
+    fetchProfile();
+  } catch (err: any) {
+    console.error("Error updating profile:", err.response?.data || err.message);
+    setError(err.response?.data?.message || "Failed to update profile.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderProfileField = (label: string, value: any, fieldName: string, readOnly = false) => {
     return (
@@ -149,9 +177,14 @@ const ProfilePage: React.FC = () => {
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '120px', height: '120px', margin: 'auto' }}>
                   <img
-                    src={profileData.profilePicture || `https://ui-avatars.com/api/?name=${profileData.name || 'User'}`}
-                    alt="profile"
-                  />
+  src={
+    profileData.profilePicture ||
+    profileData.profile?.profilePicture ||
+    `https://ui-avatars.com/api/?name=${profileData.name || 'User'}`
+  }
+  alt="profile"
+/>
+
                 </IonAvatar>
                 <IonCardTitle style={{ marginTop: '10px' }}>{profileData.name}</IonCardTitle>
               </div>
@@ -160,6 +193,15 @@ const ProfilePage: React.FC = () => {
               <IonList>
                 {renderProfileField("Name", formData.name, "name", true)}
                 {renderProfileField("Email", formData.email, "email")}
+                {user?.role === "Student" &&
+                renderProfileField("Admission Number", formData.admissionNumber, "admissionNumber", true)}
+
+              {user?.role === "Parent" &&
+                renderProfileField("Parent Number", formData.parentNumber, "parentNumber", true)}
+
+              {(user?.role === "Teacher" || user?.role === "Branch Admin" || user?.role === "Super Admin") &&
+                renderProfileField("Staff ID", formData.staffId, "staffId", true)}
+
 
                 {renderProfileField("Phone Number", formData.phoneNumber, "phoneNumber")}
                 {renderProfileField("Address", formData.address, "address")}
