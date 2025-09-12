@@ -32,20 +32,20 @@ const ProfilePage: React.FC = () => {
   const [showToast, setShowToast] = useState(false);
 
   const userRole = user?.role;
-  const profileId = user?.profileId;
+  const userId = user?._id;
 
   const getProfileEndpoint = () => {
-    if (!profileId) return null;
+    if (!userId) return null;
     switch (userRole) {
       case 'Super Admin':
       case 'Branch Admin':
-        return `/admins/${profileId}`;
+        return `/admins/${userId}`;
       case 'Teacher':
-        return `/teachers/${profileId}`;
+        return `/teachers/${userId}`;
       case 'Student':
-        return `/students/${profileId}`;
+        return `/students/${userId}`;
       case 'Parent':
-        return `/parents/${profileId}`;
+        return `/parents/${userId}`;
       default:
         return null;
     }
@@ -72,12 +72,12 @@ const ProfilePage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user && profileId) {
+    if (user && userId) {
       fetchProfile();
     } else {
       setLoading(false);
     }
-  }, [user, profileId]);
+  }, [user, userId]);
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
