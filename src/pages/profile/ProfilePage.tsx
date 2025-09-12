@@ -30,22 +30,23 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const userRole = user?.role;
-  const userId = user?._id;
+  const profileId = user?.profileId;
 
   const getProfileEndpoint = () => {
-    if (!userId) return null;
+    if (!profileId) return null;
     switch (userRole) {
       case 'Super Admin':
       case 'Branch Admin':
-        return `/admins/${userId}`;
+        return `/admins/${profileId}`;
       case 'Teacher':
-        return `/teachers/${userId}`;
+        return `/teachers/${profileId}`;
       case 'Student':
-        return `/students/${userId}`;
+        return `/students/${profileId}`;
       case 'Parent':
-        return `/parents/${userId}`;
+        return `/parents/${profileId}`;
       default:
         return null;
     }
@@ -64,20 +65,22 @@ const ProfilePage: React.FC = () => {
       const fullProfileData = data.user ? { ...data.profile, userId: data.user, _id: data.profile._id } : data;
       setProfileData(fullProfileData);
       setFormData(fullProfileData);
+      setError(null);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setError('Could not load profile data. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (user && userId) {
+    if (user && profileId) {
       fetchProfile();
     } else {
       setLoading(false);
     }
-  }, [user, userId]);
+  }, [user, profileId]);
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
@@ -184,6 +187,13 @@ const ProfilePage: React.FC = () => {
           onDidDismiss={() => setShowToast(false)}
           message="Profile updated successfully."
           duration={2000}
+        />
+        <IonToast
+          isOpen={!!error}
+          onDidDismiss={() => setError(null)}
+          message={error || ''}
+          duration={3000}
+          color="danger"
         />
       </IonContent>
     </IonPage>
