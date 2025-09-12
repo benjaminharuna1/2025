@@ -38,8 +38,7 @@ const ProfilePage: React.FC = () => {
     try {
       const { data } = await api.get('/profiles/me');
       setProfileData(data);
-      // Combine user and profile data into a single flat object for the form
-      setFormData({ ...(data.profile || {}), ...data });
+      setFormData({ ...data, ...(data.profile || {}) });
       setError(null);
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -56,7 +55,8 @@ const ProfilePage: React.FC = () => {
   }, [user]);
 
   const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
+    const name = (e.target as HTMLInputElement).name;
+    const value = e.detail?.value;
     setFormData({ ...formData, [name]: value });
   };
 
@@ -71,25 +71,24 @@ const ProfilePage: React.FC = () => {
     try {
       const dataToUpdate = new FormData();
 
-      // Append all form fields that the user can edit
-      dataToUpdate.append('email', formData.email);
-      dataToUpdate.append('gender', formData.gender);
-      dataToUpdate.append('phoneNumber', formData.phoneNumber);
-      dataToUpdate.append('address', formData.address);
-      dataToUpdate.append('state', formData.state);
-      dataToUpdate.append('localGovernment', formData.localGovernment);
-      dataToUpdate.append('country', formData.country);
-      dataToUpdate.append('religion', formData.religion);
-      dataToUpdate.append('bloodGroup', formData.bloodGroup);
-      dataToUpdate.append('genotype', formData.genotype);
-      dataToUpdate.append('dateOfBirth', formData.dateOfBirth);
-      dataToUpdate.append('nextOfKinName', formData.nextOfKinName);
-      dataToUpdate.append('nextOfKinPhoneNumber', formData.nextOfKinPhoneNumber);
-      dataToUpdate.append('nextOfKinAddress', formData.nextOfKinAddress);
+      // User model fields
+      if (formData.name) dataToUpdate.append('name', formData.name);
+      if (formData.email) dataToUpdate.append('email', formData.email);
+      if (formData.gender) dataToUpdate.append('gender', formData.gender);
+      if (profilePictureFile) dataToUpdate.append('profilePicture', profilePictureFile);
 
-      if (profilePictureFile) {
-        dataToUpdate.append('profilePicture', profilePictureFile);
-      }
+      // Profile model fields
+      const profileFields = [
+        'phoneNumber','address','state','localGovernment','country',
+        'religion','bloodGroup','genotype','dateOfBirth',
+        'nextOfKinName','nextOfKinPhoneNumber','nextOfKinAddress'
+      ];
+
+      profileFields.forEach(field => {
+        if (formData[field] !== undefined && formData[field] !== null) {
+          dataToUpdate.append(field, formData[field]);
+        }
+      });
 
       await api.put('/profiles/me', dataToUpdate, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -97,7 +96,7 @@ const ProfilePage: React.FC = () => {
 
       setShowToast(true);
       setIsEditing(false);
-      fetchProfile(); // Refetch data
+      fetchProfile();
     } catch (err) {
       console.error('Error updating profile:', err);
       setError('Failed to update profile.');
@@ -116,6 +115,7 @@ const ProfilePage: React.FC = () => {
             value={value}
             onIonChange={handleInputChange}
             readonly={readOnly}
+            type={fieldName === 'dateOfBirth' ? 'date' : 'text'}
           />
         ) : (
           <p>{value || 'N/A'}</p>
@@ -123,11 +123,6 @@ const ProfilePage: React.FC = () => {
       </IonItem>
     );
   };
-
-  const userRole = user?.role;
-  const isStudent = userRole === 'Student';
-  const isStaff = userRole === 'Super Admin' || userRole === 'Branch Admin' || userRole === 'Teacher';
-  const isParent = userRole === 'Parent';
 
   return (
     <IonPage>
@@ -153,7 +148,10 @@ const ProfilePage: React.FC = () => {
             <IonCardHeader>
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '120px', height: '120px', margin: 'auto' }}>
-                  <img src={profileData.profilePicture || `https://ui-avatars.com/api/?name=${profileData.name || 'User'}`} alt="profile" />
+                  <img
+                    src={profileData.profilePicture || `https://ui-avatars.com/api/?name=${profileData.name || 'User'}`}
+                    alt="profile"
+                  />
                 </IonAvatar>
                 <IonCardTitle style={{ marginTop: '10px' }}>{profileData.name}</IonCardTitle>
               </div>
@@ -163,10 +161,6 @@ const ProfilePage: React.FC = () => {
                 {renderProfileField("Name", formData.name, "name", true)}
                 {renderProfileField("Email", formData.email, "email")}
 
-                {isStudent && renderProfileField("Admission Number", formData.admissionNumber, "admissionNumber", true)}
-                {isStaff && renderProfileField("Staff ID", formData.staffId, "staffId", true)}
-                {isParent && renderProfileField("Parent ID", formData.parentId, "parentId", true)}
-
                 {renderProfileField("Phone Number", formData.phoneNumber, "phoneNumber")}
                 {renderProfileField("Address", formData.address, "address")}
                 {renderProfileField("State", formData.state, "state")}
@@ -175,7 +169,7 @@ const ProfilePage: React.FC = () => {
                 {renderProfileField("Religion", formData.religion, "religion")}
                 {renderProfileField("Blood Group", formData.bloodGroup, "bloodGroup")}
                 {renderProfileField("Genotype", formData.genotype, "genotype")}
-                {renderProfileField("Date of Birth", formData.dateOfBirth?.split('T')[0], "dateOfBirth")}
+                {renderProfileField("Date of Birth", formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString().split("T")[0] : "", "dateOfBirth")}
 
                 <IonItem lines="full"><IonLabel color="primary"><h4>Next of Kin Information</h4></IonLabel></IonItem>
                 {renderProfileField("Next of Kin Name", formData.nextOfKinName, "nextOfKinName")}
