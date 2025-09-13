@@ -59,7 +59,7 @@ body{
 
 .front .header .school-name{
   font-weight:700;
-  font-size:18px;
+  font-size:12px;
   line-height:1.2;
   text-align:center;
 }
@@ -71,13 +71,13 @@ body{
   flex-shrink: 0;
 }
 .front .header .branch-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.95;
   text-align: center;
 }
 .front .header .address {
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.9;
   text-align: center;
 }
