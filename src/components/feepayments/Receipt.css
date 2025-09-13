@@ -33,6 +33,14 @@
   margin-bottom: 20px;
 }
 
+.receipt h3 {
+  color: #0e4a86;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+  margin-top: 20px;
+}
+
+.receipt .fee-structure-table,
 .receipt .payments-table {
   width: 100%;
   border-collapse: collapse;

@@ -25,6 +25,24 @@ const Receipt: React.FC<ReceiptProps> = ({ receiptData }) => {
         <div><strong>Admission No:</strong> {invoice.studentId.admissionNumber}</div>
         <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
       </div>
+      <h3>Fee Structure Details</h3>
+      <table className="fee-structure-table">
+        <thead>
+          <tr>
+            <th>Fee Type</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoice.feeStructureId.fees.map((fee, index) => (
+            <tr key={index}>
+              <td>{fee.feeType}</td>
+              <td>{fee.amount}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <h3>Payment History</h3>
       <table className="payments-table">
         <thead>
           <tr>
