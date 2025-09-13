@@ -28,11 +28,11 @@ body{
   height:var(--card-height);
   border-radius:var(--radius);
   box-shadow:0 6px 18px rgba(15,40,80,0.12);
-  overflow:hidden;
   background:#fff;
   display:flex;
   position:relative;
   flex-direction:column;
+  overflow: hidden; /* This is a fallback */
 }
 
 /* FRONT */
@@ -96,6 +96,7 @@ body{
   padding: 8px 18px;
   justify-content:space-between;
   background:linear-gradient(180deg,#ffffff,#f7fbff);
+  overflow: hidden;
 }
 
 .front .body-left{
@@ -179,10 +180,10 @@ body{
   background:linear-gradient(90deg,#eef7ff,#ffffff);
   padding:12px;
   border-radius:8px;
-  height:180px;
+  height: 160px;
   overflow:hidden;
-  font-size:12px;
-  line-height:1.25;
+  font-size:11px;
+  line-height:1.2;
   color:#0b3760;
 }
 
