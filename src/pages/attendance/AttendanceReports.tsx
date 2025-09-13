@@ -114,20 +114,13 @@ const AttendanceReports: React.FC = () => {
       if (selectedClass) params.append('classId', selectedClass);
       if (selectedStudent) params.append('studentId', selectedStudent);
       if (selectedSubject) params.append('subjectId', selectedSubject);
-      if (fromDate) params.append('date', fromDate); // Using 'date' for single day filter for detailed view
+      if (fromDate) params.append('fromDate', fromDate);
+      if (toDate) params.append('toDate', toDate);
 
       const detailedRes = await api.get(`/attendance?${params.toString()}`);
       setAttendanceRecords(detailedRes.data.attendance || []);
 
-      // For summary, we might need a date range
-      const summaryParams = new URLSearchParams();
-       if (selectedBranch) summaryParams.append('branchId', selectedBranch);
-      if (selectedClass) summaryParams.append('classId', selectedClass);
-      if (selectedStudent) summaryParams.append('studentId', selectedStudent);
-      if (fromDate) summaryParams.append('fromDate', fromDate);
-      if (toDate) summaryParams.append('toDate', toDate);
-
-      const summaryRes = await api.get(`/attendance/summary?${summaryParams.toString()}`);
+      const summaryRes = await api.get(`/attendance/summary?${params.toString()}`);
       setSummary(summaryRes.data);
 
       setToastMessage('Reports fetched successfully!');
