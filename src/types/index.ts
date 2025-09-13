@@ -51,6 +51,14 @@ export interface Student {
     address?: string;
     bloodGroup?: string;
     sponsor?: string;
+    religion?: string;
+    state?: string;
+    localGovernment?: string;
+    country?: string;
+    genotype?: string;
+    nextOfKinName?: string;
+    nextOfKinPhoneNumber?: string;
+    nextOfKinAddress?: string;
 }
 
 export interface TeacherProfile {
@@ -59,6 +67,18 @@ export interface TeacherProfile {
     phoneNumber?: string;
     classes?: string[];
     subjects?: string[];
+    staffId?: string;
+    dateOfBirth?: string;
+    address?: string;
+    religion?: string;
+    state?: string;
+    localGovernment?: string;
+    country?: string;
+    bloodGroup?: string;
+    genotype?: string;
+    nextOfKinName?: string;
+    nextOfKinPhoneNumber?: string;
+    nextOfKinAddress?: string;
 }
 
 export interface ParentProfile {
@@ -66,6 +86,38 @@ export interface ParentProfile {
     gender?: string;
     phoneNumber?: string;
     students?: string[];
+    parentId?: string;
+    address?: string;
+    religion?: string;
+    dateOfBirth?: string;
+    state?: string;
+    localGovernment?: string;
+    country?: string;
+    bloodGroup?: string;
+    genotype?: string;
+    nextOfKinName?: string;
+    nextOfKinPhoneNumber?: string;
+    nextOfKinAddress?: string;
+}
+
+export interface AdminProfile {
+    _id: string;
+    staffId?: string;
+    fullName?: string;
+    phoneNumber?: string;
+    permissions?: string[];
+    address?: string;
+    religion?: string;
+    dateOfBirth?: string;
+    state?: string;
+    localGovernment?: string;
+    country?: string;
+    bloodGroup?: string;
+    genotype?: string;
+    nextOfKinName?: string;
+    nextOfKinPhoneNumber?: string;
+    nextOfKinAddress?: string;
+    gender?: string;
 }
 
 export interface Fee {

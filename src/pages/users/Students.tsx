@@ -45,6 +45,10 @@ const StudentsPage: React.FC = () => {
     admissionNumber: "",
     gender: "",
     dateOfBirth: "",
+    phoneNumber: "",
+    address: "",
+    bloodGroup: "",
+    sponsor: "",
     religion: "",
     state: "",
     localGovernment: "",
@@ -108,6 +112,10 @@ const StudentsPage: React.FC = () => {
                 admissionNumber: data.admissionNumber,
                 gender: data.userId.gender || "",
                 dateOfBirth: data.dateOfBirth || "",
+                phoneNumber: data.phoneNumber || "",
+                address: data.address || "",
+                bloodGroup: data.bloodGroup || "",
+                sponsor: data.sponsor || "",
                 religion: data.religion || "",
                 state: data.state || "",
                 localGovernment: data.localGovernment || "",
@@ -135,6 +143,10 @@ const StudentsPage: React.FC = () => {
         admissionNumber: "",
         gender: "",
         dateOfBirth: "",
+        phoneNumber: "",
+        address: "",
+        bloodGroup: "",
+        sponsor: "",
         religion: "",
         state: "",
         localGovernment: "",
@@ -298,6 +310,22 @@ const StudentsPage: React.FC = () => {
                     <IonModal keepContentsMounted={true}>
                       <IonDatetime id="dateOfBirth" name="dateOfBirth" value={formData.dateOfBirth} presentation="date" onIonChange={(e) => handleSelectChange("dateOfBirth", e.detail.value)}></IonDatetime>
                     </IonModal>
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Phone Number</IonLabel>
+                    <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Address</IonLabel>
+                    <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Blood Group</IonLabel>
+                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Sponsor</IonLabel>
+                    <IonInput name="sponsor" value={formData.sponsor} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">Religion</IonLabel>

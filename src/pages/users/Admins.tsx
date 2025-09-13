@@ -48,7 +48,9 @@ const AdminsPage: React.FC = () => {
     password: "",
     role: "Branch Admin",
     branchId: "",
+    fullName: "",
     phoneNumber: "",
+    permissions: [],
     gender: "",
     staffId: "",
     address: "",
@@ -104,7 +106,9 @@ const AdminsPage: React.FC = () => {
                 email: data.user.email,
                 role: data.user.role,
                 branchId: data.user.branchId || "",
+                fullName: data.profile?.fullName || "",
                 phoneNumber: data.profile?.phoneNumber || "",
+                permissions: data.profile?.permissions || [],
                 gender: data.user?.gender || "",
                 profilePictureUrl: data.user?.profilePicture || "",
                 staffId: data.profile?.staffId || "",
@@ -135,7 +139,9 @@ const AdminsPage: React.FC = () => {
         password: "",
         role: "Branch Admin",
         branchId: "",
+        fullName: "",
         phoneNumber: "",
+        permissions: [],
         gender: "",
         staffId: "",
         address: "",
@@ -298,6 +304,27 @@ const AdminsPage: React.FC = () => {
                     </IonSelect>
                   </IonItem>
                 )}
+                <IonItem>
+                  <IonLabel position="stacked">Full Name</IonLabel>
+                  <IonInput name="fullName" value={formData.fullName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel>Permissions</IonLabel>
+                  <IonSelect multiple name="permissions" value={formData.permissions} onIonChange={(e) => handleSelectChange("permissions", e.detail.value)}>
+                    <IonSelectOption value="manageTeachers">Manage Teachers</IonSelectOption>
+                    <IonSelectOption value="manageStudents">Manage Students</IonSelectOption>
+                    <IonSelectOption value="manageParents">Manage Parents</IonSelectOption>
+                    <IonSelectOption value="manageAdmins">Manage Admins</IonSelectOption>
+                    <IonSelectOption value="manageClasses">Manage Classes</IonSelectOption>
+                    <IonSelectOption value="manageSubjects">Manage Subjects</IonSelectOption>
+                    <IonSelectOption value="manageFees">Manage Fees</IonSelectOption>
+                    <IonSelectOption value="manageInvoices">Manage Invoices</IonSelectOption>
+                    <IonSelectOption value="managePayments">Manage Payments</IonSelectOption>
+                    <IonSelectOption value="manageAttendance">Manage Attendance</IonSelectOption>
+                    <IonSelectOption value="manageResults">Manage Results</IonSelectOption>
+                    <IonSelectOption value="manageAnnouncements">Manage Announcements</IonSelectOption>
+                  </IonSelect>
+                </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
