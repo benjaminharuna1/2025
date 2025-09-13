@@ -38,6 +38,9 @@ const AdminsPage: React.FC = () => {
 
   const getImageUrl = (path?: string) => {
     if (!path) return '';
+    if (path.startsWith('http')) {
+      return path;
+    }
     const imagePath = path.replace('public/', '');
     return `${BACKEND_URL}/${imagePath}`;
   };

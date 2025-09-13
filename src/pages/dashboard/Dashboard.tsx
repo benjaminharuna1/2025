@@ -17,8 +17,19 @@ import TeacherDashboard from '../../components/dashboard/TeacherDashboard';
 import StudentDashboard from '../../components/dashboard/StudentDashboard';
 import ParentDashboard from '../../components/dashboard/ParentDashboard';
 
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+
+  const getImageUrl = (path?: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) {
+      return path;
+    }
+    const imagePath = path.replace('public/', '');
+    return `${BACKEND_URL}/${imagePath}`;
+  };
 
   const renderDashboard = () => {
     switch (user?.role) {
@@ -49,7 +60,7 @@ const Dashboard: React.FC = () => {
             <IonButtons slot="end">
               <IonButton routerLink="/profile">
                 <IonAvatar style={{ width: '32px', height: '32px' }}>
-                  <img src={user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.name?.replace(/\s/g, '+') || 'User'}`} alt="profile" />
+                  <img src={getImageUrl(user?.profilePicture) || `https://ui-avatars.com/api/?name=${user?.name?.replace(/\s/g, '+') || 'User'}`} alt="profile" />
                 </IonAvatar>
               </IonButton>
             </IonButtons>

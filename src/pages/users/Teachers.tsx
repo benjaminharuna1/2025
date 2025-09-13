@@ -20,10 +20,12 @@ import {
   IonMenuButton,
   IonAvatar,
 } from "@ionic/react";
-import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherById } from "../../services/teacherApi";
+import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherById, uploadTeacherProfilePicture } from "../../services/teacherApi";
 import { Branch, Class, Subject } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
+
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
 
 const TeachersPage: React.FC = () => {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -35,6 +37,17 @@ const TeachersPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const getImageUrl = (path?: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) {
+      return path;
+    }
+    const imagePath = path.replace('public/', '');
+    return `${BACKEND_URL}/${imagePath}`;
+  };
+
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -56,7 +69,14 @@ const TeachersPage: React.FC = () => {
     nextOfKinName: "",
     nextOfKinPhoneNumber: "",
     nextOfKinAddress: "",
+    profilePictureUrl: "",
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
 
   useEffect(() => {
     fetchTeachers();
@@ -106,6 +126,7 @@ const TeachersPage: React.FC = () => {
   };
 
   const openModal = async (teacher: any = null) => {
+    setSelectedFile(null);
     if (teacher) {
         setLoading(true);
         try {
@@ -131,6 +152,7 @@ const TeachersPage: React.FC = () => {
                 nextOfKinName: data.nextOfKinName || "",
                 nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
                 nextOfKinAddress: data.nextOfKinAddress || "",
+                profilePictureUrl: data.userId.profilePicture || "",
             });
         } catch (error) {
             console.error("Failed to fetch teacher details", error);
@@ -162,6 +184,7 @@ const TeachersPage: React.FC = () => {
         nextOfKinName: "",
         nextOfKinPhoneNumber: "",
         nextOfKinAddress: "",
+        profilePictureUrl: "",
       });
     }
     setShowModal(true);
@@ -189,13 +212,21 @@ const TeachersPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      let teacherId = selectedTeacher?._id;
       if (selectedTeacher) {
         await updateTeacher(selectedTeacher._id, formData);
         showToast("Teacher updated successfully");
       } else {
-        await createTeacher(formData);
+        const response = await createTeacher(formData);
+        teacherId = response.data.teacher._id;
         showToast("Teacher created successfully");
       }
+
+      if (selectedFile && teacherId) {
+        await uploadTeacherProfilePicture(teacherId, selectedFile);
+        showToast("Profile picture updated");
+      }
+
       fetchTeachers();
       closeModal();
     } catch (error) {
@@ -257,6 +288,11 @@ const TeachersPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                  <img src={getImageUrl(formData.profilePictureUrl) || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
+              </div>
               <IonList>
                 {/* Core Information */}
                 <IonItem>
@@ -369,6 +405,12 @@ const TeachersPage: React.FC = () => {
                             </IonSelectOption>
                         ))}
                     </IonSelect>
+                </IonItem>
+
+                {/* Profile Picture */}
+                <IonItem>
+                  <IonLabel position="stacked">Profile Picture</IonLabel>
+                  <input type="file" accept="image/*" onChange={handleFileChange} />
                 </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>
