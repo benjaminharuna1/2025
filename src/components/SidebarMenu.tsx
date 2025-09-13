@@ -82,7 +82,7 @@ const SidebarMenu: React.FC = () => {
   return (
     <IonMenu contentId="main-content" type="overlay">
       <IonHeader>
-        <IonToolbar>
+        <IonToolbar color="primary">
           <IonTitle>Menu</IonTitle>
         </IonToolbar>
       </IonHeader>
@@ -91,7 +91,7 @@ const SidebarMenu: React.FC = () => {
           {renderMenuItems()}
         </IonList>
       </IonContent>
-      <IonButton expand="full" onClick={handleLogout}>
+      <IonButton expand="full" color="tertiary" onClick={handleLogout}>
         <IonIcon slot="start" icon={logOutOutline} />
         Logout
       </IonButton>

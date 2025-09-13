@@ -63,6 +63,13 @@ body{
   line-height:1.2;
   text-align:center;
 }
+.front .header .side-logo, .front .header .right-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: #fff;
+  flex-shrink: 0;
+}
 .front .header .branch-name {
   font-size: 14px;
   font-weight: 600;
@@ -219,12 +226,14 @@ body{
   }
 
   .card-container {
+    display: flex;
+    gap: 12px;
     page-break-after: always;
   }
 
   .card {
     box-shadow: none !important;
-    width: var(--card-width) !important;
+    width: 50% !important;
     height: var(--card-height) !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

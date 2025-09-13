@@ -120,7 +120,7 @@ const IDCardTemplatePage: React.FC = () => {
       <SidebarMenu />
       <IonPage id="main-content">
         <IonHeader>
-          <IonToolbar>
+          <IonToolbar color="primary">
             <IonButtons slot="start">
               <IonMenuButton />
             </IonButtons>

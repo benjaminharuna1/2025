@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import {
   IonPage,
@@ -11,20 +11,11 @@ import {
   IonButton,
   IonIcon,
   IonLoading,
-  IonSpinner,
 } from "@ionic/react";
-import {
-  printOutline,
-  downloadOutline,
-  addCircleOutline,
-  removeCircleOutline,
-} from "ionicons/icons";
-import { Document, Page, pdfjs } from "react-pdf";
-import { BlobProvider } from '@react-pdf/renderer';
-import ReportCardDocument from './ReportCardDocument';
+import { printOutline, downloadOutline } from "ionicons/icons";
+import html2pdf from 'html2pdf.js';
 import api from '../../services/api';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+import ReportCard from '../../components/reports/ReportCard';
 
 interface ReportData {
   schoolName: string; schoolAddress: string; studentName: string; admissionNumber: string; className: string; classTeacher: string; gender: string; term: string; academicYear: string; reportDate: string;
@@ -34,70 +25,11 @@ interface ReportData {
   promotionStatus: string; promotionComment: string; nextTermBegins: string;
 }
 
-const Viewer = ({ blob, fileName }: { blob: Blob, fileName: string }) => {
-    const [scale, setScale] = useState(1.0);
-    const [numPages, setNumPages] = useState<number | null>(null);
-
-    function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
-        setNumPages(numPages);
-    }
-
-    const handlePrint = () => {
-        const url = URL.createObjectURL(blob);
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        iframe.contentWindow?.print();
-    };
-
-    const handleDownload = () => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    };
-
-    const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 3.0));
-    const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
-
-    return (
-      <>
-        <IonHeader className="no-print">
-          <IonToolbar>
-            <IonButtons slot="start">
-              <IonBackButton defaultHref="/reports" />
-            </IonButtons>
-            <IonTitle>Report Card Preview</IonTitle>
-            <IonButtons slot="end">
-              <IonButton onClick={zoomOut} disabled={scale <= 0.5}><IonIcon icon={removeCircleOutline} /></IonButton>
-              <IonButton onClick={zoomIn} disabled={scale >= 3.0}><IonIcon icon={addCircleOutline} /></IonButton>
-              <IonButton onClick={handlePrint}><IonIcon icon={printOutline} /></IonButton>
-              <IonButton onClick={handleDownload}><IonIcon icon={downloadOutline} /></IonButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-        <IonContent className="ion-padding" scrollY={false}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', overflow: 'auto' }}>
-                <Document file={blob} onLoadSuccess={onDocumentLoadSuccess}>
-                    {Array.from(new Array(numPages), (el, index) => (
-                        <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={scale} renderTextLayer={false} />
-                    ))}
-                </Document>
-            </div>
-        </IonContent>
-      </>
-    );
-};
-
 const ReportCardPreviewPage: React.FC = () => {
   const [reportData, setReportData] = useState<ReportData[] | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
+  const reportCardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchReportData = async () => {
@@ -108,13 +40,43 @@ const ReportCardPreviewPage: React.FC = () => {
       } catch (error) {
         console.error("Failed to fetch report card data", error);
       } finally {
-        setDataLoading(false);
+        setLoading(false);
       }
     };
     fetchReportData();
   }, [location.search]);
 
-  if (dataLoading) {
+  const handlePrint = () => {
+    if (reportCardRef.current) {
+      const element = reportCardRef.current;
+      const opt = {
+        margin:       0,
+        filename:     'report-card.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().from(element).set(opt).toPdf().get('pdf').then(function (pdf) {
+        window.open(pdf.output('bloburl'), '_blank');
+      });
+    }
+  };
+
+  const handleDownload = () => {
+    if (reportCardRef.current) {
+      const element = reportCardRef.current;
+      const opt = {
+        margin:       0,
+        filename:     'report-card.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().from(element).set(opt).save();
+    }
+  };
+
+  if (loading) {
     return (
       <IonPage>
         <IonHeader><IonToolbar><IonButtons slot="start"><IonBackButton defaultHref="/reports" /></IonButtons><IonTitle>Loading Report...</IonTitle></IonToolbar></IonHeader>
@@ -132,31 +94,27 @@ const ReportCardPreviewPage: React.FC = () => {
     );
   }
 
-  if (pdfBlob) {
-      return (
-          <IonPage>
-              <Viewer blob={pdfBlob} fileName="report_card.pdf" />
-          </IonPage>
-      )
-  }
-
   return (
     <IonPage>
-      <BlobProvider document={<ReportCardDocument reports={reportData} />}>
-        {({ blob, url, loading, error }) => {
-          if (loading) {
-            return <IonContent className="ion-padding"><IonLoading isOpen={true} message="Generating PDF..." /></IonContent>;
-          }
-          if (error) {
-            console.error("PDF Generation Error:", error);
-            return <IonContent className="ion-padding"><p>Failed to generate PDF.</p></IonContent>;
-          }
-          if (blob && !pdfBlob) {
-              setPdfBlob(blob);
-          }
-          return <IonContent className="ion-padding"><IonLoading isOpen={true} message="Preparing PDF..." /></IonContent>;
-        }}
-      </BlobProvider>
+      <IonHeader>
+        <IonToolbar color="primary">
+          <IonButtons slot="start">
+            <IonBackButton defaultHref="/reports" />
+          </IonButtons>
+          <IonTitle>Report Card Preview</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={handlePrint}><IonIcon icon={printOutline} /></IonButton>
+            <IonButton onClick={handleDownload}><IonIcon icon={downloadOutline} /></IonButton>
+          </IonButtons>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent>
+        <div ref={reportCardRef}>
+          {reportData.map((report, index) => (
+            <ReportCard key={index} report={report} />
+          ))}
+        </div>
+      </IonContent>
     </IonPage>
   );
 };
