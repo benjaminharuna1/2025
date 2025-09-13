@@ -50,7 +50,7 @@ const IDCardTemplatePage: React.FC = () => {
   const fetchBranches = async () => {
     try {
       const res = await getBranches();
-      setBranches(res.data.branches || []);
+      setBranches(res.data.branches || res.data || []);
     } catch (error) {
       console.error('Error fetching branches:', error);
     }
