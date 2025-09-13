@@ -7,7 +7,7 @@ import { User } from '../../types';
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState({
     branches: 0,
-    users: 0,
+    parents: 0,
     students: 0,
     teachers: 0,
     classes: 0,
@@ -18,9 +18,9 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [branchesRes, usersRes, classesRes, subjectsRes, studentsRes, teachersRes] = await Promise.all([
+        const [branchesRes, parentsRes, classesRes, subjectsRes, studentsRes, teachersRes] = await Promise.all([
           api.get('/branches'),
-          api.get('/users'),
+          api.get('/parents'),
           api.get('/classes'),
           api.get('/subjects'),
           api.get('/students'),
@@ -28,7 +28,7 @@ const AdminDashboard: React.FC = () => {
         ]);
 
         const branches = branchesRes.data?.branches || [];
-        const users = usersRes.data?.users || [];
+        const parents = parentsRes.data || [];
         const classes = classesRes.data?.classes || [];
         const subjects = subjectsRes.data?.subjects || [];
         const students = studentsRes.data?.students || [];
@@ -36,7 +36,7 @@ const AdminDashboard: React.FC = () => {
 
         setStats({
           branches: branches.length,
-          users: users.length,
+          parents: parents.length,
           students: students.length,
           teachers: teachers.length,
           classes: classes.length,
@@ -72,8 +72,8 @@ const AdminDashboard: React.FC = () => {
           <IonCard>
             <IonCardHeader className="ion-text-center">
               <IonIcon icon={peopleOutline} size="large" />
-              <IonCardTitle>{stats.users}</IonCardTitle>
-              <IonCardContent>Total Users</IonCardContent>
+              <IonCardTitle>{stats.parents}</IonCardTitle>
+              <IonCardContent>Total Parents</IonCardContent>
             </IonCardHeader>
           </IonCard>
         </IonCol>

@@ -187,14 +187,30 @@ const AdminsPage: React.FC = () => {
 
   const handleSave = async () => {
     setLoading(true);
+
+    const {
+      name, email, password, role, branchId, gender,
+      ...profileData
+    } = formData;
+
+    const payload = {
+      name,
+      email,
+      password,
+      role,
+      branchId,
+      gender,
+      profileData,
+    };
+
     try {
       let adminId = selectedAdmin?._id;
 
       if (selectedAdmin) {
-        await updateAdmin(selectedAdmin._id, formData);
+        await updateAdmin(selectedAdmin._id, payload);
         showToast("Admin updated successfully");
       } else {
-        const response = await createAdmin(formData);
+        const response = await createAdmin(payload);
         adminId = response.data.user._id; // Get ID from response
         showToast("Admin created successfully");
       }
