@@ -18,7 +18,6 @@ import {
   IonSearchbar,
   IonButtons,
   IonMenuButton,
-  IonAvatar,
 } from "@ionic/react";
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherById } from "../../services/teacherApi";
 import { Branch, Class, Subject } from "../../types";
@@ -44,6 +43,18 @@ const TeachersPage: React.FC = () => {
     phoneNumber: "",
     classes: [],
     subjects: [],
+    staffId: "",
+    address: "",
+    religion: "",
+    dateOfBirth: "",
+    state: "",
+    localGovernment: "",
+    country: "",
+    bloodGroup: "",
+    genotype: "",
+    nextOfKinName: "",
+    nextOfKinPhoneNumber: "",
+    nextOfKinAddress: "",
   });
 
   useEffect(() => {
@@ -102,11 +113,23 @@ const TeachersPage: React.FC = () => {
             setFormData({
                 name: data.userId.name,
                 email: data.userId.email,
-                branchId: data.branchId,
-                gender: data.gender,
+                branchId: data.branchId?._id,
+                gender: data.userId.gender || "",
                 phoneNumber: data.phoneNumber,
                 classes: data.classes,
                 subjects: data.subjects,
+                staffId: data.staffId || "",
+                address: data.address || "",
+                religion: data.religion || "",
+                dateOfBirth: data.dateOfBirth || "",
+                state: data.state || "",
+                localGovernment: data.localGovernment || "",
+                country: data.country || "",
+                bloodGroup: data.bloodGroup || "",
+                genotype: data.genotype || "",
+                nextOfKinName: data.nextOfKinName || "",
+                nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
+                nextOfKinAddress: data.nextOfKinAddress || "",
             });
         } catch (error) {
             console.error("Failed to fetch teacher details", error);
@@ -126,6 +149,18 @@ const TeachersPage: React.FC = () => {
         phoneNumber: "",
         classes: [],
         subjects: [],
+        staffId: "",
+        address: "",
+        religion: "",
+        dateOfBirth: "",
+        state: "",
+        localGovernment: "",
+        country: "",
+        bloodGroup: "",
+        genotype: "",
+        nextOfKinName: "",
+        nextOfKinPhoneNumber: "",
+        nextOfKinAddress: "",
       });
     }
     setShowModal(true);
@@ -143,25 +178,6 @@ const TeachersPage: React.FC = () => {
 
   const handleSelectChange = (name: string, value: any) => {
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && selectedTeacher) {
-      const file = e.target.files[0];
-      const formData = new FormData();
-      formData.append("file", file);
-
-      try {
-        await api.put(`/teachers/${selectedTeacher._id}/profile-picture`, formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        });
-        showToast("Profile picture updated successfully.");
-        fetchTeachers(); // refresh list
-      } catch (error) {
-        console.error("Error uploading profile picture:", error);
-        showToast("Failed to upload profile picture.");
-      }
-    }
   };
 
   const showToast = (message: string) => {
@@ -221,9 +237,6 @@ const TeachersPage: React.FC = () => {
           <IonList>
             {teachers.map((teacher) => (
               <IonItem key={teacher._id}>
-                <IonAvatar slot="start">
-                  <img src={teacher.userId?.profilePicture || `https://ui-avatars.com/api/?name=${teacher.userId?.name?.replace(/\s/g, '+') || 'Teacher'}`} alt="profile" />
-                </IonAvatar>
                 <IonLabel>
                   <h2>{teacher.userId.name}</h2>
                   <p>{teacher.userId.email}</p>
@@ -276,16 +289,6 @@ const TeachersPage: React.FC = () => {
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
                 </IonItem>
-                {selectedTeacher && (
-                  <IonItem>
-                    <IonLabel position="stacked">Profile Picture</IonLabel>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                    />
-                  </IonItem>
-                )}
                 <IonItem>
                     <IonLabel>Classes</IonLabel>
                     <IonSelect multiple name="classes" value={formData.classes} onIonChange={(e) => handleSelectChange("classes", e.detail.value)}>
@@ -305,6 +308,54 @@ const TeachersPage: React.FC = () => {
                             </IonSelectOption>
                         ))}
                     </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Staff ID</IonLabel>
+                  <IonInput name="staffId" value={formData.staffId} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Address</IonLabel>
+                  <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Religion</IonLabel>
+                  <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Date of Birth</IonLabel>
+                  <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">State</IonLabel>
+                  <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Local Government</IonLabel>
+                  <IonInput name="localGovernment" value={formData.localGovernment} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Country</IonLabel>
+                  <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Blood Group</IonLabel>
+                  <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Genotype</IonLabel>
+                  <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Name</IonLabel>
+                  <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Phone Number</IonLabel>
+                  <IonInput name="nextOfKinPhoneNumber" value={formData.nextOfKinPhoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Address</IonLabel>
+                  <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>

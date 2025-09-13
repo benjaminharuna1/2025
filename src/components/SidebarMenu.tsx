@@ -11,7 +11,6 @@ import {
   IonLabel,
   IonMenuToggle,
   IonButton,
-  IonAvatar,
 } from '@ionic/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useHistory } from 'react-router-dom';
@@ -27,7 +26,9 @@ import {
   documentTextOutline,
   megaphoneOutline,
   barChartOutline,
+  personCircleOutline,
 } from 'ionicons/icons';
+
 const SidebarMenu: React.FC = () => {
   const { user, logout } = useAuth();
   const history = useHistory();
@@ -42,6 +43,7 @@ const SidebarMenu: React.FC = () => {
 
     const allLinks = [
       { text: 'Dashboard', icon: homeOutline, path: '/dashboard', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Accountant', 'Student', 'Parent'] },
+      { text: 'My Profile', icon: personCircleOutline, path: '/profile', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Accountant', 'Student', 'Parent'] },
       { text: 'Branches', icon: businessOutline, path: '/dashboard/branches', roles: ['Super Admin'] },
       { text: 'Admins', icon: peopleOutline, path: '/dashboard/admins', roles: ['Super Admin'] },
       { text: 'Students', icon: schoolOutline, path: '/dashboard/students', roles: ['Super Admin', 'Branch Admin'] },
@@ -83,17 +85,6 @@ const SidebarMenu: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent>
-        {user && (
-          <div style={{ padding: '16px', display: 'flex', alignItems: 'center' }}>
-            <IonAvatar style={{ marginRight: '16px' }}>
-              <img src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name.replace(/\s/g, '+')}`} alt="profile" />
-            </IonAvatar>
-            <IonLabel>
-              <h2>{user.name}</h2>
-              <p>{user.role}</p>
-            </IonLabel>
-          </div>
-        )}
         <IonList>
           {renderMenuItems()}
         </IonList>

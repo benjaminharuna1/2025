@@ -1,0 +1,25 @@
+.home-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  padding: 20px;
+}
+
+.logo-container {
+  width: 150px; /* Adjust size as needed */
+  margin-bottom: 20px;
+}
+
+.logo-container ion-img {
+  width: 100%;
+  height: auto;
+}
+
+.login-button-container {
+  margin-top: 30px;
+  width: 100%;
+  max-width: 300px; /* Adjust width as needed */
+}

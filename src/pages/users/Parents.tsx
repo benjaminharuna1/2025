@@ -17,7 +17,6 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
-  IonAvatar,
 } from "@ionic/react";
 import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
 import { Student } from "../../types";
@@ -32,7 +31,6 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
-  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -40,6 +38,18 @@ const ParentsPage: React.FC = () => {
     gender: "",
     phoneNumber: "",
     students: [],
+    parentId: "",
+    address: "",
+    religion: "",
+    dateOfBirth: "",
+    state: "",
+    localGovernment: "",
+    country: "",
+    bloodGroup: "",
+    genotype: "",
+    nextOfKinName: "",
+    nextOfKinPhoneNumber: "",
+    nextOfKinAddress: "",
   });
   const [originalStudents, setOriginalStudents] = useState<string[]>([]);
 
@@ -84,6 +94,18 @@ const ParentsPage: React.FC = () => {
                 gender: data.userId.gender || "",
                 phoneNumber: data.phoneNumber || "",
                 students: studentIds,
+                parentId: data.parentId || "",
+                address: data.address || "",
+                religion: data.religion || "",
+                dateOfBirth: data.dateOfBirth || "",
+                state: data.state || "",
+                localGovernment: data.localGovernment || "",
+                country: data.country || "",
+                bloodGroup: data.bloodGroup || "",
+                genotype: data.genotype || "",
+                nextOfKinName: data.nextOfKinName || "",
+                nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
+                nextOfKinAddress: data.nextOfKinAddress || "",
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
@@ -102,6 +124,18 @@ const ParentsPage: React.FC = () => {
         gender: "",
         phoneNumber: "",
         students: [],
+        parentId: "",
+        address: "",
+        religion: "",
+        dateOfBirth: "",
+        state: "",
+        localGovernment: "",
+        country: "",
+        bloodGroup: "",
+        genotype: "",
+        nextOfKinName: "",
+        nextOfKinPhoneNumber: "",
+        nextOfKinAddress: "",
       });
     }
     setShowModal(true);
@@ -121,12 +155,6 @@ const ParentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setProfilePictureFile(e.target.files[0]);
-    }
-  };
-
   const showToast = (message: string) => {
     setToastMessage(message);
     setToastOpen(true);
@@ -135,10 +163,7 @@ const ParentsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      let parentId = selectedParent?._id;
-
       if (selectedParent) {
-        // Update existing parent
         await updateParent(selectedParent._id, formData);
         const newStudentIds = new Set(formData.students);
         const oldStudentIds = new Set(originalStudents);
@@ -152,11 +177,8 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent updated successfully");
       } else {
-        // Create new parent
         const response = await createParent(formData);
         const newParent = response.data;
-        parentId = newParent._id;
-
         if (newParent && newParent._id && formData.students.length > 0) {
           for (const studentId of formData.students) {
             linkStudent(newParent._id, studentId);
@@ -164,17 +186,6 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent created successfully");
       }
-
-      // Upload profile picture if one was selected
-      if (profilePictureFile && parentId) {
-        const picFormData = new FormData();
-        picFormData.append("profilePicture", profilePictureFile);
-        await api.put(`/parents/${parentId}/profile-picture`, picFormData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        showToast("Profile picture uploaded successfully.");
-      }
-
       fetchParents();
       closeModal();
     } catch (error) {
@@ -217,12 +228,9 @@ const ParentsPage: React.FC = () => {
           <IonList>
             {parents.map((parent) => (
               <IonItem key={parent._id}>
-                <IonAvatar slot="start">
-                  <img src={parent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${parent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
-                </IonAvatar>
                 <IonLabel>
-                  <h2>{parent.userId?.name || 'N/A'}</h2>
-                  <p>{parent.userId?.email || 'No email'}</p>
+                  <h2>{parent.userId.name}</h2>
+                  <p>{parent.userId.email}</p>
                 </IonLabel>
                 <IonButton onClick={() => openModal(parent)}>Edit</IonButton>
                 <IonButton color="danger" onClick={() => handleDelete(parent._id)}>Delete</IonButton>
@@ -236,13 +244,6 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
-              {selectedParent && (
-                <div style={{ textAlign: 'center', padding: '10px' }}>
-                  <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
-                    <img src={selectedParent.userId?.profilePicture || `https://ui-avatars.com/api/?name=${selectedParent.userId?.name?.replace(/\s/g, '+') || 'Parent'}`} alt="profile" />
-                  </IonAvatar>
-                </div>
-              )}
               <IonList>
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
@@ -270,12 +271,52 @@ const ParentsPage: React.FC = () => {
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
-                  <IonLabel position="stacked">Profile Picture</IonLabel>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e)}
-                  />
+                    <IonLabel position="stacked">Parent ID</IonLabel>
+                    <IonInput name="parentId" value={formData.parentId} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Address</IonLabel>
+                    <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Religion</IonLabel>
+                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Date of Birth</IonLabel>
+                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">State</IonLabel>
+                    <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Local Government</IonLabel>
+                    <IonInput name="localGovernment" value={formData.localGovernment} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Country</IonLabel>
+                    <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Blood Group</IonLabel>
+                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Genotype</IonLabel>
+                    <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Name</IonLabel>
+                    <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Phone Number</IonLabel>
+                    <IonInput name="nextOfKinPhoneNumber" value={formData.nextOfKinPhoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Next of Kin Address</IonLabel>
+                    <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                     <IonLabel>Students</IonLabel>
@@ -306,5 +347,3 @@ const ParentsPage: React.FC = () => {
 };
 
 export default ParentsPage;
-
-// Re-submitting to trigger publish.

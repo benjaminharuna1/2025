@@ -24,6 +24,8 @@ import { Branch } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
 
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+
 const AdminsPage: React.FC = () => {
   const [admins, setAdmins] = useState<any[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -34,6 +36,12 @@ const AdminsPage: React.FC = () => {
   const [toastOpen, setToastOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  const getImageUrl = (path?: string) => {
+    if (!path) return '';
+    const imagePath = path.replace('public/', '');
+    return `${BACKEND_URL}/${imagePath}`;
+  };
+
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -42,6 +50,18 @@ const AdminsPage: React.FC = () => {
     branchId: "",
     phoneNumber: "",
     gender: "",
+    staffId: "",
+    address: "",
+    religion: "",
+    dateOfBirth: "",
+    state: "",
+    localGovernment: "",
+    country: "",
+    bloodGroup: "",
+    genotype: "",
+    nextOfKinName: "",
+    nextOfKinPhoneNumber: "",
+    nextOfKinAddress: "",
   });
 
   useEffect(() => {
@@ -85,8 +105,20 @@ const AdminsPage: React.FC = () => {
                 role: data.user.role,
                 branchId: data.user.branchId || "",
                 phoneNumber: data.profile?.phoneNumber || "",
-                gender: data.profile?.gender || "",
+                gender: data.user?.gender || "",
                 profilePictureUrl: data.user?.profilePicture || "",
+                staffId: data.profile?.staffId || "",
+                address: data.profile?.address || "",
+                religion: data.profile?.religion || "",
+                dateOfBirth: data.profile?.dateOfBirth || "",
+                state: data.profile?.state || "",
+                localGovernment: data.profile?.localGovernment || "",
+                country: data.profile?.country || "",
+                bloodGroup: data.profile?.bloodGroup || "",
+                genotype: data.profile?.genotype || "",
+                nextOfKinName: data.profile?.nextOfKinName || "",
+                nextOfKinPhoneNumber: data.profile?.nextOfKinPhoneNumber || "",
+                nextOfKinAddress: data.profile?.nextOfKinAddress || "",
             });
         } catch (error) {
             console.error("Failed to fetch admin details", error);
@@ -103,10 +135,20 @@ const AdminsPage: React.FC = () => {
         password: "",
         role: "Branch Admin",
         branchId: "",
-        fullName: "",
         phoneNumber: "",
-        bio: "",
-        officeLocation: "",
+        gender: "",
+        staffId: "",
+        address: "",
+        religion: "",
+        dateOfBirth: "",
+        state: "",
+        localGovernment: "",
+        country: "",
+        bloodGroup: "",
+        genotype: "",
+        nextOfKinName: "",
+        nextOfKinPhoneNumber: "",
+        nextOfKinAddress: "",
       });
     }
     setShowModal(true);
@@ -143,15 +185,7 @@ const AdminsPage: React.FC = () => {
       let adminId = selectedAdmin?._id;
 
       if (selectedAdmin) {
-        const updatePayload = {
-          name: formData.name,
-          email: formData.email,
-          role: formData.role,
-          branchId: formData.branchId,
-          phoneNumber: formData.phoneNumber,
-          gender: formData.gender,
-        };
-        await updateAdmin(selectedAdmin._id, updatePayload);
+        await updateAdmin(selectedAdmin._id, formData);
         showToast("Admin updated successfully");
       } else {
         const response = await createAdmin(formData);
@@ -207,7 +241,7 @@ const AdminsPage: React.FC = () => {
             {admins.map((admin) => (
               <IonItem key={admin._id}>
                 <IonAvatar slot="start">
-                  <img src={admin.profilePicture || `https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={`https://ui-avatars.com/api/?name=${admin.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
                 <IonLabel>
                   <h2>{admin.name}</h2>
@@ -227,7 +261,7 @@ const AdminsPage: React.FC = () => {
             <IonContent>
               <div style={{ textAlign: 'center', padding: '10px' }}>
                 <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
-                  <img src={formData.profilePictureUrl || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                  <img src={getImageUrl(formData.profilePictureUrl) || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
                 </IonAvatar>
               </div>
               <IonList>
@@ -274,6 +308,54 @@ const AdminsPage: React.FC = () => {
                     <IonSelectOption value="Male">Male</IonSelectOption>
                     <IonSelectOption value="Female">Female</IonSelectOption>
                   </IonSelect>
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Staff ID</IonLabel>
+                  <IonInput name="staffId" value={formData.staffId} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Address</IonLabel>
+                  <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Religion</IonLabel>
+                  <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Date of Birth</IonLabel>
+                  <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">State</IonLabel>
+                  <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Local Government</IonLabel>
+                  <IonInput name="localGovernment" value={formData.localGovernment} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Country</IonLabel>
+                  <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Blood Group</IonLabel>
+                  <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Genotype</IonLabel>
+                  <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Name</IonLabel>
+                  <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Phone Number</IonLabel>
+                  <IonInput name="nextOfKinPhoneNumber" value={formData.nextOfKinPhoneNumber} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                  <IonLabel position="stacked">Next of Kin Address</IonLabel>
+                  <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                   <IonLabel position="stacked">Profile Picture</IonLabel>

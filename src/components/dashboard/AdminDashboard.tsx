@@ -18,24 +18,29 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [branchesRes, usersRes, classesRes, subjectsRes] = await Promise.all([
+        const [branchesRes, usersRes, classesRes, subjectsRes, studentsRes, teachersRes] = await Promise.all([
           api.get('/branches'),
           api.get('/users'),
           api.get('/classes'),
           api.get('/subjects'),
+          api.get('/students'),
+          api.get('/teachers'),
         ]);
 
-        const users = usersRes.data.users || usersRes.data;
-        const students = users.filter((u: User) => u.role === 'Student').length;
-        const teachers = users.filter((u: User) => u.role === 'Teacher').length;
+        const branches = branchesRes.data?.branches || [];
+        const users = usersRes.data?.users || [];
+        const classes = classesRes.data?.classes || [];
+        const subjects = subjectsRes.data?.subjects || [];
+        const students = studentsRes.data?.students || [];
+        const teachers = teachersRes.data?.teachers || [];
 
         setStats({
-          branches: (branchesRes.data.branches || branchesRes.data).length,
+          branches: branches.length,
           users: users.length,
-          students,
-          teachers,
-          classes: (classesRes.data.classes || classesRes.data).length,
-          subjects: (subjectsRes.data.subjects || subjectsRes.data).length,
+          students: students.length,
+          teachers: teachers.length,
+          classes: classes.length,
+          subjects: subjects.length,
         });
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
