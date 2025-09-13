@@ -1,5 +1,5 @@
 import React from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react';   
 import SchoolLogo from '../common/SchoolLogo';
 import './IDCard.css';
 
@@ -11,10 +11,21 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
   const { user, profile, branch } = data;
 
   const getImageUrl = (path?: string) => {
-    if (!path) return 'https://ui-avatars.com/api/?name=' + user.name.replace(/\s/g, '+');
-    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
-    return `${BACKEND_URL}/${path.replace('public/', '')}`;
-  };
+  if (!path) {
+    // fallback: auto-generate avatar
+    return 'https://ui-avatars.com/api/?name=' + user.name.replace(/\s/g, '+');
+  }
+
+  // If backend already returns a full URL, just use it directly
+  if (path.startsWith('http')) {
+    return path;
+  }
+
+  // Otherwise, build from backend base
+  const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+  return `${BACKEND_URL}/${path.replace('public/', '')}`;
+};
+
 
   const getIdCardType = () => {
     switch (user.role) {
@@ -67,8 +78,9 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
         <div className="body">
           <div className="body-left">
             <div className="photo">
-              <img src={getImageUrl(user.profilePicture)} alt="photo" />
-            </div>
+  <img src={getImageUrl(user.profilePicture)} alt="photo" />
+</div>
+
             <div className="user-name">{user.name}</div>
             <div className="id-number">{getIdNumber()}</div>
           </div>
@@ -107,7 +119,7 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
 
           <div className="right">
             <div className="qr">
-              <QRCodeCanvas value={qrCodeValue} size={80} />
+              <QRCodeSVG value={qrCodeValue} size={80} />
             </div>
           </div>
         </div>
