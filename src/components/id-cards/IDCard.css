@@ -205,26 +205,52 @@ body{
 /* print */
 @media print{
   body {
-    background: white;
+    background: #fff !important;
     -webkit-print-color-adjust: exact;
-    color-adjust: exact;
+    print-color-adjust: exact;
   }
   .page {
-    gap: 12px;
     margin: 0;
     padding: 0;
+    gap: 0;
+    page-break-after: always;
   }
   .card {
-    box-shadow: none;
-    width: var(--card-width);
-    height: var(--card-height);
+    box-shadow: none !important;
+    width: var(--card-width) !important;
+    height: var(--card-height) !important;
     -webkit-print-color-adjust: exact;
-    color-adjust: exact;
+    print-color-adjust: exact;
     page-break-inside: avoid;
   }
-  .front .header, .front .footer-shape, .card.back, .terms, .qr {
-    background: inherit !important;
-    -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+  .front .header {
+    background: linear-gradient(90deg, var(--blue-1), var(--blue-2)) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .front .footer-shape {
+    background: linear-gradient(90deg, var(--blue-2), var(--blue-1)) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .card.back {
+    background: linear-gradient(180deg, #ffffff, #f7fbff) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .terms {
+    background: linear-gradient(90deg, #eef7ff, #ffffff) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .qr {
+    background: linear-gradient(180deg, #fff, #eef7ff) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .id-card-type {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
