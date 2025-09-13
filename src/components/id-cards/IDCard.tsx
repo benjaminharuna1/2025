@@ -66,12 +66,12 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
             <div className="photo">
               <img src={getImageUrl(user.profilePicture)} alt="photo" />
             </div>
+            <div className="user-name">{user.name}</div>
+            <div className="id-number">{getIdNumber()}</div>
           </div>
 
           <div className="body-right">
             <div className="info">
-              <label>Name</label><div className="value">{user.name}</div>
-              <label>ID Number</label><div className="value">{getIdNumber()}</div>
               <label>Gender</label><div className="value">{user.gender || 'N/A'}</div>
               <label>Date of Birth</label><div className="value">{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
               <label>Blood Group/Genotype</label><div className="value">{profile.bloodGroup || 'N/A'} / {profile.genotype || 'N/A'}</div>
