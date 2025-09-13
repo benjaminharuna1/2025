@@ -18,6 +18,7 @@ import {
   IonSearchbar,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getTeachers, createTeacher, updateTeacher, deleteTeacher, getTeacherById } from "../../services/teacherApi";
 import { Branch, Class, Subject } from "../../types";
@@ -237,6 +238,9 @@ const TeachersPage: React.FC = () => {
           <IonList>
             {teachers.map((teacher) => (
               <IonItem key={teacher._id}>
+                <IonAvatar slot="start">
+                  <img src={`https://ui-avatars.com/api/?name=${teacher.userId.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
                   <h2>{teacher.userId.name}</h2>
                   <p>{teacher.userId.email}</p>

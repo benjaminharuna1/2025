@@ -17,6 +17,7 @@ import {
   IonToast,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
 import { Student } from "../../types";
@@ -228,6 +229,9 @@ const ParentsPage: React.FC = () => {
           <IonList>
             {parents.map((parent) => (
               <IonItem key={parent._id}>
+                <IonAvatar slot="start">
+                  <img src={`https://ui-avatars.com/api/?name=${parent.userId.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
                   <h2>{parent.userId.name}</h2>
                   <p>{parent.userId.email}</p>

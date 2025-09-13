@@ -20,6 +20,7 @@ import {
   IonSearchbar,
   IonButtons,
   IonMenuButton,
+  IonAvatar,
 } from "@ionic/react";
 import { getStudents, createStudent, updateStudent, deleteStudent, getStudentById } from "../../services/studentApi";
 import { Branch, Class } from "../../types";
@@ -242,6 +243,9 @@ const StudentsPage: React.FC = () => {
           <IonList>
             {students.map((student) => (
               <IonItem key={student._id}>
+                <IonAvatar slot="start">
+                  <img src={`https://ui-avatars.com/api/?name=${student.userId.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
                 <IonLabel>
                   <h2>{student.userId.name}</h2>
                   <p>{student.admissionNumber}</p>
