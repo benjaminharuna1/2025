@@ -1,4 +1,5 @@
 import React from 'react';
+import QRCode from 'qrcode.react';
 import './IDCard.css';
 
 interface IDCardProps {
@@ -14,49 +15,68 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
     return `${BACKEND_URL}/${path.replace('public/', '')}`;
   };
 
+  const getIdCardType = () => {
+    switch (user.role) {
+      case 'Student':
+        return 'Student ID Card';
+      case 'Teacher':
+      case 'Admin':
+        return 'Staff ID Card';
+      case 'Parent':
+        return 'Parent ID Card';
+      default:
+        return 'ID Card';
+    }
+  };
+
+  const getIdNumber = () => {
+    switch (user.role) {
+      case 'Student':
+        return profile.admissionNumber;
+      case 'Teacher':
+      case 'Admin':
+        return profile.staffId;
+      case 'Parent':
+        return profile.parentId;
+      default:
+        return 'N/A';
+    }
+  };
+
+  const qrCodeValue = `
+    Name: ${user.name}
+    Role: ${user.role}
+    ID: ${getIdNumber()}
+    Branch: ${branch.name}
+  `;
+
   return (
     <div className="page">
       <section className="card front" aria-label="ID card front">
         <div className="header">
-          <div className="side-logo"></div>
           <div className="center-text">
             <div className="school-name">{branch.schoolName || 'School Name'}</div>
-            <div className="slogan">{branch.slogan || 'School Slogan'}</div>
+            <div className="branch-name">{branch.name}</div>
+            <div className="address">{branch.address}</div>
+            <div className="id-card-type">{getIdCardType()}</div>
           </div>
-          <div className="right-logo"></div>
         </div>
         <div className="body">
           <div className="body-left">
             <div className="photo">
               <img src={getImageUrl(user.profilePicture)} alt="photo" />
             </div>
-            <div className="student-name">{user.name}</div>
-            <div className="">
-              <div className="student-name"><strong>Admission No:</strong> {profile.admissionNumber || profile.staffId || profile.parentId}</div>
-            </div>
           </div>
 
           <div className="body-right">
-            <div>
-              <div className="info">
-                <label>Father/Guardian</label><div className="value">{profile.nextOfKinName || 'N/A'}</div>
-                <label>Gender</label><div className="value">{user.gender || 'N/A'}</div>
-                <label>Admission</label><div className="value">{profile.admissionDate || 'N/A'}</div>
-                <label>Date of Birth</label><div className="value">{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
-              </div>
-            </div>
-
-            <div className="id-bottom">
-              <div className="contact">
-                {branch.address}<br />
-                Telephone: {branch.contact}
-              </div>
-
-              <div className="sign">
-                <img src={getImageUrl(branch.principalSignature)} alt="signature" style={{ width: '100px', height: '50px', objectFit: 'contain' }} />
-                <div>Principal</div>
-                <div style={{ fontWeight: 700 }}>{branch.principalName}</div>
-              </div>
+            <div className="info">
+              <label>Name</label><div className="value">{user.name}</div>
+              <label>ID Number</label><div className="value">{getIdNumber()}</div>
+              <label>Gender</label><div className="value">{user.gender || 'N/A'}</div>
+              <label>Date of Birth</label><div className="value">{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
+              <label>Blood Group/Genotype</label><div className="value">{profile.bloodGroup || 'N/A'} / {profile.genotype || 'N/A'}</div>
+              <label>Address</label><div className="value">{profile.address || 'N/A'}</div>
+              <label>Contact</label><div className="value">{profile.phoneNumber || 'N/A'}</div>
             </div>
           </div>
         </div>
@@ -65,24 +85,27 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
 
       <section className="card back" aria-label="ID card back">
         <div className="terms">
-          <div className="term-title">TERMS AND CONDITIONS</div>
+          <div className="term-title">Important notice</div>
           <div className="term-text small">
-            This card is the property of the school and must be surrendered upon request.
-            Students must carry this card at all times while on school premises.
-            Replacement fee applies for lost cards.
+            This ID card must be carried at all times while on school premises.<br />
+            The card remains the property of {branch.schoolName} and must be returned upon request.<br />
+            If found, please return to:<br />
+            {branch.schoolName} - {branch.name}<br />
+            {branch.address}<br />
+            Tel: {branch.contact}
           </div>
         </div>
 
         <div className="meta">
           <div className="left">
-            <div className="small"><strong>Phone:</strong> {branch.contact}</div>
-            <div className="small"><strong>Email:</strong> {branch.email || 'info@school.com'}</div>
-            <div className="small" style={{ marginTop: '6px' }}><strong>Validity:</strong> 01-Jan-2025 to 31-Dec-2025</div>
+            <div className="small"><strong>Next of Kin:</strong> {profile.nextOfKinName || 'N/A'}</div>
+            <div className="small"><strong>Contact:</strong> {profile.nextOfKinPhoneNumber || 'N/A'}</div>
           </div>
 
           <div className="right">
-            <div className="qr">QR CODE</div>
-            <div className="small" style={{ marginTop: '8px' }}>Website: {branch.website || 'www.school.com'}</div>
+            <div className="qr">
+              <QRCode value={qrCodeValue} size={80} />
+            </div>
           </div>
         </div>
       </section>
