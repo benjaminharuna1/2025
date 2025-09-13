@@ -2,8 +2,8 @@
   --blue-1:#0b63b8;
   --blue-2:#2f9bd6;
   --accent:#0e4a86;
-  --card-width:520px;
-  --card-height:320px;
+  --card-width: 3.375in;
+  --card-height: 2.125in;
   --radius:10px;
   --gap:28px;
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
@@ -226,17 +226,17 @@ body{
   }
 
   .card-container {
-    display: flex;
-    gap: 12px;
+    display: block;
     page-break-after: always;
   }
 
   .card {
     box-shadow: none !important;
-    width: 50% !important;
+    width: var(--card-width) !important;
     height: var(--card-height) !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    margin-bottom: 12px;
   }
 
   .front .header {
