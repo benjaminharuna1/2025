@@ -19,10 +19,12 @@ import {
   IonMenuButton,
   IonAvatar,
 } from "@ionic/react";
-import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent } from "../../services/parentApi";
+import { getParents, createParent, updateParent, deleteParent, getParentById, linkStudent, unlinkStudent, uploadParentProfilePicture } from "../../services/parentApi";
 import { Student } from "../../types";
 import SidebarMenu from "../../components/SidebarMenu";
 import api from "../../services/api";
+
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
 
 const ParentsPage: React.FC = () => {
   const [parents, setParents] = useState<any[]>([]);
@@ -32,6 +34,14 @@ const ParentsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastOpen, setToastOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const getImageUrl = (path?: string) => {
+    if (!path) return '';
+    const imagePath = path.replace('public/', '');
+    return `${BACKEND_URL}/${imagePath}`;
+  };
+
   const [formData, setFormData] = useState<any>({
     name: "",
     email: "",
@@ -51,6 +61,7 @@ const ParentsPage: React.FC = () => {
     nextOfKinName: "",
     nextOfKinPhoneNumber: "",
     nextOfKinAddress: "",
+    profilePictureUrl: "",
   });
   const [originalStudents, setOriginalStudents] = useState<string[]>([]);
 
@@ -82,6 +93,7 @@ const ParentsPage: React.FC = () => {
   };
 
   const openModal = async (parent: any = null) => {
+    setSelectedFile(null);
     if (parent) {
         setLoading(true);
         try {
@@ -107,6 +119,7 @@ const ParentsPage: React.FC = () => {
                 nextOfKinName: data.nextOfKinName || "",
                 nextOfKinPhoneNumber: data.nextOfKinPhoneNumber || "",
                 nextOfKinAddress: data.nextOfKinAddress || "",
+                profilePictureUrl: data.userId.profilePicture || "",
             });
         } catch (error) {
             console.error("Failed to fetch parent details", error);
@@ -137,6 +150,7 @@ const ParentsPage: React.FC = () => {
         nextOfKinName: "",
         nextOfKinPhoneNumber: "",
         nextOfKinAddress: "",
+        profilePictureUrl: "",
       });
     }
     setShowModal(true);
@@ -152,6 +166,12 @@ const ParentsPage: React.FC = () => {
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const handleSelectChange = (name: string, value: any) => {
     setFormData({ ...formData, [name]: value });
   };
@@ -164,6 +184,7 @@ const ParentsPage: React.FC = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      let parentId = selectedParent?._id;
       if (selectedParent) {
         await updateParent(selectedParent._id, formData);
         const newStudentIds = new Set(formData.students);
@@ -180,6 +201,7 @@ const ParentsPage: React.FC = () => {
       } else {
         const response = await createParent(formData);
         const newParent = response.data;
+        parentId = newParent._id;
         if (newParent && newParent._id && formData.students.length > 0) {
           for (const studentId of formData.students) {
             linkStudent(newParent._id, studentId);
@@ -187,6 +209,12 @@ const ParentsPage: React.FC = () => {
         }
         showToast("Parent created successfully");
       }
+
+      if (selectedFile && parentId) {
+        await uploadParentProfilePicture(parentId, selectedFile);
+        showToast("Profile picture updated");
+      }
+
       fetchParents();
       closeModal();
     } catch (error) {
@@ -248,6 +276,11 @@ const ParentsPage: React.FC = () => {
               </IonToolbar>
             </IonHeader>
             <IonContent>
+              <div style={{ textAlign: 'center', padding: '10px' }}>
+                <IonAvatar style={{ width: '100px', height: '100px', margin: 'auto' }}>
+                  <img src={getImageUrl(formData.profilePictureUrl) || `https://ui-avatars.com/api/?name=${formData.name.replace(/\s/g, '+')}`} alt="profile" />
+                </IonAvatar>
+              </div>
               <IonList>
                 {/* Core Information */}
                 <IonItem>
@@ -340,6 +373,12 @@ const ParentsPage: React.FC = () => {
                             </IonSelectOption>
                         ))}
                     </IonSelect>
+                </IonItem>
+
+                {/* Profile Picture */}
+                <IonItem>
+                  <IonLabel position="stacked">Profile Picture</IonLabel>
+                  <input type="file" accept="image/*" onChange={handleFileChange} />
                 </IonItem>
               </IonList>
               <IonButton expand="block" onClick={handleSave}>Save</IonButton>

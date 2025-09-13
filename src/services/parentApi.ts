@@ -13,3 +13,13 @@ export const deleteParent = (id: string) => api.delete(`/parents/${id}`);
 export const linkStudent = (id: string, studentId: string) => api.put(`/parents/${id}/link`, { studentId });
 
 export const unlinkStudent = (id: string, studentId: string) => api.put(`/parents/${id}/unlink`, { studentId });
+
+export const uploadParentProfilePicture = (id: string, file: File) => {
+  const formData = new FormData();
+  formData.append('profilePicture', file);
+  return api.put(`/parents/${id}/profile-picture`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
