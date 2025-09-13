@@ -32,6 +32,16 @@ import SidebarMenu from '../../components/SidebarMenu';
 
 const AttendanceReports: React.FC = () => {
   const { user } = useAuth();
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return dateString.split('T')[0];
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState('');
   const [classLevels, setClassLevels] = useState<ClassLevel[]>([]);
@@ -254,7 +264,7 @@ const AttendanceReports: React.FC = () => {
             </IonRow>
             {attendanceRecords.map(record => (
               <IonRow key={record._id}>
-                <IonCol>{new Date(record.date).toLocaleDateString()}</IonCol>
+                <IonCol>{formatDate(record.date)}</IonCol>
                 <IonCol>{(typeof record.studentId === 'object' && record.studentId.userId?.name) || 'N/A'}</IonCol>
                 <IonCol>{record.status}</IonCol>
                 <IonCol>{record.subjectId && typeof record.subjectId === 'object' ? record.subjectId.name : 'General'}</IonCol>
