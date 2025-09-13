@@ -55,6 +55,15 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
     }
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return dateString.split('T')[0];
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   const qrCodeValue = `
     Name: ${user.name}
     Role: ${user.role}
@@ -88,7 +97,7 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
           <div className="body-right">
             <div className="info">
               <label>Gender</label><div className="value">{user.gender || 'N/A'}</div>
-              <label>Date of Birth</label><div className="value">{profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
+              <label>Date of Birth</label><div className="value">{formatDate(profile.dateOfBirth)}</div>
               <label>Blood Group/Genotype</label><div className="value">{profile.bloodGroup || 'N/A'} / {profile.genotype || 'N/A'}</div>
               <label>Address</label><div className="value">{profile.address || 'N/A'}</div>
               <label>Contact</label><div className="value">{profile.phoneNumber || 'N/A'}</div>

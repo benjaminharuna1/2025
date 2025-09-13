@@ -6,6 +6,15 @@ interface ReportCardProps {
 }
 
 const ReportCard: React.FC<ReportCardProps> = ({ report }) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return dateString.split('T')[0];
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="report-card">
       <div className="header">
@@ -65,7 +74,7 @@ const ReportCard: React.FC<ReportCardProps> = ({ report }) => {
       </div>
       <div className="footer">
         <p><strong>Next Term Begins:</strong> {report.nextTermBegins}</p>
-        <p><strong>Report Date:</strong> {new Date(report.reportDate).toLocaleDateString()}</p>
+        <p><strong>Report Date:</strong> {formatDate(report.reportDate)}</p>
       </div>
     </div>
   );

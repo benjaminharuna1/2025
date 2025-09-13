@@ -12,6 +12,15 @@ interface ReceiptProps {
 const Receipt: React.FC<ReceiptProps> = ({ receiptData }) => {
   const { invoice, payments } = receiptData;
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return dateString.split('T')[0];
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="receipt">
       <div className="header">
@@ -54,7 +63,7 @@ const Receipt: React.FC<ReceiptProps> = ({ receiptData }) => {
         <tbody>
           {payments.map((payment, index) => (
             <tr key={index}>
-              <td>{new Date(payment.paymentDate).toLocaleDateString()}</td>
+              <td>{formatDate(payment.paymentDate)}</td>
               <td>{payment.amountPaid}</td>
               <td>{payment.paymentMethod}</td>
             </tr>
