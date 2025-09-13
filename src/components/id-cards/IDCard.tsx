@@ -1,5 +1,5 @@
 import React from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import './IDCard.css';
 
 interface IDCardProps {
@@ -104,7 +104,7 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
 
           <div className="right">
             <div className="qr">
-              <QRCode value={qrCodeValue} size={80} />
+              <QRCodeCanvas value={qrCodeValue} size={80} />
             </div>
           </div>
         </div>
