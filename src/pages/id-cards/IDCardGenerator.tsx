@@ -18,6 +18,8 @@ import { Capacitor } from '@capacitor/core';
 import { generateIdCards } from '../../services/idCardApi';
 import SidebarMenu from '../../components/SidebarMenu';
 import IDCard from '../../components/id-cards/IDCard';
+import { QRCodeCanvas } from 'qrcode.react';
+import ReactDOM from 'react-dom';
 
 const styles = StyleSheet.create({
   page: {
@@ -269,8 +271,83 @@ const IDCardGeneratorPage: React.FC = () => {
     }
   };
 
+  const handlePrint = () => {
+    const printContainer = document.getElementById('print-container');
+    if (printContainer) {
+      const qrCodeElements = document.querySelectorAll('.qr-code-canvas');
+      const qrCodeDataUrls = Array.from(qrCodeElements).map(canvas => (canvas as HTMLCanvasElement).toDataURL());
+
+      const printContent = cardData.map((data, index) => {
+        const { user, profile, branch } = data;
+        const qrCodeUrl = qrCodeDataUrls[index];
+        return `
+          <div class="card-container">
+            <div class="card front">
+              <div class="header">
+                <div class="center-text">
+                  <div class="school-name">${branch.schoolName || 'School Name'}</div>
+                  <div class="branch-name">${branch.name}</div>
+                  <div class="address">${branch.address}</div>
+                </div>
+              </div>
+              <div class="id-card-type">${user.role === 'Student' ? 'Student ID Card' : 'Staff ID Card'}</div>
+              <div class="body">
+                <div class="body-left">
+                  <div class="photo"><img src="https://ui-avatars.com/api/?name=${user.name.replace(/\s/g, '+')}" alt="photo" /></div>
+                  <div class="user-name">${user.name}</div>
+                  <div class="id-number">${profile.admissionNumber || profile.staffId || profile.parentId}</div>
+                </div>
+                <div class="body-right">
+                  <div class="info">
+                    <div><label>Gender:</label> <div class="value">${user.gender || 'N/A'}</div></div>
+                    <div><label>Date of Birth:</label> <div class="value">${profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}</div></div>
+                    <div><label>Blood Group/Genotype:</label> <div class="value">${profile.bloodGroup || 'N/A'} / ${profile.genotype || 'N/A'}</div></div>
+                    <div><label>Address:</label> <div class="value">${profile.address || 'N/A'}</div></div>
+                    <div><label>Contact:</label> <div class="value">${profile.phoneNumber || 'N/A'}</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="footer-shape"></div>
+            </div>
+            <div class="card back">
+              <div class="terms">
+                <div class="term-title">Important notice</div>
+                <div class="term-text small">
+                  This ID card must be carried at all times while on school premises.<br />
+                  The card remains the property of ${branch.schoolName} and must be returned upon request.<br />
+                  If found, please return to:<br />
+                  ${branch.schoolName} - ${branch.name}<br />
+                  ${branch.address}<br />
+                  Tel: ${branch.contact}
+                </div>
+              </div>
+              <div class="meta">
+                <div class="left">
+                  <div class="small"><strong>Next of Kin:</strong> ${profile.nextOfKinName || 'N/A'}</div>
+                  <div class="small"><strong>Contact:</strong> ${profile.nextOfKinPhoneNumber || 'N/A'}</div>
+                </div>
+                <div class="right">
+                  <div class="qr"><img src="${qrCodeUrl}" alt="qr code" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      printContainer.innerHTML = printContent;
+      window.print();
+    }
+  };
+
   return (
     <>
+      <div style={{ display: 'none' }}>
+        {cardData.map((data, index) => {
+          const { user, profile, branch } = data;
+          const qrCodeValue = `Name: ${user.name}, Role: ${user.role}, ID: ${profile.admissionNumber || profile.staffId || profile.parentId}, Branch: ${branch.name}`;
+          return <QRCodeCanvas key={index} value={qrCodeValue} size={80} className="qr-code-canvas" />;
+        })}
+      </div>
       <SidebarMenu />
       <IonPage id="main-content">
         <IonHeader>
@@ -294,29 +371,36 @@ const IDCardGeneratorPage: React.FC = () => {
               Generate ID Cards
             </IonButton>
             {showPdf && (
-              Capacitor.isNativePlatform() ? (
-                <IonButton expand="block" onClick={handleSaveToDevice} style={{ marginTop: '16px' }}>
-                  Save as PDF
+              <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                {Capacitor.isNativePlatform() ? (
+                  <IonButton expand="block" onClick={handleSaveToDevice} style={{ flex: 1 }}>
+                    Save as PDF
+                  </IonButton>
+                ) : (
+                  <PDFDownloadLink document={<IDCardPDF data={cardData} />} fileName="id-cards.pdf" style={{ flex: 1 }}>
+                    {({ blob, url, loading, error }) =>
+                      loading ? 'Loading document...' : (
+                        <IonButton expand="block">
+                          Save as PDF
+                        </IonButton>
+                      )
+                    }
+                  </PDFDownloadLink>
+                )}
+                <IonButton expand="block" onClick={handlePrint} style={{ flex: 1 }}>
+                  Print
                 </IonButton>
-              ) : (
-                <PDFDownloadLink document={<IDCardPDF data={cardData} />} fileName="id-cards.pdf">
-                  {({ blob, url, loading, error }) =>
-                    loading ? 'Loading document...' : (
-                      <IonButton expand="block" style={{ marginTop: '16px' }}>
-                        Save as PDF
-                      </IonButton>
-                    )
-                  }
-                </PDFDownloadLink>
-              )
+              </div>
             )}
           </div>
 
-          <div className="page">
+          <div className="page" id="id-card-display">
             {cardData.map((data, index) => (
               <IDCard key={index} data={data} />
             ))}
           </div>
+
+          <div id="print-container" style={{ display: 'none' }}></div>
 
           <IonLoading isOpen={loading} message="Generating cards..." />
           <IonToast
