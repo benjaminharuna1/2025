@@ -46,7 +46,7 @@ const AttendanceReports: React.FC = () => {
   const [toDate, setToDate] = useState<string>('');
 
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -220,19 +220,37 @@ const AttendanceReports: React.FC = () => {
             <IonButton expand="full" onClick={handleFetchReports}>Fetch Reports</IonButton>
           </div>
 
-          {summary && (
+          {summary.length > 0 && (
             <IonCard>
-              <IonCardHeader><IonCardTitle>Summary</IonCardTitle></IonCardHeader>
+              <IonCardHeader><IonCardTitle>Attendance Summary</IonCardTitle></IonCardHeader>
               <IonCardContent>
-                <p>Total Present: {summary.totalPresent}</p>
-                <p>Total Absent: {summary.totalAbsent}</p>
-                <p>Total Late: {summary.totalLate}</p>
-                <p>Total Excused: {summary.totalExcused}</p>
-                <p>Attendance Percentage: {summary.attendancePercentage?.toFixed(2)}%</p>
+                <IonGrid>
+                  <IonRow>
+                    <IonCol><strong>Student</strong></IonCol>
+                    <IonCol><strong>Present</strong></IonCol>
+                    <IonCol><strong>Absent</strong></IonCol>
+                    <IonCol><strong>Late</strong></IonCol>
+                    <IonCol><strong>Excused</strong></IonCol>
+                    <IonCol><strong>Total</strong></IonCol>
+                    <IonCol><strong>Present %</strong></IonCol>
+                  </IonRow>
+                  {summary.map((item, index) => (
+                    <IonRow key={index}>
+                      <IonCol>{item.studentName}</IonCol>
+                      <IonCol>{item.attendance.find(a => a.status === 'Present')?.count || 0}</IonCol>
+                      <IonCol>{item.attendance.find(a => a.status === 'Absent')?.count || 0}</IonCol>
+                      <IonCol>{item.attendance.find(a => a.status === 'Late')?.count || 0}</IonCol>
+                      <IonCol>{item.attendance.find(a => a.status === 'Excused')?.count || 0}</IonCol>
+                      <IonCol>{item.total}</IonCol>
+                      <IonCol>{item.presentPercentage?.toFixed(2)}%</IonCol>
+                    </IonRow>
+                  ))}
+                </IonGrid>
               </IonCardContent>
             </IonCard>
           )}
 
+          <h3>Detailed Records</h3>
           <IonGrid>
             <IonRow>
               <IonCol><strong>Date</strong></IonCol>
