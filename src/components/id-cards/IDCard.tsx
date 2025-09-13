@@ -55,13 +55,13 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
     <div className="page">
       <section className="card front" aria-label="ID card front">
         <div className="header">
-          <SchoolLogo />
+          <SchoolLogo className="side-logo" />
           <div className="center-text">
             <div className="school-name">{import.meta.env.VITE_APP_NAME || 'School Name'}</div>
             <div className="branch-name">{branch.name}</div>
             <div className="address">{branch.address}</div>
           </div>
-          <SchoolLogo />
+          <SchoolLogo className="right-logo" />
         </div>
         <div className="id-card-type">{getIdCardType()}</div>
         <div className="body">

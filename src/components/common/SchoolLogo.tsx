@@ -4,17 +4,17 @@ import { IonImg } from '@ionic/react';
 interface SchoolLogoProps {
   logoUrl?: string;
   alt?: string;
-  style?: React.CSSProperties;
+  className?: string;
 }
 
-const SchoolLogo: React.FC<SchoolLogoProps> = ({ logoUrl, alt = 'School Logo', style }) => {
+const SchoolLogo: React.FC<SchoolLogoProps> = ({ logoUrl, alt = 'School Logo', className }) => {
   const defaultLogo = '/public/favicon.png'; // Using the Ionic logo as a placeholder
 
   return (
     <IonImg
       src={logoUrl || defaultLogo}
       alt={alt}
-      style={{ width: '48px', height: '48px', ...style }}
+      className={className}
     />
   );
 };

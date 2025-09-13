@@ -44,7 +44,7 @@ body{
 .front .header{
   background:linear-gradient(90deg,var(--blue-1),var(--blue-2));
   color:#fff;
-  padding:12px 18px;
+  padding: 8px 12px;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -64,9 +64,9 @@ body{
   text-align:center;
 }
 .front .header .side-logo, .front .header .right-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
   background: #fff;
   flex-shrink: 0;
 }
