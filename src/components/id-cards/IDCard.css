@@ -204,7 +204,27 @@ body{
 
 /* print */
 @media print{
-  body{background:white}
-  .page{gap:12px}
-  .card{box-shadow:none}
+  body {
+    background: white;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+  .page {
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+  }
+  .card {
+    box-shadow: none;
+    width: var(--card-width);
+    height: var(--card-height);
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+    page-break-inside: avoid;
+  }
+  .front .header, .front .footer-shape, .card.back, .terms, .qr {
+    background: inherit !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
 }
