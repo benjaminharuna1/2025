@@ -263,6 +263,7 @@ const StudentsPage: React.FC = () => {
             </IonHeader>
             <IonContent>
               <IonList>
+                {/* Core Information */}
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
                   <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
@@ -301,6 +302,8 @@ const StudentsPage: React.FC = () => {
                     <IonLabel position="stacked">Admission Number</IonLabel>
                     <IonInput name="admissionNumber" value={formData.admissionNumber} onIonChange={handleInputChange} />
                 </IonItem>
+
+                {/* Personal Information */}
                 <IonItem>
                     <IonLabel position="stacked">Gender</IonLabel>
                     <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange("gender", e.detail.value)}>
@@ -324,18 +327,6 @@ const StudentsPage: React.FC = () => {
                     <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
-                    <IonLabel position="stacked">Blood Group</IonLabel>
-                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Sponsor</IonLabel>
-                    <IonInput name="sponsor" value={formData.sponsor} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Religion</IonLabel>
-                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
                     <IonLabel position="stacked">State</IonLabel>
                     <IonInput name="state" value={formData.state} onIonChange={handleInputChange} />
                 </IonItem>
@@ -347,10 +338,26 @@ const StudentsPage: React.FC = () => {
                     <IonLabel position="stacked">Country</IonLabel>
                     <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
                 </IonItem>
+
+                {/* Additional Information */}
+                <IonItem>
+                    <IonLabel position="stacked">Religion</IonLabel>
+                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Blood Group</IonLabel>
+                    <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
+                </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">Genotype</IonLabel>
                     <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
                 </IonItem>
+                <IonItem>
+                    <IonLabel position="stacked">Sponsor</IonLabel>
+                    <IonInput name="sponsor" value={formData.sponsor} onIonChange={handleInputChange} />
+                </IonItem>
+
+                {/* Next of Kin Information */}
                 <IonItem>
                     <IonLabel position="stacked">Next of Kin Name</IonLabel>
                     <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />

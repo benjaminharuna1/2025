@@ -249,6 +249,7 @@ const ParentsPage: React.FC = () => {
             </IonHeader>
             <IonContent>
               <IonList>
+                {/* Core Information */}
                 <IonItem>
                   <IonLabel position="stacked">Name</IonLabel>
                   <IonInput name="name" value={formData.name} onIonChange={handleInputChange} />
@@ -264,6 +265,12 @@ const ParentsPage: React.FC = () => {
                   </IonItem>
                 )}
                 <IonItem>
+                    <IonLabel position="stacked">Parent ID</IonLabel>
+                    <IonInput name="parentId" value={formData.parentId} onIonChange={handleInputChange} />
+                </IonItem>
+
+                {/* Personal Information */}
+                <IonItem>
                     <IonLabel position="stacked">Gender</IonLabel>
                     <IonSelect name="gender" value={formData.gender} onIonChange={(e) => handleSelectChange("gender", e.detail.value)}>
                         <IonSelectOption value="Male">Male</IonSelectOption>
@@ -271,24 +278,16 @@ const ParentsPage: React.FC = () => {
                     </IonSelect>
                 </IonItem>
                 <IonItem>
+                    <IonLabel position="stacked">Date of Birth</IonLabel>
+                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
+                </IonItem>
+                <IonItem>
                     <IonLabel position="stacked">Phone Number</IonLabel>
                     <IonInput name="phoneNumber" value={formData.phoneNumber} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
-                    <IonLabel position="stacked">Parent ID</IonLabel>
-                    <IonInput name="parentId" value={formData.parentId} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
                     <IonLabel position="stacked">Address</IonLabel>
                     <IonInput name="address" value={formData.address} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Religion</IonLabel>
-                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
-                </IonItem>
-                <IonItem>
-                    <IonLabel position="stacked">Date of Birth</IonLabel>
-                    <IonInput name="dateOfBirth" type="date" value={formData.dateOfBirth} onIonChange={handleInputChange} />
                 </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">State</IonLabel>
@@ -302,6 +301,12 @@ const ParentsPage: React.FC = () => {
                     <IonLabel position="stacked">Country</IonLabel>
                     <IonInput name="country" value={formData.country} onIonChange={handleInputChange} />
                 </IonItem>
+
+                {/* Additional Information */}
+                <IonItem>
+                    <IonLabel position="stacked">Religion</IonLabel>
+                    <IonInput name="religion" value={formData.religion} onIonChange={handleInputChange} />
+                </IonItem>
                 <IonItem>
                     <IonLabel position="stacked">Blood Group</IonLabel>
                     <IonInput name="bloodGroup" value={formData.bloodGroup} onIonChange={handleInputChange} />
@@ -310,6 +315,8 @@ const ParentsPage: React.FC = () => {
                     <IonLabel position="stacked">Genotype</IonLabel>
                     <IonInput name="genotype" value={formData.genotype} onIonChange={handleInputChange} />
                 </IonItem>
+
+                {/* Next of Kin Information */}
                 <IonItem>
                     <IonLabel position="stacked">Next of Kin Name</IonLabel>
                     <IonInput name="nextOfKinName" value={formData.nextOfKinName} onIonChange={handleInputChange} />
@@ -322,6 +329,8 @@ const ParentsPage: React.FC = () => {
                     <IonLabel position="stacked">Next of Kin Address</IonLabel>
                     <IonInput name="nextOfKinAddress" value={formData.nextOfKinAddress} onIonChange={handleInputChange} />
                 </IonItem>
+
+                {/* Role-specific Information */}
                 <IonItem>
                     <IonLabel>Students</IonLabel>
                     <IonSelect multiple name="students" value={formData.students} onIonChange={(e) => handleSelectChange("students", e.detail.value)}>
