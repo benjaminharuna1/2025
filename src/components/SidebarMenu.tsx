@@ -63,6 +63,8 @@ const SidebarMenu: React.FC = () => {
       { text: 'Results', icon: documentTextOutline, path: '/dashboard/results', roles: ['Super Admin', 'Branch Admin', 'Teacher', 'Student', 'Parent'] },
       { text: 'Announcements', icon: megaphoneOutline, path: '/dashboard/announcements', roles: ['Super Admin', 'Branch Admin'] },
       { text: 'Reports', icon: barChartOutline, path: '/dashboard/reports', roles: ['Super Admin', 'Branch Admin', 'Accountant'] },
+      { text: 'ID Card Template', icon: documentTextOutline, path: '/dashboard/id-card-template', roles: ['Super Admin', 'Branch Admin'] },
+      { text: 'ID Card Generator', icon: documentTextOutline, path: '/dashboard/id-card-generator', roles: ['Super Admin', 'Branch Admin'] },
     ];
 
     return allLinks

@@ -28,6 +28,8 @@ import LeaveRequestForm from './pages/leave/LeaveRequestForm';
 import PromotionPage from './pages/promotions/PromotionPage';
 import ReportCardPreviewPage from './pages/reports/ReportCardPreview';
 import ProfilePage from './pages/profile/ProfilePage';
+import IDCardTemplatePage from './pages/id-cards/IDCardTemplate';
+import IDCardGeneratorPage from './pages/id-cards/IDCardGenerator';
 import FeeReportPreviewPage from './pages/reports/FeeReportPreview';
 import ReceiptPreviewPage from './pages/feepayments/ReceiptPreview';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -81,6 +83,8 @@ const App: React.FC = () => {
             <Route exact path="/login" render={() => user ? <Redirect to="/dashboard" /> : <Login />} />
             <Route exact path="/register" render={() => user ? <Redirect to="/dashboard" /> : <Register />} />
 
+            <ProtectedRoute path="/dashboard/id-card-template" component={IDCardTemplatePage} />
+            <ProtectedRoute path="/dashboard/id-card-generator" component={IDCardGeneratorPage} />
             <ProtectedRoute path="/dashboard/promotions" component={PromotionPage} />
             <ProtectedRoute path="/reports/report-card-preview" component={ReportCardPreviewPage} />
             <ProtectedRoute path="/reports/fee-report-preview" component={FeeReportPreviewPage} />
