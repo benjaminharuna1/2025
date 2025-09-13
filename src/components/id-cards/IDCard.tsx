@@ -58,9 +58,9 @@ const IDCard: React.FC<IDCardProps> = ({ data }) => {
             <div className="school-name">{branch.schoolName || 'School Name'}</div>
             <div className="branch-name">{branch.name}</div>
             <div className="address">{branch.address}</div>
-            <div className="id-card-type">{getIdCardType()}</div>
           </div>
         </div>
+        <div className="id-card-type">{getIdCardType()}</div>
         <div className="body">
           <div className="body-left">
             <div className="photo">

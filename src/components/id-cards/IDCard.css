@@ -74,18 +74,19 @@ body{
   opacity: 0.9;
   text-align: center;
 }
-.front .header .id-card-type {
+.id-card-type {
   font-size: 16px;
   font-weight: 700;
   text-align: center;
-  margin-top: 8px;
+  padding: 8px 0;
   text-transform: uppercase;
+  background: #f0f0f0;
 }
 
 .front .body{
   flex:1;
   display:flex;
-  padding:18px;
+  padding: 8px 18px;
   justify-content:space-between;
   background:linear-gradient(180deg,#ffffff,#f7fbff);
 }
